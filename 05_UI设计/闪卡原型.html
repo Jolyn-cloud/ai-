@@ -43,8 +43,9 @@
 
   /* ========================= 顶栏 ========================= */
   .topbar {
-    height: 56px; flex-shrink: 0;
+    height: 48px; flex-shrink: 0;
     display: flex; align-items: center;
+    justify-content: center;
     padding: 0 24px;
     background: #FFFFFF;
     border-bottom: 1px solid #ECEFF6;
@@ -52,7 +53,6 @@
   .topbar-title {
     font-size: 16px; font-weight: 700;
     color: var(--text-primary);
-    margin-right: 20px;
     white-space: nowrap;
   }
   .topbar-title .ver {
@@ -135,6 +135,60 @@
     overflow: hidden;
     position: relative;
   }
+  /* 手机状态栏：时间 / 信号 / 电量 + 小程序退出按钮 */
+  .phone-statusbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 34px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+    font-size: 13px; font-weight: 600; color: #1E2130;
+  }
+  .phone-statusbar .status-time { letter-spacing: 0.4px; }
+  .phone-statusbar .status-icons { display: flex; align-items: center; gap: 8px; }
+  .phone-statusbar .status-icons svg {
+    width: 16px; height: 12px; color: #1E2130;
+    display: block;
+  }
+  .phone-statusbar .status-icons .wifi { transform: translateY(1px); } /* 弧线视觉重心偏下，上移对齐 */
+  /* 小程序退出胶囊：状态栏下方右侧，模拟微信右上角 */
+  .mini-exit {
+    pointer-events: auto;
+    position: absolute;
+    top: 40px; right: 14px;
+    width: 26px; height: 26px;
+    border: none; border-radius: 8px;
+    background: rgba(30,33,48,0.07);
+    color: #1E2130;
+    font-size: 12px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s ease;
+    z-index: 101;
+  }
+  .mini-exit:hover { background: rgba(30,33,48,0.16); }
+  /* 退出提示浮层（轻提示，装饰性） */
+  .phone-exit-tip {
+    position: absolute;
+    top: 6px; left: 50%; transform: translateX(-50%);
+    z-index: 200;
+    padding: 7px 14px;
+    border-radius: 16px;
+    background: rgba(30,33,48,0.92);
+    color: #FFFFFF;
+    font-size: 12px; font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+    opacity: 0;
+    transition: opacity .25s ease, transform .25s ease;
+    pointer-events: none;
+  }
+  .phone-exit-tip.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
   .phone-notch {
     position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     width: 120px; height: 26px; z-index: 10;
@@ -171,6 +225,23 @@
     flex: 1; min-height: 0;
     display: flex; flex-direction: column;
   }
+  /* 逻辑面板视图切换胶囊 */
+  .view-switch {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 18px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #ECEFF6;
+  }
+  .view-chip {
+    padding: 5px 12px; border-radius: 14px;
+    border: 1px solid #E3E8F2; background: #F7F9FC;
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; transition: all .15s ease;
+    white-space: nowrap;
+  }
+  .view-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+  .view-chip.active { background: var(--primary); border-color: var(--primary); color: #FFFFFF; font-weight: 600; }
   .logic-head {
     flex-shrink: 0;
     height: 46px;
@@ -1279,8 +1350,8 @@
   }
   .card-stack {
     position: relative;
-    width: 100%; max-width: 340px;
-    height: 440px;
+    width: 100%; max-width: 352px;
+    height: 480px;
   }
 
   /* 背景卡片（堆叠效果） */
@@ -3082,11 +3153,6 @@
 
   <header class="topbar">
     <div class="topbar-title">闪卡原型<span class="ver">v1.0</span></div>
-    <nav class="tabs" id="tabBar"></nav>
-    <button class="logic-toggle" id="logicToggle" title="打开/收起逻辑说明">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v.01M12 12v4"/><circle cx="12" cy="12" r="9"/></svg>
-      <span id="logicToggleText">逻辑说明</span>
-    </button>
   </header>
 
 
@@ -3095,6 +3161,17 @@
       <div class="phone">
         <div class="phone-notch"><span class="speaker"></span><span class="cam"></span></div>
         <div class="phone-screen">
+          <!-- 手机状态栏（时间/信号/电量）+ 小程序退出按钮 -->
+          <div class="phone-statusbar">
+            <span class="status-time" id="statusTime">--:--</span>
+            <span class="status-icons">
+              <svg class="signal" viewBox="0 0 16 12" fill="currentColor"><path d="M0 9v3h4V9H0zM6 6v6h4V6H6zM12 3v9h4V3h-4z"/></svg>
+              <svg class="wifi" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4.5a9.5 9.5 0 0 1 12 0M4.5 7.2a6 6 0 0 1 7 0M7 9.8a2.5 2.5 0 0 1 2 0"/></svg>
+              <svg class="battery" viewBox="0 0 25 12" fill="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3"/><rect x="1.8" y="1.8" width="15" height="8.4" rx="1.6" fill="rgba(0,0,0,0.35)"/></svg>
+            </span>
+          </div>
+          <!-- 小程序退出胶囊：状态栏下方右侧（模拟微信右上角胶囊） -->
+          <button class="mini-exit" id="miniExit" title="退出小程序">✕</button>
           <div class="views" id="views">
 
         <div class="view active" id="view-home">
@@ -3772,6 +3849,8 @@
         </div>
 
           </div>
+          <!-- 退出小程序轻提示 -->
+          <div class="phone-exit-tip" id="exitTip">已退出演示环境</div>
         </div>
       </div>
     </div>
@@ -3783,6 +3862,7 @@
           <span class="ver-chip" id="panelVersionChip">外壳 v1.0</span>
           <button class="close-x" id="logicClose" title="收起">×</button>
         </div>
+        <div class="view-switch" id="viewSwitch"></div>
         <div class="logic-body" id="logicBody"></div>
       </div>
     </aside>
@@ -3843,6 +3923,28 @@ var HREF_VIEW = {
   '闪卡章节统计.html': 'view-stats',
   '闪卡设置.html': 'view-settings'
 };
+
+/* ---------- 手机状态栏：时钟 + 退出按钮 ---------- */
+function initStatusbar() {
+  var t = document.getElementById('statusTime');
+  if (!t) return;
+  function tick() {
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    t.textContent = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+  }
+  tick();
+  setInterval(tick, 30000); /* 半分钟刷新一次即可 */
+  var ex = document.getElementById('miniExit');
+  if (ex) ex.addEventListener('click', function() {
+    var tip = document.getElementById('exitTip');
+    if (!tip) return;
+    tip.classList.remove('show');
+    void tip.offsetWidth; /* 重启动画 */
+    tip.classList.add('show');
+    setTimeout(function() { tip.classList.remove('show'); }, 1800);
+  });
+}
 function __jump(url) {
   var u = String(url || '');
   var qm = u.indexOf('?');
@@ -3869,8 +3971,8 @@ function nav(viewId, filter) {
     document.getElementById(id).classList.toggle('active', id === viewId);
   });
   CURRENT = viewId;
-  document.querySelectorAll('.tab-btn').forEach(function(b, i) {
-    b.classList.toggle('active', VIEWS[i].id === viewId);
+  document.querySelectorAll('.view-chip').forEach(function(chip) {
+    chip.classList.toggle('active', chip.getAttribute('data-view') === viewId);
   });
   /* 视图启动/重入：每次进入都调对应模块的 __<name>_enter(FILTER) */
   var enterFn = window['__' + viewId.replace('view-', '') + '_enter'];
@@ -3883,15 +3985,16 @@ function nav(viewId, filter) {
 var VIEW_GLOB = {};
 function regView(dir, glob) { VIEW_GLOB[dir] = glob; }
 
-/* ---------- 顶栏 tab ---------- */
-var tabBar = document.getElementById('tabBar');
+/* ---------- 逻辑面板顶部视图胶囊 ---------- */
+var viewSwitch = document.getElementById('viewSwitch');
 function buildTabs() {
   VIEWS.forEach(function(v) {
     var b = document.createElement('button');
-    b.className = 'tab-btn';
+    b.className = 'view-chip';
     b.textContent = v.title;
+    b.setAttribute('data-view', v.id);
     b.addEventListener('click', function() { nav(v.id); });
-    tabBar.appendChild(b);
+    viewSwitch.appendChild(b);
   });
 }
 
@@ -3904,12 +4007,9 @@ function syncVersionUI() {
 /* ---------- 逻辑面板 ---------- */
 var logicCol = document.getElementById('logicCol');
 var logicBody = document.getElementById('logicBody');
-var logicToggle = document.getElementById('logicToggle');
-var logicToggleText = document.getElementById('logicToggleText');
-function openLogic() { logicCol.classList.add('open'); logicToggle.classList.add('close'); logicToggleText.textContent = '收起说明'; }
-function closeLogic() { logicCol.classList.remove('open'); logicToggle.classList.remove('close'); logicToggleText.textContent = '逻辑说明'; }
+function openLogic() { logicCol.classList.add('open'); }
+function closeLogic() { logicCol.classList.remove('open'); }
 function toggleLogic() { if (logicCol.classList.contains('open')) closeLogic(); else openLogic(); }
-logicToggle.addEventListener('click', toggleLogic);
 document.getElementById('logicClose').addEventListener('click', closeLogic);
 
 function currentLogicData() {
@@ -4137,6 +4237,7 @@ function initPrototype() {
   if (READY) return;
   READY = true;
   buildTabs();
+  initStatusbar();
   nav('view-home');
   openLogic();
 }
