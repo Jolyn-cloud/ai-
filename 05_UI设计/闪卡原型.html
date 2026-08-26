@@ -482,7 +482,7 @@
   }
 
   /* ========================= 内容 ========================= */
-  .content {
+  #view-home .content {
     position: relative;
     z-index: 2;
     flex: 1; min-height: 0;
@@ -490,7 +490,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 0 18px 30px;
+    padding: 0 6px 30px;
   }
   /* 内容超高时走滚动，不被 flex 压缩；否则纵向 flex 布局会把长卡片压扁 */
   .content > * { flex-shrink: 0; }
@@ -613,15 +613,16 @@
     align-items: flex-start;
     justify-content: space-between;
   }
-  .study-title { color: #fff; font-size: 20px; font-weight: 700; }
+  .study-title { color: #fff; font-size: 20px; font-weight: 700; white-space: nowrap; }
   .study-subtitle {
     margin-top: 7px;
     color: rgba(255,255,255,0.85);
     font-size: 14px;
+    white-space: nowrap;
   }
 
   .streak {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 7px 11px;
@@ -632,7 +633,7 @@
     border: 1px solid rgba(255,255,255,0.12);
     flex-shrink: 0;
   }
-  .streak span { font-size: 14px; }
+  .streak span { font-size: 14px; white-space: nowrap; }
 
   .settings-btn {
     width: 34px; height: 34px;
@@ -1177,6 +1178,11 @@
     .study-card { padding: 19px 16px 17px; }
     .study-title { font-size: 18px; }
     .percentage { font-size: 34px; }
+    /* 小屏更窄：数据行用负边距补偿缩进的卡内距，避免总进度/百分比挤成两行 */
+    .study-data { margin-left: -6px; margin-right: -6px; }
+    .study-data .data-label,
+    .study-data .data-number,
+    .study-data .percentage { white-space: nowrap; }
     .chapter-percent { font-size: 17px; }
     .chapter-progress { margin-left: 53px; }
     .sub-inner { margin-left: 53px; }
@@ -1264,14 +1270,14 @@
   }
 
   /* ========================= 内容 ========================= */
-  .content {
+  #view-single .content {
     position: relative; z-index: 2;
     flex: 1; min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     display: flex; flex-direction: column;
-    padding: 48px 18px 0;
+    padding: 48px 6px 0;
   }
   .content::-webkit-scrollbar { display: none; }
 
@@ -1350,12 +1356,13 @@
     display: flex; align-items: center; justify-content: center;
     position: relative;
     perspective: 1600px;
-    min-height: 360px;
+    min-height: 0;
   }
   .card-stack {
     position: relative;
     width: 100%; max-width: 352px;
-    height: 480px;
+    height: 100%;
+    max-height: 480px;
   }
 
   /* 背景卡片（堆叠效果） */
@@ -1602,10 +1609,12 @@
   /* ========================= 底部统计条 ========================= */
   .bottom-stats {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: auto;
     padding-bottom: 16px;
+    flex-shrink: 0;
   }
   .bs-item {
     display: inline-flex;
@@ -1618,6 +1627,7 @@
     font-size: 12px;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .bs-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .bs-remembered .bs-dot { background: var(--success); }
@@ -1943,11 +1953,11 @@
   }
 
   /* ========================= 内容 ========================= */
-  .content {
+  #view-list .content {
     position: relative; z-index: 2;
     flex: 1; min-height: 0;
     display: flex; flex-direction: column;
-    padding: 48px 18px 0;
+    padding: 48px 6px 0;
   }
 
   /* ========================= 顶栏 ========================= */
@@ -2268,9 +2278,10 @@
   /* ========================= 底部统计条 ========================= */
   .bottom-stats {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
-    margin-top: 10px;
+    margin-top: auto;
     padding-bottom: 16px;
     flex-shrink: 0;
   }
@@ -2285,6 +2296,7 @@
     font-size: 12px;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .bs-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .bs-remembered .bs-dot { background: var(--success); }
@@ -2560,7 +2572,7 @@
     }
   }
 
-  .content {
+  #view-stats .content {
     position: relative;
     z-index: 2;
     flex: 1; min-height: 0;
@@ -2990,7 +3002,7 @@
       #F8F9FC 100%);
   }
 
-  .content {
+  #view-settings .content {
     position: relative; z-index: 2;
     flex: 1; min-height: 0;
     overflow-y: auto;
