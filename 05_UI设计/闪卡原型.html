@@ -223,6 +223,33 @@
   }
   .view-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
   .view-chip.active { background: var(--primary); border-color: var(--primary); color: #FFFFFF; font-weight: 600; }
+  /* ---- 全局通栏：卡片状态标签（所有视图共用，与 view 无关） ---- */
+  .logic-global {
+    flex-shrink: 0;
+    margin: 10px 18px 0;
+    padding: 10px 12px;
+    background: #FFFFFF;
+    border: 1px solid #ECEFF6;
+    border-radius: 10px;
+    font-size: 12px; line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .logic-global-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+  .logic-global p { margin: 2px 0 6px; }
+  .global-tabs {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+  }
+  .g-tab {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+    white-space: nowrap;
+  }
+  .g-tab.g-ok   { background: #E8F8F0; color: #20A866; }
+  .g-tab.g-no   { background: #FEECEC; color: #EF4444; }
+  .g-tab.g-stub { background: #FFF1E6; color: #F28B3D; }
+  .g-arrow { color: var(--text-tertiary); }
+  .g-foot { margin: 6px 0 0; color: var(--text-tertiary); }
   .logic-head {
     flex-shrink: 0;
     height: 46px;
@@ -3818,6 +3845,26 @@
           <button class="close-x" id="logicClose" title="收起">×</button>
         </div>
         <div class="view-switch" id="viewSwitch"></div>
+        <div class="logic-global" id="logicGlobal">
+          <div class="logic-global-title">卡片状态标签（全局统一口径）</div>
+          <p>每张卡跳过即「处理过」；只有划卡判定才写标记。</p>
+          <div class="global-tabs">
+            <span class="g-tab g-ok">已记住</span>
+            <span class="g-arrow">=</span>
+            <span>右滑判定 · 绿</span>
+          </div>
+          <div class="global-tabs">
+            <span class="g-tab g-no">未记住</span>
+            <span class="g-arrow">=</span>
+            <span>左滑判定 · 红</span>
+          </div>
+          <div class="global-tabs">
+            <span class="g-tab g-stub">顽固</span>
+            <span class="g-arrow">=</span>
+            <span>同一张未记住 ≥3 次（跨天累计），每日必现</span>
+          </div>
+          <p class="g-foot">标记实时写回当日状态（flashCardState_v2 当日队列），跨模式共享，退出即保存。</p>
+        </div>
         <div class="logic-body" id="logicBody"></div>
       </div>
     </aside>
@@ -3974,11 +4021,11 @@ function currentLogicData() {
             {k:'判断阈值', v:'考试日 ≤ 今日 → 视为过期/待更新'},
             {k:'异常空态', v:'未爬取到或已过期 → 显示「考试日待更新」，不显示负数'}
           ] },
-        { num:'2', title:'章节树（手风琴）',
+        { num:'2', title:'全部章节（掌握率一览）',
           paras: [
-            '10 个一级章节，逐级展开二级 / 三级 / 四级知识点。',
-            '点击一级章（左侧章卡可收起/展开）；点击二级/三级项展开子级，同一层同时只展开一个。',
-            '每级右侧数字为「待刷 / 总量」；末级（4 级）点击直接进入单卡模式该考点过滤队列。'
+            '10 个一级章节，章节树按页面上下顺序排列；以章卡为一级，逐级展开二级 / 三级（子考点）、四级（知识点）。',
+            '一级至三级右侧展示「已记住 / 卡片数」+ 掌握率百分比；四级展示该知识点答题情况（已记住 ✓ / 未记住 × / 顽固）。',
+            '一级章节按掌握率升序（弱章节排最前），便于优先夯实薄弱；点击四级知识点直接进入单卡模式该考点过滤队列，刷该知识的全部题目。'
           ] },
         { num:'3', title:'背诵计划卡（Hero 下方）',
           paras: [
