@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>闪卡演示 · 原型外壳</title>
+
+<style>
+  /* ============================================================
+     Design Token（与 05_UI设计/设计Token.md 对齐）
+     ============================================================ */
+  :root{
+    --primary: #5B72F5;
+    --primary-dark: #4358D7;
+    --primary-light: #EEF1FF;
+
+    --text-primary: #202533;
+    --text-secondary: #6E778B;
+    --text-tertiary: #98A0B2;
+
+    --success: #20A866;
+    --success-light: #E8F8F0;
+    --warning: #F28B3D;
+    --warning-light: #FFF1E6;
+    --danger: #EF4444;
+    --danger-light: #FEECEC;
+
+    --card-radius: 17px;
+    --hero-radius: 22px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { width: 100%; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text-primary);
+    background: #EDEFF7;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ========================= 顶栏 ========================= */
+  .topbar {
+    height: 56px; flex-shrink: 0;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #ECEFF6;
+  }
+  .topbar-title {
+    font-size: 16px; font-weight: 700;
+    color: var(--text-primary);
+    margin-right: 20px;
+    white-space: nowrap;
+  }
+  .topbar-title .ver {
+    font-size: 11px; font-weight: 600;
+    color: var(--primary); background: var(--primary-light);
+    padding: 3px 8px; border-radius: 10px;
+    margin-left: 8px; vertical-align: 2px;
+  }
+  /* 顶部 tab（5 页切换） */
+  .tabs {
+    display: flex; align-items: center; gap: 6px;
+    height: 100%;
+  }
+  .tab-btn {
+    position: relative;
+    padding: 0 14px; height: 100%;
+    border: none; background: none; cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px; font-weight: 500;
+    transition: color .15s ease, background .15s ease;
+    display: flex; align-items: center;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { background: var(--primary-light); color: var(--primary-dark); }
+  .tab-btn.active { color: var(--primary-dark); font-weight: 700; }
+  .tab-btn.active::after {
+    content: ''; position: absolute; left: 10px; right: 10px; bottom: 0;
+    height: 3px; border-radius: 3px 3px 0 0; background: var(--primary);
+  }
+  /* 右侧说明入口（也放外壳级，便于开发对照） */
+  .logic-toggle {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 20px;
+    border: none; cursor: pointer;
+    background: var(--primary); color: #FFFFFF;
+    font-size: 13px; font-weight: 600;
+    transition: transform .1s ease, background .15s ease;
+  }
+  .logic-toggle:active { transform: scale(0.96); }
+  .logic-toggle.close { background: var(--primary-light); color: var(--primary-dark); }
+  .logic-toggle svg { width: 15px; height: 15px; }
+
+  /* ========================= 主体：左中右三列 ========================= */
+  .main {
+    flex: 1; min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
+
+  /* 中间：手机壳区 */
+  .phone-col {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 16px;
+    background:
+      radial-gradient(circle at 70% 20%, rgba(91,114,245,0.07) 0%, transparent 50%),
+      #EDEFF7;
+  }
+
+  /* 手机壳 */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: min(844px, calc(100vh - 56px - 48px));
+    background: #1E2130;
+    border-radius: 44px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(30,33,48,0.12),
+      0 20px 60px rgba(30,33,48,0.28),
+      inset 0 0 0 2px rgba(255,255,255,0.06);
+    display: flex; flex-direction: column;
+  }
+  .phone-screen {
+    flex: 1; min-height: 0;
+    border-radius: 33px;
+    background: #FFFFFF;
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 26px; z-index: 10;
+    background: rgba(255,255,255,0.92);
+    border-radius: 0 0 16px 16px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .phone-notch .speaker {
+    width: 42px; height: 5px; border-radius: 3px;
+    background: rgba(30,33,48,0.2);
+  }
+  .phone-notch .cam {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(30,33,48,0.35);
+  }
+  .phone-screen iframe {
+    width: 100%; height: 100%;
+    border: none; display: block;
+  }
+
+  /* ========================= 右侧：逻辑说明面板 ========================= */
+  .logic-col {
+    width: 0;               /* 收起态无宽度 */
+    overflow: hidden;
+    transition: width .25s ease;
+    background: #FBFBFF;
+    border-left: 1px solid #ECEFF6;
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .logic-col.open { width: 460px; }
+  .logic-panel {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+  }
+  .logic-head {
+    flex-shrink: 0;
+    height: 46px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 18px;
+    border-bottom: 1px solid #ECEFF6;
+    background: #FFFFFF;
+  }
+  .logic-head .title {
+    font-size: 14px; font-weight: 700;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .logic-head .ver-chip {
+    font-size: 11px; font-weight: 600;
+    color: var(--primary-dark);
+    background: var(--primary-light);
+    padding: 2px 8px; border-radius: 8px;
+  }
+  .logic-head .close-x {
+    margin-left: auto;
+    border: none; background: none; cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 18px; line-height: 1;
+    padding: 4px 6px;
+  }
+  .logic-body {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 18px 30px;
+    scrollbar-width: thin;
+  }
+  .logic-body::-webkit-scrollbar { width: 6px; }
+  .logic-body::-webkit-scrollbar-thumb { background: #DDE1F0; border-radius: 3px; }
+
+  /* ---- 面板内容结构 ---- */
+  .logic-desc {
+    font-size: 13px; line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background: var(--primary-light);
+    border-radius: 12px;
+  }
+  .logic-sec {
+    margin-bottom: 14px;
+    border: 1px solid #EAEDF6;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #FFFFFF;
+  }
+  .logic-sec-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: #FFFFFF;
+    border: none; width: 100%;
+    font: inherit;
+    text-align: left;
+  }
+  .logic-sec-head .num {
+    width: 22px; height: 22px; border-radius: 7px;
+    background: var(--primary); color: #FFFFFF;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logic-sec-head .sec-name { font-size: 14px; font-weight: 700; }
+  .logic-sec-head .chev {
+    margin-left: auto; color: var(--text-tertiary);
+    transition: transform .2s ease;
+  }
+  .logic-sec.open .logic-sec-head .chev { transform: rotate(180deg); }
+  .logic-sec-body { display: none; padding: 2px 14px 14px; }
+  .logic-sec.open .logic-sec-body { display: block; }
+
+  .logic-para {
+    margin: 10px 0 4px;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .logic-label {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 12.5px; line-height: 1.55;
+    color: var(--text-primary);
+    padding: 4px 0;
+  }
+  .logic-label .k {
+    flex-shrink: 0; font-weight: 600;
+    color: var(--primary-dark);
+    min-width: 58px;
+  }
+  .logic-label .v { color: var(--text-primary); }
+  .logic-note {
+    margin-top: 6px;
+    font-size: 11.5px; color: var(--text-tertiary);
+    background: #F5F6FB;
+    border-radius: 8px;
+    padding: 6px 10px;
+    line-height: 1.5;
+  }
+  .logic-table {
+    width: 100%; margin: 8px 0; border-collapse: collapse;
+    font-size: 12px;
+  }
+  .logic-table th, .logic-table td {
+    border: 1px solid #EAEDF6; padding: 6px 8px;
+    text-align: left; vertical-align: top;
+  }
+  .logic-table th { background: #F8F9FC; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+
+  /* ---- 角标（页面区块联动，点它滚动定位到面板对应节） ---- */
+  .logic-scroll-btn {
+    position: absolute; z-index: 9;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(91,114,245,0.9); color: #FFF;
+    border: none; cursor: pointer;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(91,114,245,0.35);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .logic-scroll-btn:hover { transform: scale(1.1); background: var(--primary-dark); }
+  .logic-scroll-btn.flash {
+    background: var(--warning);
+    animation: flashPulse 1.2s ease;
+  }
+  @keyframes flashPulse {
+    0% { box-shadow: 0 0 0 0 rgba(242,139,61,0.7); }
+    100% { box-shadow: 0 0 0 0 rgba(242,139,61,0); }
+  }
+
+  /* ==================== 页脚（版本号常驻） ==================== */
+  .footbar {
+    height: 34px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: #FFFFFF;
+    border-top: 1px solid #ECEFF6;
+    font-size: 12px; color: var(--text-tertiary);
+  }
+  .footbar .ver-badge {
+    color: var(--primary-dark); font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ==================== 顶栏 ==================== -->
+  <header class="topbar">
+    <div class="topbar-title">闪卡演示<span class="ver">v1.0</span></div>
+    <nav class="tabs" id="tabBar"></nav>
+    <button class="logic-toggle" id="logicToggle" title="打开/收起逻辑说明">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v.01M12 12v4"/><circle cx="12" cy="12" r="9"/></svg>
+      <span id="logicToggleText">逻辑说明</span>
+    </button>
+  </header>
+
+  <!-- ==================== 主体 ==================== -->
+  <div class="main">
+
+    <!-- 中间：手机壳 -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="phone-notch"><span class="speaker"></span><span class="cam"></span></div>
+        <div class="phone-screen">
+          <iframe id="phoneFrame" src="闪卡单卡模式.html" title="手机预览"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：逻辑说明面板 -->
+    <aside class="logic-col" id="logicCol">
+      <div class="logic-panel">
+        <div class="logic-head">
+          <div class="title">📋 逻辑说明</div>
+          <span class="ver-chip" id="panelVersionChip">外壳 v1.0</span>
+          <button class="close-x" id="logicClose" title="收起">×</button>
+        </div>
+        <div class="logic-body" id="logicBody"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="footbar">
+    <span>闪卡演示外壳 <span class="ver-badge">v1.0</span> ｜ 手机内为独立页面</span>
+    <span id="footVer"></span>
+  </footer>
+
+<script>
+  /* ============================================================
+     闪卡演示外壳 v1.0
+     多页面原型：手机壳 iframe + 右侧逻辑说明面板
+     ============================================================ */
+
+  /* 页面清单（tab 与 iframe 同步切换） */
+  var PAGES = [
+    { title: '首页',       file: '闪卡首页.html' },
+    { title: '单卡模式',   file: '闪卡单卡模式.html' },
+    { title: '列表模式',   file: '闪卡列表模式.html' },
+    { title: '章节统计',   file: '闪卡章节统计.html' },
+    { title: '背诵设置',   file: '闪卡设置.html' }
+  ];
+
+  /* 版本矩阵：外壳 v1.0，各页面版本号（单卡 v3.0 已定案） */
+  var PAGE_VERSIONS = {
+    '闪卡首页.html':       'v2.5',
+    '闪卡单卡模式.html':   'v3.0',
+    '闪卡列表模式.html':   'v2.8',
+    '闪卡章节统计.html':   'v1.5',
+    '闪卡设置.html':       'v1.2'
+  };
+
+  var tabBar = document.getElementById('tabBar');
+  var lineFrame = document.getElementById('phoneFrame');
+  var logicCol = document.getElementById('logicCol');
+  var logicBody = document.getElementById('logicBody');
+  var logicToggle = document.getElementById('logicToggle');
+  var logicToggleText = document.getElementById('logicToggleText');
+  var panelVersionChip = document.getElementById('panelVersionChip');
+  var footVer = document.getElementById('footVer');
+
+  /* ---------- 顶部 tab ---------- */
+  function buildTabs() {
+    PAGES.forEach(function(p, i) {
+      var b = document.createElement('button');
+      b.className = 'tab-btn';
+      b.textContent = p.title;
+      b.addEventListener('click', function() { switchPage(i); });
+      tabBar.appendChild(b);
+    });
+  }
+
+  function switchPage(i) {
+    var p = PAGES[i];
+    lineFrame.src = p.file;             // 切换 iframe 内容
+    document.querySelectorAll('.tab-btn').forEach(function(b, j) {
+      b.classList.toggle('active', j === i);
+    });
+    panelVersionChip.textContent = '演示外壳 v1.0 · ' + (PAGE_VERSIONS[p.file] || '—');
+    footVer.textContent = '当前页面 ' + p.title + ' ' + (PAGE_VERSIONS[p.file] || '');
+
+    /* 若当前有打开的某一页逻辑说明，切页后保持面板打开，但高亮当前页数据 */
+    renderLogicPanel(currentLogicData());
+  }
+
+  /* ---------- 逻辑说明面板开关 ---------- */
+  function openLogic() {
+    logicCol.classList.add('open');
+    logicToggle.classList.add('close');
+    logicToggleText.textContent = '收起说明';
+  }
+  function closeLogic() {
+    logicCol.classList.remove('open');
+    logicToggle.classList.remove('close');
+    logicToggleText.textContent = '逻辑说明';
+  }
+  function toggleLogic() {
+    logicCol.classList.contains('open') ? closeLogic() : openLogic();
+  }
+  logicToggle.addEventListener('click', toggleLogic);
+  document.getElementById('logicClose').addEventListener('click', closeLogic);
+
+  /* ---------- 逻辑说明渲染（结构化数据 → 面板） ---------- */
+  function currentLogicData() {
+    /* 占位：当前无任何页逻辑。待 PM 确认草稿内容后，按页填入结构化逻辑数据。 */
+    return { desc: '此处展示当前页面（' + lineFrame.src.split('/').pop() + '）的逻辑说明。\n（逻辑数据待填充）', sections: [] };
+  }
+
+  function renderLogicPanel(data) {
+    logicBody.innerHTML = '';
+    /* 页面职责 */
+    var descEl = document.createElement('div');
+    descEl.className = 'logic-desc';
+    descEl.textContent = data.desc || '';
+    logicBody.appendChild(descEl);
+
+    /* 区块 */
+    (data.sections || []).forEach(function(sec, si) {
+      var card = document.createElement('div');
+      card.className = 'logic-sec';
+      card.id = 'logic-sec-' + si;
+
+      /* 头 */
+      var head = document.createElement('button');
+      head.className = 'logic-sec-head';
+      head.innerHTML = '<span class="num">' + sec.num + '</span>' +
+        '<span class="sec-name">' + esc(sec.title) + '</span>' +
+        '<span class="chev">▾</span>';
+      head.addEventListener('click', function() { card.classList.toggle('open'); });
+      card.appendChild(head);
+
+      /* 体 */
+      var body = document.createElement('div');
+      body.className = 'logic-sec-body';
+      (sec.paras || []).forEach(function(para) {
+        var p = document.createElement('div');
+        p.className = 'logic-para';
+        p.textContent = para;
+        body.appendChild(p);
+      });
+      (sec.labels || []).forEach(function(lb) {
+        var d = document.createElement('div');
+        d.className = 'logic-label';
+        d.innerHTML = '<span class="k">' + esc(lb.k) + '</span><span class="v">' + esc(lb.v) + '</span>';
+        body.appendChild(d);
+      });
+      if (sec.table && sec.table.length) {
+        var t = document.createElement('table');
+        t.className = 'logic-table';
+        var headRow = '<tr>' + (sec.tableHead || ['项','规则']).map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>';
+        var bodyRows = sec.table.map(function(r){
+          return '<tr>' + r.map(function(c){ return '<td>' + esc(c) + '</td>'; }).join('') + '</tr>';
+        }).join('');
+        t.innerHTML = headRow + bodyRows;
+        body.appendChild(t);
+      }
+      (sec.notes || []).forEach(function(n) {
+        var d = document.createElement('div');
+        d.className = 'logic-note';
+        d.textContent = '⚠ ' + n;
+        body.appendChild(d);
+      });
+      card.appendChild(body);
+      logicBody.appendChild(card);
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ---------- 初始化 ---------- */
+  buildTabs();
+  switchPage(0);           // 默认单卡模式（首个 tab 即单卡，测试页）
+  footVer.textContent = '单卡模式 v3.0';
+  /* 外壳默认打开逻辑面板，便于展示 */
+  openLogic();
+</script>
+</body>
+</html>

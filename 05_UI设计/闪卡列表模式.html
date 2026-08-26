@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>闪卡 · 列表模式</title>
+
+<style>
+  /* ============================================================
+     Design Token（与 05_UI设计/设计Token.md 对齐）
+     ============================================================ */
+  :root{
+    --primary: #5B72F5;
+    --primary-dark: #4358D7;
+    --primary-light: #EEF1FF;
+
+    --text-primary: #202533;
+    --text-secondary: #6E778B;
+    --text-tertiary: #98A0B2;
+
+    --success: #20A866;
+    --success-light: #E8F8F0;
+    --warning: #F28B3D;
+    --warning-light: #FFF1E6;
+    --danger: #EF4444;
+    --danger-light: #FEECEC;
+
+    --card-radius: 17px;
+    --hero-radius: 22px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text-primary);
+    background: #F8F9FC;
+  }
+  body { display: flex; justify-content: center; overflow: hidden; }
+
+  /* ========================= 页面 =========================
+     与首页共用淡紫梦幻背景图，保持小程序视觉基调统一 */
+  .page {
+    position: relative;
+    width: 100%; max-width: 430px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    background: url('bg-flashcard-home.png') center top / cover no-repeat;
+    background-color: #F8F9FC;
+  }
+
+  /* ========================= 手机壳：桌面端固定手机比例居中 ========================= */
+  @media (min-width: 481px) {
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      align-items: center;
+      background: linear-gradient(150deg, #E3E5F1 0%, #ECEEF6 55%, #E6E8F2 100%);
+    }
+    .page {
+      width: 390px;
+      height: min(844px, calc(100vh - 44px));
+      border-radius: 34px;
+      box-shadow:
+        0 0 0 9px #1E2130,
+        0 0 0 11px rgba(255,255,255,0.65),
+        0 30px 80px rgba(30,33,48,0.38);
+    }
+  }
+
+  /* 底部白色渐隐遮罩 */
+  .bottom-mask {
+    position: absolute;
+    z-index: 1;
+    left: 0; right: 0;
+    top: 360px; bottom: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(248,249,252,0) 0%,
+      rgba(248,249,252,0.55) 18%,
+      rgba(248,249,252,0.92) 44%,
+      #F8F9FC 100%);
+  }
+
+  /* ========================= 内容 ========================= */
+  .content {
+    position: relative; z-index: 2;
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    padding: 48px 18px 0;
+  }
+
+  /* ========================= 顶栏 ========================= */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+  .exit-btn {
+    width: 36px; height: 36px; border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(54,66,108,0.06);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: transform .1s ease;
+  }
+  .exit-btn:active { transform: scale(0.92); }
+  .exit-btn svg { width: 20px; height: 20px; stroke: var(--text-secondary); }
+
+  .progress-info {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 14px; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    flex: 1; justify-content: center;
+    white-space: nowrap;
+  }
+  .progress-info strong { color: var(--primary); font-size: 18px; font-weight: 700; }
+  .progress-info .total { color: var(--text-tertiary); }
+
+  .top-right {
+    display: flex; align-items: center; gap: 7px;
+    flex-shrink: 0;
+  }
+  .mode-tag {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 20px;
+    background: rgba(91,114,245,0.2);
+    color: var(--primary-dark); font-size: 12px; font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(91,114,245,0.22);
+  }
+  .mode-tag svg { width: 14px; height: 14px; stroke: var(--primary-dark); }
+  .switch-btn {
+    display: flex; align-items: center; gap: 4px;
+    height: 32px; padding: 0 11px;
+    border: none; border-radius: 20px;
+    background: rgba(255,255,255,0.85);
+    color: var(--text-secondary);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(54,66,108,0.06);
+    transition: transform .1s ease;
+    white-space: nowrap;
+  }
+  .switch-btn:active { transform: scale(0.94); }
+  .switch-btn svg { width: 13px; height: 13px; stroke: var(--primary); }
+
+  /* ========================= 进度条 ========================= */
+  .progress-track {
+    width: 100%; height: 4px; border-radius: 10px;
+    background: rgba(91,114,245,0.12);
+    overflow: hidden;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .progress-fill {
+    width: 0%; height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, #5872F5, #6377F2);
+    transition: width .4s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* ========================= 列表滚动区 ========================= */
+  .list-scroll {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 1px 10px;
+    scrollbar-width: none;
+  }
+  .list-scroll::-webkit-scrollbar { display: none; }
+
+  /* ========================= 列表卡片 ========================= */
+  .lc-card {
+    position: relative;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border-radius: var(--card-radius);
+    box-shadow: 0 5px 18px rgba(54,66,108,0.055);
+    padding: 14px 15px 14px;
+    margin-bottom: 14px;
+    transition: opacity .25s ease, transform .25s ease;
+    animation: card-in .3s ease both;
+  }
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 已答卡：置灰 + 折叠 */
+  .lc-card.lc-done { opacity: 0.62; }
+  .lc-card.lc-done:active { opacity: 0.85; }
+
+  /* 顽固卡：橙色强调边框 + 极浅内部晕染（白底为主，明显但不刺眼） */
+  .lc-card.lc-stubborn {
+    border: 1.5px solid #F5A05A;            /* 比 --warning(#F28B3D) 略浅提亮 */
+    background:
+      linear-gradient(108deg, rgba(255,241,230,0.55) 0%, rgba(255,241,230,0) 38%, rgba(255,255,255,0.92) 100%),
+      rgba(255,255,255,0.92);
+    box-shadow: 0 5px 18px rgba(242,139,61,0.10);
+  }
+  /* 顽固已答卡：边框保留，晕染随置灰减弱 */
+  .lc-card.lc-stubborn.lc-done {
+    border-color: rgba(245,160,90,0.6);
+  }
+
+  /* 右上角顽固标识角标：骑跨卡片右上边线（小部分溢出卡外，勋章式）
+     .lc-card 无 overflow:hidden，角标可自由溢出 */
+  .stub-mark {
+    position: absolute;
+    top: -8px; right: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--warning-light);
+    color: var(--warning);
+    line-height: 1;
+    z-index: 2;
+    border: 1.5px solid #F5A05A;
+    box-shadow: 0 2px 5px rgba(242,139,61,0.22);
+  }
+  .stub-mark svg { width: 12px; height: 12px; stroke: var(--warning); }
+
+  /* 头部标签行 */
+  .lc-head {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 9px;
+  }
+  .lc-tag {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 4px 9px; border-radius: 7px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 10.5px; font-weight: 600;
+    max-width: 100%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lc-tag svg { width: 11px; height: 11px; stroke: var(--primary); flex-shrink: 0; }
+  .tag-sep { color: rgba(91,114,245,0.45); font-weight: 500; margin: 0 1px; }
+  .tag-sub { color: #7C66E8; font-weight: 650; }
+
+  /* 今日重现角标（未记住副本） */
+  .round-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 7px;
+    background: rgba(91,114,245,0.1);
+    color: var(--primary-dark);
+    font-size: 10px; font-weight: 600;
+  }
+  .round-tag svg { width: 10px; height: 10px; stroke: var(--primary-dark); }
+
+  /* 已答状态徽标 */
+  .done-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 9px; border-radius: 7px;
+    font-size: 10.5px; font-weight: 650;
+  }
+  .done-badge svg { width: 11px; height: 11px; }
+  .done-badge.ok { background: var(--success-light); color: var(--success); }
+  .done-badge.ok svg { stroke: var(--success); }
+  .done-badge.no { background: var(--danger-light); color: var(--danger); }
+  .done-badge.no svg { stroke: var(--danger); }
+
+  /* 问题 */
+  .lc-q {
+    font-size: 15px; font-weight: 650;
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin-bottom: 4px;
+    word-break: break-word;
+  }
+
+  /* 填空题：视觉空位与答案高亮 */
+  .cloze-blank {
+    display: inline-block;
+    min-width: 48px;
+    height: 1.15em;
+    border-bottom: 2px solid var(--primary);
+    margin: 0 3px;
+    vertical-align: bottom;
+  }
+  .cloze-fill {
+    display: inline-block;
+    min-width: 40px;
+    color: var(--success);
+    font-weight: 700;
+    border-bottom: 2px solid var(--success);
+    margin: 0 3px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  /* ========================= 行内遮挡块（原位揭示答案） ========================= */
+  .cloze-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 76px;
+    padding: 2px 10px;
+    margin: 0 2px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #EEF1FF 0%, #E4EAFF 100%);
+    border: 1px dashed rgba(91,114,245,0.38);
+    color: var(--primary);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    vertical-align: baseline;
+    transition: transform .1s ease, opacity .2s ease;
+    user-select: none;
+  }
+  .cloze-mask:active { transform: scale(0.97); }
+  .cloze-mask svg { width: 13px; height: 13px; stroke: var(--primary); flex-shrink: 0; }
+  .cloze-revealed {
+    display: inline-block;
+    padding: 0 4px;
+    margin: 0 2px;
+    color: var(--success);
+    font-weight: 700;
+    border-bottom: 2px solid var(--success);
+  }
+
+  /* ========================= 答案遮挡区 ========================= */
+  .lc-mask {
+    margin-top: 9px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #EEF1FF 0%, #E4EAFF 100%);
+    border: 1px dashed rgba(91,114,245,0.38);
+    padding: 18px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    color: var(--primary);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: transform .1s ease;
+    user-select: none;
+  }
+  .lc-mask:active { transform: scale(0.985); }
+  .lc-mask svg { width: 20px; height: 20px; stroke: var(--primary); }
+  .lc-mask-sub { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
+
+  /* 答案区（高度 0 → 展开） */
+  .lc-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .38s cubic-bezier(.22,.61,.36,1), margin-top .3s ease;
+    margin-top: 0;
+  }
+  .lc-answer.open { margin-top: 9px; }
+  .lc-answer-inner {
+    background: linear-gradient(160deg, #FFFFFF 0%, #FAFBFE 100%);
+    border: 1px solid rgba(91,114,245,0.12);
+    border-radius: 12px;
+    padding: 12px 13px;
+  }
+  .lc-a-label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--primary);
+    margin-bottom: 5px;
+  }
+  .lc-a-label svg { width: 12px; height: 12px; stroke: var(--primary); }
+  .lc-a-text {
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+    line-height: 1.6; margin-bottom: 9px; word-break: break-word;
+  }
+  .lc-a-analysis {
+    font-size: 12.5px; font-weight: 400; color: var(--text-secondary);
+    border-top: 1px dashed rgba(91,114,245,0.16);
+    padding-top: 8px; margin-bottom: 0;
+  }
+
+  /* ========================= 操作按钮 ========================= */
+  .lc-actions {
+    display: flex; gap: 10px;
+    margin-top: 11px;
+  }
+  .lc-btn {
+    flex: 1; height: 40px; border: none;
+    border-radius: 11px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    transition: transform .1s ease, opacity .2s ease;
+  }
+  .lc-btn:active { transform: scale(0.96); }
+  .lc-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .lc-btn svg { width: 15px; height: 15px; }
+  .lc-btn-forgot { background: var(--danger-light); color: var(--danger); }
+  .lc-btn-forgot svg { stroke: var(--danger); }
+  .lc-btn-remembered { background: var(--success-light); color: var(--success); }
+  .lc-btn-remembered svg { stroke: var(--success); }
+
+  /* 已答卡折叠提示 */
+  .lc-done-hint {
+    margin-top: 10px;
+    font-size: 11px; color: var(--text-tertiary);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .lc-done-hint svg { width: 12px; height: 12px; stroke: var(--text-tertiary); }
+
+  /* 空状态 */
+  .lc-empty {
+    text-align: center;
+    padding: 70px 30px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .lc-empty svg { width: 44px; height: 44px; stroke: var(--text-tertiary); margin-bottom: 10px; }
+
+  /* ========================= 底部统计条 ========================= */
+  .bottom-stats {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .bs-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 2px 8px rgba(54,66,108,0.05);
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .bs-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .bs-remembered .bs-dot { background: var(--success); }
+  .bs-forgot .bs-dot { background: var(--danger); }
+  .bs-stubborn .bs-dot { background: var(--warning); }
+  .bs-item strong { font-size: 14px; font-weight: 700; }
+  .bs-remembered strong { color: var(--success); }
+  .bs-forgot strong { color: var(--danger); }
+  .bs-stubborn strong { color: var(--warning); }
+
+  /* ========================= 完成结算页（与单卡模式学习成果页一致） ========================= */
+  .completion {
+    position: absolute; inset: 0; z-index: 100;
+    background: linear-gradient(180deg, #E7EFFF 0%, #F8F9FC 100%);
+    display: none;
+    flex-direction: column;
+    padding: 0;
+  }
+  .completion.show { display: flex; }
+  .completion-scroll {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 34px 20px 22px;
+  }
+  .completion-scroll::-webkit-scrollbar { display: none; }
+
+  /* 顶部 hero */
+  .completion-hero { text-align: center; margin-bottom: 22px; }
+  .completion-emoji {
+    width: 64px; height: 64px; margin: 0 auto 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5B72F5, #6B5FE8);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 12px 28px rgba(91,114,245,0.28);
+    font-size: 30px;
+  }
+  .completion-title { font-size: 24px; font-weight: 750; margin-bottom: 6px; }
+  .completion-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* 核心指标卡：环形图 + 三指标 */
+  .completion-summary {
+    background: rgba(255,255,255,0.95);
+    border-radius: 18px;
+    padding: 18px 16px 16px;
+    box-shadow: 0 6px 18px rgba(54,66,108,0.05);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .ring-wrap {
+    position: relative;
+    width: 92px; height: 92px;
+    flex-shrink: 0;
+  }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: #E8EAF3; stroke-width: 8; }
+  .ring-fill { fill: none; stroke: url(#ringGradient); stroke-width: 8; stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1);
+  }
+  .ring-text {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .ring-pct { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .ring-label { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+  .summary-bars { flex: 1; display: flex; flex-direction: column; gap: 11px; }
+  .summary-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .summary-row strong { font-size: 18px; font-weight: 750; color: var(--text-primary); }
+  .summary-row .s-total strong { color: var(--primary); }
+  .summary-row .s-ok strong { color: var(--success); }
+  .summary-row .s-bad strong { color: var(--danger); }
+
+  /* 通用卡片区 */
+  .comp-section {
+    background: rgba(255,255,255,0.95);
+    border-radius: 18px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 6px 18px rgba(54,66,108,0.05);
+    margin-bottom: 14px;
+  }
+  .comp-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 13px;
+  }
+  .comp-section-title {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 15px; font-weight: 700; color: var(--text-primary);
+  }
+  .comp-section-title svg { width: 17px; height: 17px; }
+  .comp-section-extra { font-size: 12px; color: var(--text-tertiary); }
+
+  /* 薄弱知识点 TOP5 */
+  .weak-list { display: flex; flex-direction: column; gap: 11px; }
+  .weak-item { display: flex; align-items: center; gap: 10px; }
+  .weak-rank {
+    width: 20px; height: 20px; border-radius: 6px;
+    background: var(--primary-light); color: var(--primary);
+    font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .weak-rank.top { background: #FEECEC; color: #EF4444; }
+  .weak-info { flex: 1; min-width: 0; }
+  .weak-name { font-size: 13px; font-weight: 650; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .weak-path { font-size: 10.5px; color: var(--text-tertiary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .weak-bar { width: 64px; height: 5px; border-radius: 10px; background: #F3F4F6; overflow: hidden; flex-shrink: 0; }
+  .weak-bar-fill { height: 100%; border-radius: inherit; background: var(--danger); }
+  .weak-count { width: 42px; text-align: right; font-size: 12px; font-weight: 700; color: var(--danger); flex-shrink: 0; }
+
+  /* 章节掌握度分布 */
+  .chapter-dist-list { display: flex; flex-direction: column; gap: 10px; }
+  .chapter-dist-item { display: flex; align-items: center; gap: 10px; }
+  .chapter-dist-name { width: 78px; font-size: 12px; color: var(--text-primary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chapter-dist-bar { flex: 1; height: 10px; border-radius: 10px; background: #F3F4F6; overflow: hidden; display: flex; }
+  .cdb-ok { height: 100%; background: linear-gradient(90deg, #34D399, #20A866); }
+  .cdb-bad { height: 100%; background: linear-gradient(90deg, #FCA5A5, #EF4444); }
+  .chapter-dist-pct { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+  .chapter-dist-total { width: 28px; text-align: right; font-size: 11px; color: var(--text-tertiary); }
+
+  /* 背诵效率分析 */
+  .efficiency-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .eff-item { text-align: center; }
+  .eff-icon { width: 36px; height: 36px; margin: 0 auto 7px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
+  .eff-icon svg { width: 18px; height: 18px; stroke: var(--primary); }
+  .eff-value { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+  .eff-value.up { color: var(--success); }
+  .eff-value.down { color: var(--danger); }
+  .eff-label { font-size: 10.5px; color: var(--text-tertiary); margin-top: 2px; }
+
+  /* 巩固 CTA */
+  .comp-cta {
+    background: linear-gradient(135deg, #FF9F43 0%, #F28B3D 100%);
+    border-radius: 18px;
+    padding: 16px 18px;
+    color: white;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 24px rgba(242,139,61,0.22);
+  }
+  .comp-cta-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .comp-cta-desc { font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; }
+  .comp-cta-btn {
+    flex-shrink: 0;
+    height: 34px; padding: 0 14px;
+    border: none; border-radius: 17px;
+    background: rgba(255,255,255,0.95);
+    color: #F28B3D; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .comp-cta-btn:active { transform: scale(0.95); }
+
+  /* 底部操作 */
+  .completion-actions {
+    display: flex; gap: 10px;
+    padding: 12px 20px 22px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px);
+  }
+  .comp-btn {
+    flex: 1; height: 46px; border: none; border-radius: 14px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .comp-btn:active { transform: scale(0.97); }
+  .comp-btn-primary { background: var(--primary); color: white; box-shadow: 0 8px 20px rgba(91,114,245,0.25); }
+  .comp-btn-secondary { background: rgba(255,255,255,0.95); color: var(--text-secondary); border: 1px solid rgba(91,114,245,0.12); }
+
+  /* ========================= 退出弹窗 ========================= */
+  .modal-overlay {
+    position: absolute; inset: 0; z-index: 200;
+    background: rgba(20,25,40,0.4);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 0 40px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    width: 100%; max-width: 300px;
+    background: white; border-radius: 18px;
+    padding: 28px 24px 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+  .modal-desc { font-size: 13px; color: var(--text-secondary); text-align: center; line-height: 1.6; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; height: 42px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal-btn-cancel { background: #F3F4F6; color: var(--text-secondary); }
+  .modal-btn-confirm { background: var(--danger); color: white; }
+
+  /* 小屏适配 */
+  @media (max-width: 360px) {
+    .content { padding-left: 15px; padding-right: 15px; }
+    .progress-info { font-size: 13px; }
+    .lc-q { font-size: 14px; }
+    .mode-tag { display: none; }
+  }
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- 底部白色渐隐遮罩 -->
+  <div class="bottom-mask"></div>
+
+  <main class="content">
+
+    <!-- 顶栏 -->
+    <header class="top-bar">
+      <button class="exit-btn" id="exitBtn" aria-label="退出">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <div class="progress-info">
+        已刷 <strong id="doneCount">0</strong><span class="total" id="totalCount"> / 12</span>
+      </div>
+      <div class="top-right">
+        <div class="mode-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          列表模式
+        </div>
+        <button class="switch-btn" id="switchBtn" title="切换到单卡模式">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-15.5-6.5L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 15.5 6.5L21 16"/>
+            <path d="M21 21v-5h-5"/>
+          </svg>
+          单卡
+        </button>
+      </div>
+    </header>
+
+    <!-- 进度条 -->
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- 列表滚动区（JS 渲染） -->
+    <div class="list-scroll" id="listScroll"></div>
+
+    <!-- 底部统计条 -->
+    <div class="bottom-stats">
+      <div class="bs-item bs-remembered"><span class="bs-dot"></span>已记住 <strong id="bsRemembered">0</strong></div>
+      <div class="bs-item bs-forgot"><span class="bs-dot"></span>未记住 <strong id="bsForgot">0</strong></div>
+      <div class="bs-item bs-stubborn"><span class="bs-dot"></span>顽固 <strong id="bsStubborn">0</strong></div>
+    </div>
+
+  </main>
+
+  <!-- 完成结算页（学习成果，与单卡模式一致） -->
+  <div class="completion" id="completionScreen">
+    <!-- SVG 渐变定义（环形图用） -->
+    <svg width="0" height="0" style="position:absolute;">
+      <defs>
+        <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#5B72F5"/>
+          <stop offset="100%" stop-color="#6B5FE8"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="completion-scroll">
+      <!-- 顶部 hero -->
+      <div class="completion-hero">
+        <div class="completion-emoji" id="compEmoji">🎉</div>
+        <div class="completion-title" id="compTitle">今日背诵完成</div>
+        <div class="completion-subtitle" id="compSubtitle">全部章节</div>
+      </div>
+
+      <!-- 核心指标卡：环形图 + 三指标 -->
+      <div class="completion-summary">
+        <div class="ring-wrap">
+          <svg width="92" height="92" viewBox="0 0 92 92">
+            <circle class="ring-bg" cx="46" cy="46" r="40"/>
+            <circle class="ring-fill" id="ringFill" cx="46" cy="46" r="40"
+              stroke-dasharray="251.33" stroke-dashoffset="251.33"/>
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct" id="ringPct">0%</div>
+            <div class="ring-label">正确率</div>
+          </div>
+        </div>
+        <div class="summary-bars">
+          <div class="summary-row s-total">
+            <span>总张数</span>
+            <strong id="sumTotal">0</strong>
+          </div>
+          <div class="summary-row s-ok">
+            <span>已记住</span>
+            <strong id="sumRemembered">0</strong>
+          </div>
+          <div class="summary-row s-bad">
+            <span>未记住</span>
+            <strong id="sumForgot">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 薄弱知识点 TOP5 -->
+      <div class="comp-section">
+        <div class="comp-section-header">
+          <div class="comp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            薄弱知识点
+          </div>
+          <span class="comp-section-extra">错误次数</span>
+        </div>
+        <div class="weak-list" id="weakList"></div>
+      </div>
+
+      <!-- 章节掌握度分布 -->
+      <div class="comp-section">
+        <div class="comp-section-header">
+          <div class="comp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            章节掌握度
+          </div>
+        </div>
+        <div class="chapter-dist-list" id="chapterDistList"></div>
+      </div>
+
+      <!-- 背诵效率分析 -->
+      <div class="comp-section">
+        <div class="comp-section-header">
+          <div class="comp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            背诵效率分析
+          </div>
+        </div>
+        <div class="efficiency-grid">
+          <div class="eff-item">
+            <div class="eff-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="eff-value" id="effTime">0:00</div>
+            <div class="eff-label">本次用时</div>
+          </div>
+          <div class="eff-item">
+            <div class="eff-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </div>
+            <div class="eff-value" id="effSpeed">0s</div>
+            <div class="eff-label">平均速度</div>
+          </div>
+          <div class="eff-item">
+            <div class="eff-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+            <div class="eff-value" id="effCompare">--</div>
+            <div class="eff-label">较上次</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 巩固 CTA -->
+      <div class="comp-cta">
+        <div>
+          <div class="comp-cta-title">去刷题巩固薄弱点</div>
+          <div class="comp-cta-desc">针对错误最多的知识点进行专项练习</div>
+        </div>
+        <button class="comp-cta-btn" id="ctaPracticeBtn">立即练习</button>
+      </div>
+    </div>
+
+    <!-- 底部操作 -->
+    <div class="completion-actions" id="completionActions">
+      <button class="comp-btn comp-btn-secondary" onclick="goHome()">返回首页</button>
+      <button class="comp-btn comp-btn-primary" onclick="restart()">再背一轮</button>
+    </div>
+  </div>
+
+  <!-- 退出弹窗 -->
+  <div class="modal-overlay" id="exitModal">
+    <div class="modal-box">
+      <div class="modal-title">确认退出？</div>
+      <div class="modal-desc">本次进度将自动保留<br>下次进入可从当前位置继续</div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closeExitModal()">继续背诵</button>
+        <button class="modal-btn modal-btn-confirm" onclick="goHome()">确认退出</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="闪卡题库.js"></script>
+<script>
+/* ============================================================
+   列表模式（规则：闪卡功能规则.md §4）
+   - 同一份今日队列（闪卡题库.js），与单卡模式进度/标记共享
+   - 点击遮挡区 → 原位展开答案+解析；未展开不能点按钮
+   - 已答卡置灰折叠保留，点击可展开只看答案（不可重复标记）
+   - 未记住副本当天队尾重现（「今日重现」角标）
+   - 全部标记完毕 → 完成结算页
+   ============================================================ */
+var listEl = document.getElementById('listScroll');
+var baseState = loadState();
+var activeFilter = filterFromUrl();
+var filteredQueue = [];
+
+function refreshFilter() {
+  state = filterState(baseState, activeFilter);
+  filteredQueue = state.queue;
+}
+refreshFilter();
+
+var state = filterState(baseState, activeFilter);
+
+/* 当前过滤条件下的查询串（模式切换时透传） */
+function filterQuery() {
+  var p = [];
+  if (activeFilter.chapter) p.push('chapter=' + encodeURIComponent(activeFilter.chapter));
+  if (activeFilter.sub) p.push('sub=' + encodeURIComponent(activeFilter.sub));
+  if (activeFilter.topic) p.push('topic=' + encodeURIComponent(activeFilter.topic));
+  if (activeFilter.point) p.push('point=' + encodeURIComponent(activeFilter.point));
+  return p.length ? '?' + p.join('&') : '';
+}
+
+/* HTML 转义 */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* 章节标签（一级-二级） */
+function tagHtml(item) {
+  return '<span class="lc-tag">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>' +
+    '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' +
+    esc(item.chapter) + '<span class="tag-sep">-</span><span class="tag-sub">' + esc(item.sub) + '</span></span>';
+}
+
+/* 角标：今日重现 / 已答状态（顽固仅通过卡片边框+右上角角标识别，不再用头部胶囊） */
+function badgesHtml(item, done) {
+  var h = '';
+  if (!done && (item.round || 1) > 1) {
+    h += '<span class="round-tag">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>今日重现</span>';
+  }
+  if (done) {
+    var mark = state.marked[item.key];
+    if (mark === 'remembered') {
+      h += '<span class="done-badge ok">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M20 6L9 17l-5-5"/></svg>已记住</span>';
+    } else {
+      h += '<span class="done-badge no">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M18 6L6 18M6 6l12 12"/></svg>未记住</span>';
+    }
+  }
+  return h;
+}
+
+/* 填空题：题干 ____ 替换为行内可点击遮挡块（原位揭示答案） */
+function clozeMaskHtml(question, answer) {
+  var mask = '<span class="cloze-mask" data-answer="' + esc(answer) + '">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>' +
+    '点击查看</span>';
+  return esc(question).replace(/_{2,}/g, mask);
+}
+
+/* 单张卡片 HTML */
+function cardHtml(item, done) {
+  /* 顽固卡标记 class（供 CSS 强化边框+晕染） */
+  var isStub = isStubbornCard(state, item.id);
+  var cardCls = 'lc-card' + (done ? ' lc-done' : '') + (isStub ? ' lc-stubborn' : '');
+  /* 右上角顽固标识（小图标角标，仅顽固卡显示） */
+  var stubMark = isStub
+    ? '<span class="stub-mark" title="顽固卡：今日多次未记住，重点复习">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>'
+    : '';
+
+  /* 解析区内容（答案已原位揭示，此处只放解析） */
+  var analysisInner =
+    '<div class="lc-a-label">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+    '解析</div>' +
+    '<div class="lc-a-text lc-a-analysis">' + esc(item.analysis) + '</div>';
+
+  if (done) {
+    return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark +
+      '<div class="lc-head">' + tagHtml(item) + badgesHtml(item, true) + '</div>' +
+      '<div class="lc-q">' + clozeHtml(item.question, item.answer) + '</div>' +
+      '<div class="lc-answer" data-open="0"><div class="lc-answer-inner">' + analysisInner + '</div></div>' +
+      '<div class="lc-done-hint">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+      '已作答 · 点击展开查看解析</div>' +
+      '</div>';
+  }
+
+  return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark +
+    '<div class="lc-head">' + tagHtml(item) + badgesHtml(item, false) + '</div>' +
+    '<div class="lc-q">' + clozeMaskHtml(item.question, item.answer) + '</div>' +
+    '<div class="lc-answer" data-open="0"><div class="lc-answer-inner">' + analysisInner + '</div></div>' +
+    '<div class="lc-actions">' +
+    '<button class="lc-btn lc-btn-forgot" data-result="forgot" disabled>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M18 6L6 18M6 6l12 12"/></svg>未记住</button>' +
+    '<button class="lc-btn lc-btn-remembered" data-result="remembered" disabled>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M20 6L9 17l-5-5"/></svg>已记住</button>' +
+    '</div>' +
+    '</div>';
+}
+
+/* 渲染列表：未答在上、已答置灰折叠在下（基于过滤视图） */
+function renderList() {
+  refreshFilter();
+  var pending = [], doneList = [];
+  for (var i = 0; i < state.queue.length; i++) {
+    var it = state.queue[i];
+    if (state.marked[it.key]) doneList.push(it);
+    else pending.push(it);
+  }
+
+  var html = '';
+  if (!pending.length && !doneList.length) {
+    html = '<div class="lc-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' +
+      '暂无卡片<br>请返回首页重新开始背诵</div>';
+  } else {
+    for (var j = 0; j < pending.length; j++) html += cardHtml(pending[j], false);
+    for (var k = 0; k < doneList.length; k++) html += cardHtml(doneList[k], true);
+  }
+  listEl.innerHTML = html;
+
+  updateStats(calcStats(state));
+}
+
+/* 刷新顶栏进度 + 底部统计条 + 剩余张数 */
+function updateStats(stats) {
+  document.getElementById('doneCount').textContent = stats.done;
+  document.getElementById('totalCount').textContent = ' / ' + stats.total;
+  var pct = stats.total ? Math.min(stats.done / stats.total * 100, 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  document.getElementById('bsRemembered').textContent = stats.remembered;
+  document.getElementById('bsForgot').textContent = stats.forgot;
+  document.getElementById('bsStubborn').textContent = stats.stubborn;
+
+  /* 全部标记完毕 → 结算页 */
+  if (stats.total > 0 && stats.done >= stats.total) showCompletion();
+}
+
+/* 展开答案（未答卡） */
+function openAnswer(cardEl) {
+  var wrap = cardEl.querySelector('.lc-answer');
+  var inner = cardEl.querySelector('.lc-answer-inner');
+  if (!wrap || wrap.getAttribute('data-open') === '1') return;
+  wrap.setAttribute('data-open', '1');
+  wrap.classList.add('open');
+  wrap.style.maxHeight = inner.scrollHeight + 'px';
+  var btns = cardEl.querySelectorAll('.lc-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+  var mask = cardEl.querySelector('.lc-mask');
+  if (mask) mask.style.display = 'none';
+}
+
+/* 折叠/展开（已答卡只看解析） */
+function toggleAnswer(cardEl) {
+  var wrap = cardEl.querySelector('.lc-answer');
+  if (!wrap) return;
+  if (wrap.getAttribute('data-open') === '1') {
+    wrap.setAttribute('data-open', '0');
+    wrap.classList.remove('open');
+    wrap.style.maxHeight = '0px';
+  } else {
+    var inner = cardEl.querySelector('.lc-answer-inner');
+    wrap.setAttribute('data-open', '1');
+    wrap.classList.add('open');
+    wrap.style.maxHeight = inner.scrollHeight + 'px';
+  }
+}
+
+/* 原位揭示答案：遮挡块 → 答案文字 + 同步展开解析 + 启用按钮 */
+function revealClozeAnswer(cardEl, maskEl) {
+  /* 1. 遮挡块原位替换为答案文字 */
+  var answer = maskEl.getAttribute('data-answer') || '';
+  var revealed = document.createElement('span');
+  revealed.className = 'cloze-revealed';
+  revealed.textContent = answer;
+  maskEl.replaceWith(revealed);
+
+  /* 2. 同步展开解析区 */
+  var wrap = cardEl.querySelector('.lc-answer');
+  var inner = cardEl.querySelector('.lc-answer-inner');
+  if (wrap && wrap.getAttribute('data-open') !== '1') {
+    wrap.setAttribute('data-open', '1');
+    wrap.classList.add('open');
+    wrap.style.maxHeight = inner.scrollHeight + 'px';
+  }
+
+  /* 3. 启用操作按钮 */
+  var btns = cardEl.querySelectorAll('.lc-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+}
+
+/* 事件委托：遮罩展开 / 按钮标记 / 已答卡查看 */
+listEl.addEventListener('click', function(e) {
+  var cardEl = e.target.closest('.lc-card');
+  if (!cardEl) return;
+  var key = cardEl.getAttribute('data-key');
+
+  /* 已答卡：只看答案，不可重复标记 */
+  if (cardEl.classList.contains('lc-done')) {
+    toggleAnswer(cardEl);
+    return;
+  }
+
+  /* 点击行内遮挡块 → 原位揭示答案 + 同步展开解析 */
+  if (e.target.closest('.cloze-mask')) {
+    revealClozeAnswer(cardEl, e.target.closest('.cloze-mask'));
+    return;
+  }
+
+  var btn = e.target.closest('.lc-btn');
+  if (btn && !btn.disabled) {
+    var result = btn.getAttribute('data-result');
+    if (baseState.marked[key]) return;           // 防重复标记
+
+    /* 记录该卡在未答区中的序号 + 内容位置（用于标记后定位到下一张未答卡） */
+    var scroll = document.getElementById('listScroll');
+    var pendingCards = listEl.querySelectorAll('.lc-card:not(.lc-done)');
+    var prevIdx = -1;
+    for (var p = 0; p < pendingCards.length; p++) {
+      if (pendingCards[p].getAttribute('data-key') === key) { prevIdx = p; break; }
+    }
+    var cardTop = cardEl.offsetTop;
+
+    markCard(baseState, key, result);
+    saveState(baseState);
+    renderList();                            // 重新渲染：该卡置灰折叠，副本（未记住）出现在队尾
+
+    /* 定位到「下一张未回答的题」：让它出现在刚标记卡原来的位置，连续刷题不跳屏 */
+    var newPending = listEl.querySelectorAll('.lc-card:not(.lc-done)');
+    if (prevIdx >= 0 && newPending.length > prevIdx) {
+      scroll.scrollTop = scroll.scrollTop + (newPending[prevIdx].offsetTop - cardTop);
+    }
+  }
+});
+
+/* ============================================================
+   完成结算页（学习成果，与单卡模式一致）
+   ============================================================ */
+var historyRecorded = false; // 本次成果是否已写入历史（防止重复记录）
+
+/* 同一天、同张数的成果只记录一次（持久化，防止刷新/重进后重复写入） */
+var RESULT_RECORDED_KEY = 'flashCardResultRecorded_v1';
+function isResultRecordedToday(done) {
+  try { return localStorage.getItem(RESULT_RECORDED_KEY) === todayStr() + '#' + done; } catch (e) { return false; }
+}
+function markResultRecordedToday(done) {
+  try { localStorage.setItem(RESULT_RECORDED_KEY, todayStr() + '#' + done); } catch (e) {}
+}
+function clearResultRecorded() {
+  try { localStorage.removeItem(RESULT_RECORDED_KEY); } catch (e) {}
+}
+
+function showCompletion() {
+  var stats = calcStats(state);
+  var elapsed = getSessionElapsed();
+  var done = stats.done;
+  var accuracy = done > 0 ? Math.round(stats.remembered / done * 100) : 0;
+  var speedSec = done > 0 ? Math.round(elapsed / done) : 0;
+  var lastH = getLastHistory();
+
+  /* 1. Hero 区域：动态标题 + 范围 */
+  var emoji = '\uD83D\uDCDA', title = '再加把劲！';
+  if (accuracy >= 80) { emoji = '\uD83C\uDF89'; title = '不错哦！'; }
+  else if (accuracy >= 60) { emoji = '\uD83D\uDCAA'; title = '继续加油！'; }
+  document.getElementById('compEmoji').textContent = emoji;
+  document.getElementById('compTitle').textContent = title;
+  document.getElementById('compSubtitle').textContent = getRangeText();
+
+  /* 2. 环形图 + 核心指标 */
+  document.getElementById('sumTotal').textContent = stats.total;
+  document.getElementById('sumRemembered').textContent = stats.remembered;
+  document.getElementById('sumForgot').textContent = stats.forgot;
+  document.getElementById('ringPct').textContent = accuracy + '%';
+
+  var ring = document.getElementById('ringFill');
+  if (ring) {
+    ring.style.strokeDashoffset = '251.33';
+    setTimeout(function() {
+      ring.style.strokeDashoffset = (251.33 * (1 - accuracy / 100)).toFixed(2);
+    }, 200);
+  }
+
+  /* 3. 薄弱知识点 TOP5 */
+  var weakPoints = getWeakPoints(state, 5);
+  var weakEl = document.getElementById('weakList');
+  if (weakPoints.length === 0) {
+    weakEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">\u672C\u8F6E\u5168\u90E8\u638C\u63E1\uFF0C\u6682\u65E0\u8584\u5F31\u70B9 \uD83C\uDF89</div>';
+  } else {
+    var maxWrong = 1;
+    for (var i = 0; i < weakPoints.length; i++) {
+      if (weakPoints[i].wrong > maxWrong) maxWrong = weakPoints[i].wrong;
+    }
+    var weakHtml = '';
+    for (var w = 0; w < weakPoints.length; w++) {
+      var wp = weakPoints[w];
+      var pct = Math.round(wp.wrong / maxWrong * 100);
+      weakHtml += '<div class="weak-item">' +
+        '<div class="weak-rank' + (w === 0 ? ' top' : '') + '">' + (w + 1) + '</div>' +
+        '<div class="weak-info">' +
+          '<div class="weak-name">' + esc(wp.name) + '</div>' +
+          '<div class="weak-path">' + esc(wp.chapter) + (wp.sub ? ' \u00B7 ' + esc(wp.sub) : '') + '</div>' +
+        '</div>' +
+        '<div class="weak-bar"><div class="weak-bar-fill" style="width:' + pct + '%;"></div></div>' +
+        '<div class="weak-count">' + wp.wrong + '\u6B21</div>' +
+      '</div>';
+    }
+    weakEl.innerHTML = weakHtml;
+  }
+
+  /* 4. 章节掌握度分布 */
+  var dist = getChapterDistribution(state);
+  var distEl = document.getElementById('chapterDistList');
+  if (dist.length === 0) {
+    distEl.innerHTML = '<div style="text-align:center;padding:12px 0;color:var(--text-tertiary);font-size:13px;">\u6682\u65E0\u6570\u636E</div>';
+  } else {
+    var distHtml = '';
+    for (var d = 0; d < dist.length; d++) {
+      var ch = dist[d];
+      var okPct = ch.total > 0 ? Math.round(ch.remembered / ch.total * 100) : 0;
+      var okWidth = ch.total > 0 ? (ch.remembered / ch.total * 100) : 0;
+      var badWidth = ch.total > 0 ? (ch.forgot / ch.total * 100) : 0;
+      distHtml += '<div class="chapter-dist-item">' +
+        '<div class="chapter-dist-name">' + esc(ch.name) + '</div>' +
+        '<div class="chapter-dist-bar">' +
+          '<div class="cdb-ok" style="width:' + okWidth.toFixed(1) + '%;"></div>' +
+          '<div class="cdb-bad" style="width:' + badWidth.toFixed(1) + '%;"></div>' +
+        '</div>' +
+        '<div class="chapter-dist-pct">' + okPct + '%</div>' +
+        '<div class="chapter-dist-total">' + ch.total + '\u5F20</div>' +
+      '</div>';
+    }
+    distEl.innerHTML = distHtml;
+  }
+
+  /* 5. 效率分析 */
+  document.getElementById('effTime').textContent = formatDuration(elapsed);
+  document.getElementById('effSpeed').textContent = speedSec + 's/\u5F20';
+
+  var compareEl = document.getElementById('effCompare');
+  compareEl.className = 'eff-value';
+  if (lastH && lastH.speedSec && speedSec > 0) {
+    var diff = lastH.speedSec - speedSec;
+    if (diff > 0) {
+      var pct = Math.round(diff / lastH.speedSec * 100);
+      compareEl.textContent = '\u2191' + pct + '%';
+      compareEl.className = 'eff-value up';
+    } else if (diff < 0) {
+      var pct2 = Math.round(-diff / lastH.speedSec * 100);
+      compareEl.textContent = '\u2193' + pct2 + '%';
+      compareEl.className = 'eff-value down';
+    } else {
+      compareEl.textContent = '\u6301\u5E73';
+    }
+  } else {
+    compareEl.textContent = '\u9996\u6B21';
+  }
+
+  /* 6. 底部按钮：若有章节过滤，增加「下一章」 */
+  var actionsEl = document.getElementById('completionActions');
+  var actionsHtml = '<button class="comp-btn comp-btn-secondary" onclick="goHome()">\u8FD4\u56DE\u9996\u9875</button>';
+  if (activeFilter.chapter) {
+    actionsHtml += '<button class="comp-btn comp-btn-secondary" onclick="goNextChapter()">\u4E0B\u4E00\u7AE0</button>';
+  }
+  actionsHtml += '<button class="comp-btn comp-btn-primary" onclick="restart()">\u518D\u80CC\u4E00\u8F6E</button>';
+  actionsEl.innerHTML = actionsHtml;
+
+  /* 7. 记录历史 + 清除计时（同轮成果只记录一次，刷新/重进不重复） */
+  if (!historyRecorded && !isResultRecordedToday(done)) {
+    recordHistory({
+      date: todayStr(),
+      remembered: stats.remembered,
+      forgot: stats.forgot,
+      total: done,
+      accuracy: accuracy,
+      elapsedSec: elapsed,
+      speedSec: speedSec
+    });
+    historyRecorded = true;
+    markResultRecordedToday(done);
+  }
+  clearSessionStart();
+
+  document.getElementById('completionScreen').classList.add('show');
+}
+
+/* 获取当前过滤范围文本 */
+function getRangeText() {
+  if (activeFilter.point) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub + ' \u00B7 ' + activeFilter.topic + ' \u00B7 ' + activeFilter.point;
+  if (activeFilter.topic) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub + ' \u00B7 ' + activeFilter.topic;
+  if (activeFilter.sub) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub;
+  if (activeFilter.chapter) return activeFilter.chapter;
+  return '\u5168\u90E8\u7AE0\u8282';
+}
+
+/* 格式化时长（秒 → M:SS） */
+function formatDuration(sec) {
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + ('0' + s).slice(-2);
+}
+
+/* 巩固薄弱点：跳转单卡模式并过滤到最薄弱章节 */
+function goToPractice() {
+  var dist = getChapterDistribution(state);
+  var weakest = null;
+  for (var i = 0; i < dist.length; i++) {
+    if (!weakest || dist[i].forgot > weakest.forgot) weakest = dist[i];
+  }
+  if (weakest && weakest.forgot > 0) {
+    window.location.href = '\u95EA\u5361\u5355\u5361\u6A21\u5F0F.html?chapter=' + encodeURIComponent(weakest.name);
+  } else {
+    window.location.href = '\u95EA\u5361\u5355\u5361\u6A21\u5F0F.html' + filterQuery();
+  }
+}
+
+/* 继续下一章（仍在列表模式） */
+function goNextChapter() {
+  var chapters = [], seen = {};
+  for (var i = 0; i < CARDS.length; i++) {
+    var ch = CARDS[i].chapter;
+    if (!seen[ch]) { seen[ch] = true; chapters.push(ch); }
+  }
+  var idx = chapters.indexOf(activeFilter.chapter);
+  if (idx >= 0 && idx < chapters.length - 1) {
+    window.location.href = '\u95EA\u5361\u5217\u8868\u6A21\u5F0F.html?chapter=' + encodeURIComponent(chapters[idx + 1]);
+  } else if (chapters.length > 0) {
+    window.location.href = '\u95EA\u5361\u5217\u8868\u6A21\u5F0F.html?chapter=' + encodeURIComponent(chapters[0]);
+  }
+}
+
+function restart() {
+  clearSessionStart();
+  historyRecorded = false;   // 新一轮允许重新记录历史
+  clearResultRecorded();
+  baseState = newState();                        // 生成全新当天状态（跨天 forgotCount 保留）
+  saveState(baseState);
+  document.getElementById('completionScreen').classList.remove('show');
+  renderList();
+}
+
+/* ============================================================
+   导航
+   ============================================================ */
+function goHome() {
+  window.location.href = '闪卡首页.html';
+}
+
+function goSingle() {
+  window.location.href = '闪卡单卡模式.html' + filterQuery();
+}
+
+function closeExitModal() {
+  document.getElementById('exitModal').classList.remove('show');
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+document.getElementById('exitBtn').addEventListener('click', function() {
+  document.getElementById('exitModal').classList.add('show');
+});
+
+document.getElementById('switchBtn').addEventListener('click', goSingle);
+
+document.getElementById('ctaPracticeBtn').addEventListener('click', goToPractice);
+
+/* ============================================================
+   启动
+   ============================================================ */
+if (!getSessionStart()) startSession();   // 首次进入写入时间戳（刷新不重置，与单卡模式共享）
+renderList();
+</script>
+</body>
+</html>

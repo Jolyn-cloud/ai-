@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>闪卡 · 背诵设置</title>
+
+<style>
+  /* ============================================================
+     Design Token（与 05_UI设计/设计Token.md 对齐）
+     ============================================================ */
+  :root{
+    --primary: #5B72F5;
+    --primary-dark: #4358D7;
+    --primary-light: #EEF1FF;
+
+    --text-primary: #202533;
+    --text-secondary: #6E778B;
+    --text-tertiary: #98A0B2;
+
+    --success: #20A866;
+    --success-light: #E8F8F0;
+    --warning: #F28B3D;
+    --warning-light: #FFF1E6;
+    --danger: #EF4444;
+    --danger-light: #FEECEC;
+
+    --card-radius: 17px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%; min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text-primary);
+    background: #F8F9FC;
+  }
+  body { display: flex; justify-content: center; }
+
+  /* ========================= 页面 =========================
+     与首页共用淡紫梦幻背景图，保持小程序视觉基调统一 */
+  .page {
+    position: relative;
+    width: 100%; max-width: 430px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    background: url('bg-flashcard-home.png') center top / cover no-repeat;
+    background-color: #F8F9FC;
+  }
+
+  /* ========================= 手机壳：桌面端固定手机比例居中 ========================= */
+  @media (min-width: 481px) {
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      align-items: center;
+      background: linear-gradient(150deg, #E3E5F1 0%, #ECEEF6 55%, #E6E8F2 100%);
+    }
+    .page {
+      width: 390px;
+      height: min(844px, calc(100vh - 44px));
+      border-radius: 34px;
+      box-shadow:
+        0 0 0 9px #1E2130,
+        0 0 0 11px rgba(255,255,255,0.65),
+        0 30px 80px rgba(30,33,48,0.38);
+    }
+  }
+
+  /* 底部白色渐隐遮罩 */
+  .bottom-mask {
+    position: absolute;
+    z-index: 1;
+    left: 0; right: 0;
+    top: 360px; bottom: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(248,249,252,0) 0%,
+      rgba(248,249,252,0.55) 18%,
+      rgba(248,249,252,0.92) 44%,
+      #F8F9FC 100%);
+  }
+
+  .content {
+    position: relative; z-index: 2;
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 48px 18px 110px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* ========================= 顶栏 ========================= */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(54,66,108,0.06);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: transform .1s ease;
+  }
+  .back-btn:active { transform: scale(0.92); }
+  .back-btn svg { width: 20px; height: 20px; stroke: var(--text-secondary); }
+  .page-title { font-size: 18px; font-weight: 700; flex: 1; text-align: center; }
+  .top-placeholder { width: 36px; flex-shrink: 0; }
+
+  /* ========================= 设置卡片 ========================= */
+  .cfg-card {
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border-radius: var(--card-radius);
+    box-shadow: 0 5px 18px rgba(54,66,108,0.055);
+    padding: 17px 16px;
+    margin-bottom: 14px;
+  }
+  .cfg-head { margin-bottom: 14px; }
+  .cfg-name { font-size: 15px; font-weight: 700; }
+  .cfg-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 3px; line-height: 1.5; }
+
+  /* ========================= 每日数量 ========================= */
+  .count-display {
+    display: flex; align-items: baseline; justify-content: center; gap: 6px;
+    margin: 6px 0 14px;
+  }
+  .count-display strong {
+    font-size: 40px; font-weight: 750; color: var(--primary);
+    font-variant-numeric: tabular-nums; letter-spacing: -1px;
+  }
+  .count-display span { font-size: 14px; color: var(--text-secondary); }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 5px; border-radius: 10px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary) var(--fill, 50%), #E7EAF3 var(--fill, 50%), #E7EAF3 100%);
+    outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #FFFFFF;
+    border: 3px solid var(--primary);
+    box-shadow: 0 2px 8px rgba(91,114,245,0.35);
+    cursor: grab;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #FFFFFF; border: 3px solid var(--primary);
+    cursor: grab;
+  }
+
+  .chips { display: flex; gap: 8px; margin-top: 13px; flex-wrap: wrap; }
+  .chip {
+    flex: 1; min-width: 52px; height: 32px;
+    border: 1px solid #E4E7F2; border-radius: 10px;
+    background: #F7F8FC; color: var(--text-secondary);
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .chip:active { transform: scale(0.95); }
+  .chip.on {
+    background: var(--primary-light); border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cfg-tip {
+    margin-top: 12px;
+    font-size: 11.5px; color: var(--text-tertiary);
+    background: #F6F7FB; border-radius: 9px;
+    padding: 8px 11px; line-height: 1.5;
+  }
+  .cfg-tip strong { color: var(--primary-dark); font-weight: 600; }
+
+  /* ========================= 题型比例 ========================= */
+  .w-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #F0F1F6;
+  }
+  .w-row:last-child { border-bottom: none; }
+  .w-name {
+    width: 118px; flex-shrink: 0;
+    font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .w-range { flex: 1; }
+  .w-val {
+    width: 42px; flex-shrink: 0; text-align: right;
+    font-size: 13px; font-weight: 700; color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 12px;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .total-row strong { color: var(--primary); font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .total-row .total-hint { font-size: 11.5px; color: var(--text-tertiary); }
+  .total-row .total-ok { font-size: 11.5px; color: var(--success); font-weight: 600; }
+
+  .btn-row { display: flex; gap: 9px; margin-top: 13px; }
+  .mini-btn {
+    flex: 1; height: 36px;
+    border: 1px solid #E4E7F2; border-radius: 11px;
+    background: #F7F8FC; color: var(--text-secondary);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .mini-btn:active { transform: scale(0.96); }
+
+  /* ========================= 底部保存 ========================= */
+  .save-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px 18px 22px;
+    background: linear-gradient(180deg, rgba(248,249,252,0) 0%, #F8F9FC 30%);
+  }
+  .save-bar-inner {
+    width: 100%; max-width: 394px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .save-btn {
+    width: 100%; height: 50px; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(91,114,245,0.25);
+    transition: transform .1s ease;
+  }
+  .save-btn:active { transform: scale(0.98); }
+  .save-tip { font-size: 11px; color: var(--text-tertiary); }
+
+  /* 小屏适配 */
+  @media (max-width: 360px) {
+    .content { padding-left: 15px; padding-right: 15px; }
+    .w-name { width: 96px; font-size: 12px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- 底部白色渐隐遮罩 -->
+  <div class="bottom-mask"></div>
+
+  <main class="content">
+
+    <!-- 顶栏 -->
+    <header class="top-bar">
+      <button class="back-btn" id="backBtn" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <div class="page-title">背诵设置</div>
+      <div class="top-placeholder"></div>
+    </header>
+
+    <!-- 每日卡片数量 -->
+    <section class="cfg-card">
+      <div class="cfg-head">
+        <div class="cfg-name">每日学习卡片数量</div>
+        <div class="cfg-desc">按此数量生成今日队列 · 顽固卡自动优先入队</div>
+      </div>
+      <div class="count-display"><strong id="countVal">350</strong><span>张 / 天</span></div>
+      <input type="range" id="countRange" min="10" max="500" step="10" value="350" />
+      <div class="chips" id="countChips">
+        <button class="chip" data-v="30">30</button>
+        <button class="chip" data-v="50">50</button>
+        <button class="chip" data-v="100">100</button>
+        <button class="chip" data-v="200">200</button>
+        <button class="chip" data-v="350">350</button>
+      </div>
+      <div class="cfg-tip" id="countTip">当前题库 <strong id="bankCount">0</strong> 张卡，实际每日数量按可用卡数自动收缩；不足部分由其余章节补齐。</div>
+    </section>
+
+    <!-- 题型比例 -->
+    <section class="cfg-card">
+      <div class="cfg-head">
+        <div class="cfg-name">题型比例</div>
+        <div class="cfg-desc">各章节比例合计固定为 100%，调高某章时其余章节自动等比压缩；每章今日张数 = 每日数量 × 该章比例</div>
+      </div>
+      <div id="weightList"></div>
+      <div class="total-row">
+        合计 <strong id="weightTotal">0</strong>%
+        <span class="total-hint" id="weightHint">合计恒为 100% · 每章今日张数 = 每日数量 × 该章比例</span>
+      </div>
+      <div class="btn-row">
+        <button class="mini-btn" onclick="resetWeights()">一键均分（各 10%）</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部保存 -->
+  <div class="save-bar">
+    <div class="save-bar-inner">
+      <button class="save-btn" onclick="saveSettings()">保存设置</button>
+      <div class="save-tip">今天还没开始刷，保存后立即生效；已开始则次日生效</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="闪卡题库.js"></script>
+<script>
+/* ============================================================
+   背诵设置页
+   - 每日卡片数量：滑杆 + 快捷值，范围 10~500
+   - 题型比例：10 个一级章节滑杆（0~100%），自动按比例折算
+   - 保存写共享配置（闪卡题库.js loadConfig/saveConfig）
+   ============================================================ */
+
+/* 与首页 CHAPTERS 同名的一级章节（山东专升本计算机考纲 10 章） */
+var CHAPTER_NAMES = [
+  '信息与计算机基础知识',
+  '计算思维',
+  '操作系统（Win10）',
+  'Word 2016',
+  'Excel 2016',
+  'PowerPoint 2016',
+  '数据库技术',
+  '计算机网络与信息检索',
+  '信息安全与社会责任',
+  '新一代信息技术'
+];
+
+var countRange = document.getElementById('countRange');
+var countVal = document.getElementById('countVal');
+
+/* 滑杆填充进度（CSS 变量 --fill 控制已选段颜色） */
+function paintRange(el) {
+  var min = +el.min, max = +el.max, v = +el.value;
+  var pct = max > min ? (v - min) / (max - min) * 100 : 0;
+  el.style.setProperty('--fill', pct + '%');
+}
+
+/* 每日数量初始化 */
+function initCount() {
+  var cfg = loadConfig();
+  var daily = cfg.dailyCount || 350;
+  if (daily < +countRange.min) daily = +countRange.min;
+  if (daily > +countRange.max) daily = +countRange.max;
+  countRange.value = daily;
+  countVal.textContent = daily;
+  paintRange(countRange);
+  syncChips();
+  updateCountTip();
+}
+
+function syncChips() {
+  var v = +countRange.value;
+  document.querySelectorAll('#countChips .chip').forEach(function(c) {
+    c.classList.toggle('on', +c.getAttribute('data-v') === v);
+  });
+}
+
+function updateCountTip() {
+  var bank = CARDS.length;
+  var effective = Math.min(+countRange.value, bank);
+  document.getElementById('bankCount').textContent = bank;
+  if (+countRange.value > bank) {
+    document.getElementById('countTip').innerHTML =
+      '当前题库 <strong>' + bank + '</strong> 张卡，超出部分自动收缩为 <strong>' + effective + '</strong> 张/天。';
+  } else {
+    document.getElementById('countTip').innerHTML =
+      '当前题库 <strong>' + bank + '</strong> 张卡，实际每日数量按可用卡数自动收缩；不足部分由其余章节补齐。';
+  }
+}
+
+countRange.addEventListener('input', function() {
+  countVal.textContent = countRange.value;
+  paintRange(countRange);
+  syncChips();
+  updateCountTip();
+});
+
+document.getElementById('countChips').addEventListener('click', function(e) {
+  var c = e.target.closest('.chip');
+  if (!c) return;
+  var v = +c.getAttribute('data-v');
+  countRange.value = Math.min(Math.max(v, +countRange.min), +countRange.max);
+  countVal.textContent = countRange.value;
+  paintRange(countRange);
+  syncChips();
+  updateCountTip();
+});
+
+/* ============================================================
+   题型比例
+   ============================================================ */
+var weightList = document.getElementById('weightList');
+var weightTotal = document.getElementById('weightTotal');
+var weightHint = document.getElementById('weightHint');
+
+function renderWeights() {
+  var cfg = loadConfig();
+  var w = cfg.weights || {};
+  /* 老数据/手动写入的权重合计可能 ≠100（如 80+50=130），渲染时等比归一化到合计 100 */
+  var total = 0;
+  CHAPTER_NAMES.forEach(function(n) {
+    total += (typeof w[n] === 'number' && isFinite(w[n])) ? w[n] : 0;
+  });
+  var vals = CHAPTER_NAMES.map(function(n) {
+    if (total > 0) {
+      var v = (typeof w[n] === 'number' && isFinite(w[n])) ? w[n] : 0;
+      return Math.round(v * 100 / total);
+    }
+    return 10; /* 无配置 → 各章均分 10% */
+  });
+  /* 末项兜底调平，保证合计恰为 100 */
+  var sum = vals.reduce(function(a, b) { return a + b; }, 0);
+  vals[vals.length - 1] = Math.max(0, vals[vals.length - 1] + (100 - sum));
+  weightList.innerHTML = CHAPTER_NAMES.map(function(name, i) {
+    return '<div class="w-row">' +
+      '<div class="w-name" title="' + name + '">' + name + '</div>' +
+      '<input type="range" class="w-range" data-name="' + name + '" min="0" max="100" step="1" value="' + vals[i] + '">' +
+      '<div class="w-val">' + vals[i] + '%</div>' +
+      '</div>';
+  }).join('');
+  document.querySelectorAll('.w-range').forEach(paintRange);
+  updateTotal();
+}
+
+/* 事件委托：拖动某章滑杆 → 其他章节等比压缩，保持合计恒 100% */
+weightList.addEventListener('input', function(e) {
+  var r = e.target.closest('.w-range');
+  if (!r) return;
+  syncTotal(r);
+});
+
+/* 比例锁：self 拖到新值 v，其余章节按 k=(100-v)/其他合计 等比缩放，末项兜底保证合计=100 */
+function syncTotal(self) {
+  var ranges = Array.prototype.slice.call(document.querySelectorAll('.w-range'));
+  var v = Math.max(0, Math.min(100, +self.value));
+  var others = ranges.filter(function(x) { return x !== self; });
+  var otherTotal = others.reduce(function(s, x) { return s + +x.value; }, 0);
+  if (otherTotal > 0) {
+    var k = (100 - v) / otherTotal;
+    var assigned = 0;
+    others.forEach(function(x, i) {
+      if (i === others.length - 1) {
+        x.value = Math.max(0, Math.min(100, 100 - v - assigned));
+      } else {
+        var nv = Math.round(+x.value * k);
+        x.value = Math.max(0, Math.min(100, nv));
+        assigned += +x.value;
+      }
+    });
+  }
+  ranges.forEach(function(x) {
+    x.parentNode.querySelector('.w-val').textContent = x.value + '%';
+    paintRange(x);
+  });
+  updateTotal();
+}
+
+function sumWeights() {
+  var s = 0;
+  document.querySelectorAll('.w-range').forEach(function(r) { s += +r.value; });
+  return s;
+}
+
+function updateTotal() {
+  var s = sumWeights();
+  weightTotal.textContent = s;
+  weightHint.textContent = '合计恒为 100% · 每章今日张数 = 每日数量 × 该章比例';
+  weightHint.className = 'total-ok';
+}
+
+function resetWeights() {
+  document.querySelectorAll('.w-range').forEach(function(r) {
+    r.value = 10;
+    r.parentNode.querySelector('.w-val').textContent = '10%';
+    paintRange(r);
+  });
+  updateTotal();
+}
+
+/* ============================================================
+   保存
+   ============================================================ */
+function saveSettings() {
+  var daily = Math.max(+countRange.min, Math.min(+countRange.value, +countRange.max));
+  var weights = {};
+  document.querySelectorAll('.w-range').forEach(function(r) {
+    var v = +r.value;
+    if (v > 0) weights[r.getAttribute('data-name')] = v;
+  });
+  saveConfig({ dailyCount: daily, weights: weights });
+  window.location.href = '闪卡首页.html';
+}
+
+/* ============================================================
+   导航
+   ============================================================ */
+function goBack() {
+  if (window.history.length > 1) window.history.back();
+  else window.location.href = '闪卡首页.html';
+}
+document.getElementById('backBtn').addEventListener('click', goBack);
+
+/* ============================================================
+   启动
+   ============================================================ */
+initCount();
+renderWeights();
+</script>
+</body>
+</html>

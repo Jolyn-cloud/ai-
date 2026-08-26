@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>专升本学习</title>
+
+<style>
+  /* ============================================================
+     Design Token（与 05_UI设计/设计Token.md 对齐，勿双份维护）
+     ============================================================ */
+  :root{
+    --primary: #5B72F5;
+    --primary-dark: #4358D7;
+    --primary-light: #EEF1FF;
+
+    --bg-top: #FFFFFF;
+    --bg-middle: #FFFFFF;
+    --bg-bottom: #FFFFFF;
+
+    --text-primary: #202533;
+    --text-secondary: #6E778B;
+    --text-tertiary: #98A0B2;
+
+    --success: #20A866;
+    --warning: #F28B3D;
+
+    --card-radius: 17px;
+    --hero-radius: 22px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-primary);
+    background: #FFFFFF;
+  }
+
+  body { display: flex; justify-content: center; }
+
+  /* ========================= 页面 =========================
+     使用 PM 提供的淡紫梦幻背景图为全屏背景，底部叠加白色渐隐遮罩 */
+  .page {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+
+    background: url('bg-flashcard-home.png') center top / cover no-repeat;
+    background-color: #F8F9FC;
+  }
+
+  /* 底部白色渐隐：让长列表在下方保持可读 */
+  .bottom-mask {
+    position: absolute;
+    z-index: 1;
+    left: 0; right: 0;
+    top: 380px; bottom: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(248,249,252,0) 0%,
+      rgba(248,249,252,0.45) 14%,
+      rgba(248,249,252,0.78) 32%,
+      rgba(248,249,252,0.96) 52%,
+      #F8F9FC 100%);
+  }
+
+  /* ========================= 中段 → 底部渐隐遮罩 =========================
+     背诵卡下方起逐渐回归纯白 */
+  .bottom-mask {
+    position: absolute;
+    z-index: 1;
+    left: 0; right: 0;
+    top: 380px; bottom: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.25) 18%,
+      rgba(255,255,255,0.62) 40%,
+      rgba(255,255,255,0.88) 58%,
+      rgba(255,255,255,0.97) 72%,
+      #FFFFFF 100%);
+  }
+
+  /* ========================= 内容 ========================= */
+  .content {
+    position: relative;
+    z-index: 2;
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 18px 30px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* ========================= 手机壳：桌面端固定手机比例居中，页面在壳内滚动 ========================= */
+  @media (min-width: 481px) {
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      align-items: center;
+      background: linear-gradient(150deg, #E3E5F1 0%, #ECEEF6 55%, #E6E8F2 100%);
+    }
+    .page {
+      width: 390px;
+      height: min(844px, calc(100vh - 44px));
+      border-radius: 34px;
+      box-shadow:
+        0 0 0 9px #1E2130,
+        0 0 0 11px rgba(255,255,255,0.65),
+        0 30px 80px rgba(30,33,48,0.38);
+    }
+  }
+
+  /* ========================= 顶部 ========================= */
+  .header {
+    padding-top: 48px;
+    padding-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .greeting {
+    font-size: 25px;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .countdown {
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .countdown-icon {
+    width: 16px; height: 16px;
+    border: 2px solid #A8B0C8;
+    border-radius: 50%;
+    position: relative;
+  }
+  .countdown-icon::before {
+    content: ""; position: absolute;
+    width: 1.5px; height: 5px;
+    background: #A8B0C8;
+    left: 6px; top: 2px;
+  }
+  .countdown-icon::after {
+    content: ""; position: absolute;
+    width: 4px; height: 1.5px;
+    background: #A8B0C8;
+    left: 6px; top: 7px;
+    transform: rotate(25deg);
+    transform-origin: left center;
+  }
+  /* 仅数字 42：深紫 + 加大加粗；"天" 字保持次要灰小字 */
+  .countdown .days-num {
+    color: #4A3FA0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .countdown .days-unit {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* ========================= 用户头像 ========================= */
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(235,239,255,0.95));
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 8px 24px rgba(75,91,160,0.08);
+    flex-shrink: 0;
+  }
+  .avatar svg { width: 25px; height: 25px; stroke: var(--primary); }
+
+  /* ========================= 背诵计划卡 ========================= */
+  .study-card {
+    position: relative;
+    overflow: hidden;
+    padding: 22px 20px 20px;
+    border-radius: var(--hero-radius);
+    background: linear-gradient(135deg, #4A5FE0 0%, #5B6DEF 50%, #6B5FE8 100%);
+    box-shadow: 0 14px 32px rgba(76,99,221,0.25);
+  }
+  .study-card::before {
+    content: ""; position: absolute;
+    width: 260px; height: 260px;
+    top: -150px; right: -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.13), rgba(255,255,255,0));
+  }
+  .study-card::after {
+    content: ""; position: absolute;
+    width: 220px; height: 220px;
+    bottom: -170px; left: -90px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0));
+  }
+  .study-card > * { position: relative; z-index: 2; }
+
+  .study-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .study-title { color: #fff; font-size: 20px; font-weight: 700; }
+  .study-subtitle {
+    margin-top: 7px;
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+  }
+
+  .streak {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 11px;
+    color: #fff;
+    font-size: 12px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.12);
+    flex-shrink: 0;
+  }
+  .streak span { font-size: 14px; }
+
+  .settings-btn {
+    width: 34px; height: 34px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform .1s ease, background .2s ease;
+  }
+  .settings-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.28); }
+  .settings-btn svg { width: 17px; height: 17px; stroke: #fff; }
+
+  /* ========================= 每日数量设置弹窗（底部上滑 + 遮罩） ========================= */
+  .sheet-mask {
+    position: absolute; inset: 0;
+    z-index: 90;
+    background: rgba(20,24,40,.45);
+    opacity: 0; visibility: hidden;
+    transition: opacity .25s ease, visibility .25s;
+  }
+  .sheet-mask.show { opacity: 1; visibility: visible; }
+  .settings-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 91;
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    padding: 10px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 32px rgba(30,41,80,.18);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform .3s cubic-bezier(.32,.72,.28,1), visibility .3s;
+  }
+  .settings-sheet.show { transform: translateY(0); visibility: visible; }
+  .sheet-handle {
+    width: 38px; height: 4px;
+    margin: 4px auto 14px;
+    border-radius: 2px;
+    background: #E2E5F0;
+  }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .sheet-title { font-size: 16px; font-weight: 700; color: #2A2F45; }
+  .sheet-close {
+    width: 28px; height: 28px;
+    border: none; border-radius: 50%;
+    background: #F2F3F9;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .sheet-close svg { width: 14px; height: 14px; stroke: #8A90A8; }
+  .sheet-close:active { transform: scale(.92); }
+  .pop-value { display: flex; align-items: baseline; gap: 4px; }
+  .pop-value b { font-size: 28px; font-weight: 800; color: #5B72F5; }
+  .pop-value span { font-size: 12px; color: #8A90A8; }
+  .pop-range {
+    width: 100%; margin-top: 13px;
+    -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right, #5B72F5 0%, #5B72F5 100%, #E7EAF6 100%, #E7EAF6 100%);
+    outline: none;
+  }
+  .pop-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; border: 3px solid #5B72F5;
+    box-shadow: 0 2px 8px rgba(91,114,245,.35);
+    cursor: grab;
+  }
+  .pop-range::-moz-range-thumb {
+    width: 15px; height: 15px; border-radius: 50%;
+    background: #fff; border: 3px solid #5B72F5;
+    box-shadow: 0 2px 8px rgba(91,114,245,.35);
+    cursor: grab;
+  }
+  .pop-chips { display: flex; gap: 7px; margin-top: 14px; }
+  .pop-chip {
+    flex: 1; height: 32px;
+    border: 1px solid #E4E7F2; border-radius: 10px;
+    background: #F7F8FC; color: #8A90A8;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .pop-chip:active { transform: scale(.95); }
+  .pop-chip.on { background: #EEF1FE; border-color: #5B72F5; color: #5B72F5; }
+  .pop-save {
+    width: 100%; height: 44px; margin-top: 15px;
+    border: none; border-radius: 12px;
+    background: #5B72F5; color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 18px rgba(91,114,245,.28);
+    transition: transform .1s ease;
+  }
+  .pop-save:active { transform: scale(.98); }
+  .pop-tip {
+    margin-top: 11px; padding: 9px 10px;
+    border-radius: 10px; font-size: 12px; line-height: 1.45;
+    text-align: center;
+  }
+  .pop-tip.ok { background: #E8F8F0; color: #1E9E6A; }
+  .pop-tip.next { background: #FFF4E3; color: #C77A18; }
+
+  /* ========================= 进度数据 ========================= */
+  .study-data {
+    margin-top: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .data-left { display: flex; align-items: center; gap: 12px; }
+  .data-icon {
+    width: 48px; height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.18);
+    flex-shrink: 0;
+  }
+  .data-icon svg { width: 27px; height: 27px; stroke: white; }
+  .data-label { color: rgba(255,255,255,0.8); font-size: 13px; }
+  .data-number {
+    margin-top: 4px; /* 与"总进度"间距 +1 */
+    color: #fff;
+    font-size: 14px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 3,568 与单位同字号，仅加粗（Q17A） */
+  .data-number strong { font-weight: 700; }
+  .percentage {
+    color: white;
+    font-size: 30px; /* 由 39px 缩小，避免压过卡片标题 */
+    font-weight: 750;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========================= 主进度条 ========================= */
+  .main-progress {
+    margin-top: 18px;
+    width: 100%;
+    height: 6px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.25);
+    overflow: hidden;
+  }
+  .main-progress-inner {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: rgba(255,255,255,0.95);
+    transition: width 1s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* ========================= 继续按钮 ========================= */
+  .continue-button {
+    margin-top: 18px;
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.98);
+    color: #536be8;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(48,65,150,0.06);
+    transition: transform .1s ease;
+  }
+  .continue-button:active { transform: scale(.98); }
+  .continue-button span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
+
+  /* ========================= 全部章节 ========================= */
+  .chapter-section { margin-top: 26px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title-wrap { display: flex; align-items: center; gap: 9px; }
+  .section-line {
+    width: 4px; height: 22px;
+    border-radius: 10px;
+    background: var(--primary);
+  }
+  .section-title { font-size: 20px; font-weight: 700; }
+
+  /* ========================= 搜索 ========================= */
+  .search {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.75);
+    border: 1px solid rgba(220,224,235,0.75);
+    color: #9299a9;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .search svg { width: 16px; height: 16px; stroke: #8991a2; }
+
+  /* ========================= 章节卡片 ========================= */
+  .chapter-list { display: flex; flex-direction: column; gap: 9px; }
+
+  .chapter-card {
+    position: relative;
+    padding: 14px 15px 13px;
+    border-radius: var(--card-radius);
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 5px 18px rgba(54,66,108,0.055);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .chapter-head { cursor: pointer; }
+  .chapter-head:active { opacity: .75; }
+
+  .chapter-main { display: flex; align-items: center; gap: 12px; }
+
+  .chapter-icon {
+    width: 44px; height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    background: var(--primary-light);
+  }
+  .chapter-icon svg { width: 23px; height: 23px; stroke: var(--primary); }
+
+  .chapter-info { min-width: 0; flex: 1; }
+  .chapter-name {
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chapter-data {
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #8a92a4;
+    font-variant-numeric: tabular-nums;
+  }
+  .remembered { color: var(--success); }
+  .remembered strong { font-weight: 600; }
+
+  .stubborn {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 7px;
+    color: var(--warning);
+    background: #fff1e6;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .chapter-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .chapter-percent {
+    margin-left: 8px;
+    color: var(--primary);
+    font-size: 17px;
+    font-weight: 700;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .arrow {
+    margin-left: 5px;
+    color: #8b93a4;
+    font-size: 17px;
+    line-height: 1;
+    transition: transform .25s ease;
+  }
+  .chapter-card.open .arrow { transform: rotate(90deg); }
+
+  /* ========================= 章节进度条（统一青蓝） ========================= */
+  .chapter-progress {
+    margin-left: 56px;
+    margin-top: 9px;
+    height: 3px;
+    border-radius: 10px;
+    background: #e7eaf3;
+    overflow: hidden;
+  }
+  .chapter-progress-inner {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #5872f5, #6377f2);
+    transition: width .9s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* ========================= 二级章节（手风琴展开） ========================= */
+  .sub-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .sub-inner {
+    padding-top: 12px; /* 一级进度条与首个二级容器的间隔 */
+    margin-top: 0;
+    border-top: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* 二级容器：极浅蓝紫底，隐约边框，完整包住所有三级 */
+  .sub-container {
+    background: #FAFBFF;
+    border: 1px solid rgba(91,114,245,0.05);
+    border-radius: 12px;
+    padding: 13px;
+  }
+  .sub-item {
+    display: flex;
+    align-items: center;
+    padding: 2px 0;
+    cursor: pointer;
+    border-radius: 0;
+    background: transparent;
+    transition: background .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sub-item:active { background: transparent; }
+  .sub-dot {
+    width: 6px; height: 6px;
+    margin-right: 11px;
+    border-radius: 50%;
+    background: #2f489a;
+    flex-shrink: 0;
+  }
+  .sub-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 550;
+    color: #2f489a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sub-right {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-mem { color: var(--text-tertiary); }
+  .sub-mem strong { color: var(--success); font-weight: 600; }
+  .sub-pct { color: var(--primary); font-weight: 700; }
+  .sub-arrow {
+    margin-left: 3px;
+    color: #c3c9d5;
+    font-size: 16px;
+    line-height: 1;
+    transition: transform .25s ease;
+  }
+  .sub-item.open-level2 .sub-arrow {
+    transform: rotate(90deg);
+  }
+  /* 二级进度条（常驻显示） */
+  .sub-progress {
+    margin: 6px 0 4px 17px;
+    height: 2px;
+    border-radius: 10px;
+    background: #EEF0F7;
+    overflow: hidden;
+  }
+  .sub-progress-inner {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: rgba(91,114,245,0.40);
+    transition: width .9s cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* ========================= 三级章节 ========================= */
+  .level3-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .level3-inner {
+    margin-left: 0;
+    padding-top: 8px; /* 展开时二级进度条与三级列表的间隔（收起时随 max-height:0 隐藏） */
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  /* 三级容器：白色底，极浅蓝紫边框，嵌套在二级容器内 */
+  .l3-block {
+    border: 1px solid rgba(91,114,245,0.07);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    padding: 9px 10px;
+  }
+  .level3-item {
+    display: flex;
+    align-items: center;
+    padding: 3px 2px;
+    cursor: pointer;
+    transition: background .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .level3-item:active { background: rgba(91,114,245,0.04); }
+  .level3-arrow {
+    width: 13px; height: 13px;
+    margin-right: 7px;
+    color: #5571E8;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: transform .2s ease;
+  }
+  .level3-item.open .level3-arrow { transform: rotate(90deg); }
+  .level3-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #5571E8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .level3-right {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .l3-mem { color: #8A90A8; }
+  .l3-pct { color: #5571E8; font-weight: 700; }
+
+  /* ========================= 四级章节 ========================= */
+  .level4-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .level4-inner {
+    margin: 0 0 0 12px;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  /* 四级：独立轻量圆角小卡片，嵌套在三级容器内 */
+  .level4-item {
+    display: flex;
+    align-items: center;
+    height: 42px;
+    padding: 0 11px;
+    cursor: pointer;
+    border: 1px solid rgba(103,116,141,0.12);
+    border-radius: 8px;
+    background: #fff;
+    transition: background .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .level4-item:active { background: rgba(91,114,245,0.04); }
+  .level4-dot {
+    width: 7px; height: 7px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background: #C7CDD9;
+    flex-shrink: 0;
+  }
+  .level4-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #68748D;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .level4-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  /* 四级状态符号：✓N 已掌握 / ×N 未掌握 / 顽固N 同时显示 */
+  .l4-check {
+    color: #16A66A;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .l4-cross {
+    color: #E0658A;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .l4-tag {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #FFF2E8;
+    color: #FF8A45;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* ========================= 手机尺寸适配 ========================= */
+  @media (max-width: 360px) {
+    .content { padding-left: 15px; padding-right: 15px; }
+    .greeting { font-size: 23px; }
+    .study-card { padding: 19px 16px 17px; }
+    .study-title { font-size: 18px; }
+    .percentage { font-size: 34px; }
+    .chapter-percent { font-size: 17px; }
+    .chapter-progress { margin-left: 53px; }
+    .sub-inner { margin-left: 53px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- 底部白色渐隐遮罩：保证长列表可读 -->
+  <div class="bottom-mask"></div>
+
+  <main class="content">
+
+    <!-- 顶部 -->
+    <header class="header">
+      <div>
+        <div class="greeting">你好，团团酱 👋</div>
+        <div class="countdown">
+          <div class="countdown-icon"></div>
+          <span>距离专升本考试还有</span>
+          <span class="days-num">42</span>
+          <span class="days-unit">天</span>
+        </div>
+      </div>
+      <div class="avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="3.5"></circle>
+          <path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path>
+        </svg>
+      </div>
+    </header>
+
+    <!-- 背诵计划 -->
+    <section class="study-card">
+      <div class="study-card-header">
+        <div>
+          <div class="study-title">背诵计划进行中</div>
+          <div class="study-subtitle">计算机专升本 · 每日 <span id="dailyLabel">350</span> 张</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="settings-btn" onclick="toggleSettingsPop(event)" aria-label="背诵设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <div class="streak"><span>🔥</span>连续 7 天</div>
+        </div>
+      </div>
+
+      <div class="study-data">
+        <div class="data-left">
+          <div class="data-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 7l8-4 8 4-8 4-8-4z"></path>
+              <path d="M4 12l8 4 8-4"></path>
+              <path d="M4 17l8 4 8-4"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="data-label">总进度</div>
+            <div class="data-number" id="heroNums"><strong>0</strong><span> / 0 张</span></div>
+          </div>
+        </div>
+        <div class="percentage" id="heroPct">0%</div>
+      </div>
+
+      <div class="main-progress"><div class="main-progress-inner" id="heroFill"></div></div>
+
+      <button class="continue-button" onclick="continueStudy()">继续背诵<span>→</span></button>
+    </section>
+
+    <!-- 全部章节 -->
+    <section class="chapter-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <div class="section-line"></div>
+          <div class="section-title">全部章节</div>
+        </div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M16 16l5 5"></path>
+          </svg>
+          <span>搜索考点</span>
+        </div>
+      </div>
+
+      <div class="chapter-list" id="chapterList"></div>
+    </section>
+
+  </main>
+
+  <!-- 每日学习卡片设置弹窗（底部上滑 + 遮罩） -->
+  <div class="sheet-mask" id="settingsMask" onclick="closeSettingsPop()"></div>
+  <div class="settings-sheet" id="settingsSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">每日学习卡片</div>
+      <button class="sheet-close" onclick="closeSettingsPop()" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="pop-value"><b id="popCount">350</b><span>张 / 天</span></div>
+    <input type="range" class="pop-range" id="popRange" min="10" max="500" step="10" oninput="syncPopUI()">
+    <div class="pop-chips">
+      <button class="pop-chip" data-v="30" onclick="setPopCount(30)">30</button>
+      <button class="pop-chip" data-v="50" onclick="setPopCount(50)">50</button>
+      <button class="pop-chip" data-v="100" onclick="setPopCount(100)">100</button>
+      <button class="pop-chip" data-v="200" onclick="setPopCount(200)">200</button>
+      <button class="pop-chip" data-v="350" onclick="setPopCount(350)">350</button>
+    </div>
+    <button class="pop-save" onclick="savePopSettings()">保存</button>
+    <div class="pop-tip" id="popTip" hidden></div>
+  </div>
+</div>
+
+<script src="闪卡题库.js"></script>
+<script>
+/* ============================================================
+   章节数据（真实考点树）
+   数据源：专升本计算机考点四级列表.html（499 个考点）
+   进度为演示数据：mastered/unmastered 随机生成
+   ============================================================ */
+
+const CHAPTERS = [{"id":1,"name":"信息与计算机基础知识","icon":"monitor","cards":54,"memorized":39,"stubborn":9,"done":72,"subs":[{"name":"信息与信息技术概述","cards":6,"memorized":4,"done":67,"level3":[{"name":"信息与数据","cards":3,"memorized":2,"done":67,"level4":[{"name":"信息","cards":1,"mastered":0,"unmastered":1},{"name":"数据","cards":1,"mastered":1,"unmastered":0},{"name":"信息与数据的区别与联系","cards":1,"mastered":1,"unmastered":0}]},{"name":"信息技术与计算机文化","cards":3,"memorized":2,"done":67,"level4":[{"name":"信息技术","cards":1,"mastered":0,"unmastered":1},{"name":"信息社会","cards":1,"mastered":1,"unmastered":0},{"name":"计算机文化","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"计算机发展概述","cards":6,"memorized":5,"done":83,"level3":[{"name":"计算机的起源与发展","cards":2,"memorized":2,"done":100,"level4":[{"name":"计算机的起源","cards":1,"mastered":1,"unmastered":0},{"name":"计算机的发展","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机的特点及分类","cards":2,"memorized":1,"done":50,"level4":[{"name":"计算机的特点","cards":1,"mastered":1,"unmastered":0},{"name":"计算机的分类","cards":1,"mastered":0,"unmastered":1}]},{"name":"计算机的应用领域及发展趋势","cards":2,"memorized":2,"done":100,"level4":[{"name":"计算机的应用领域","cards":1,"mastered":1,"unmastered":0},{"name":"计算机的发展趋势","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"计算机数制与编码概述","cards":15,"memorized":10,"done":67,"level3":[{"name":"数制及其转换","cards":5,"memorized":3,"done":60,"level4":[{"name":"数制","cards":1,"mastered":0,"unmastered":1},{"name":"基数","cards":1,"mastered":1,"unmastered":0},{"name":"位权","cards":1,"mastered":0,"unmastered":1},{"name":"数制的书写方法","cards":1,"mastered":1,"unmastered":0},{"name":"数制的转换","cards":1,"mastered":1,"unmastered":0}]},{"name":"二进制数的运算规则","cards":2,"memorized":1,"done":50,"level4":[{"name":"算术运算规则","cards":1,"mastered":1,"unmastered":0},{"name":"逻辑运算规则","cards":1,"mastered":0,"unmastered":1}]},{"name":"计算机中数值的表示","cards":5,"memorized":3,"done":60,"level4":[{"name":"原码","cards":1,"mastered":0,"unmastered":1},{"name":"反码","cards":1,"mastered":0,"unmastered":1},{"name":"补码","cards":1,"mastered":1,"unmastered":0},{"name":"BCD码","cards":1,"mastered":1,"unmastered":0},{"name":"溢出","cards":1,"mastered":1,"unmastered":0}]},{"name":"汉字编码及数据单位","cards":2,"memorized":2,"done":100,"level4":[{"name":"汉字编码","cards":1,"mastered":1,"unmastered":0},{"name":"数据单位","cards":1,"mastered":1,"unmastered":0}]},{"name":"ASCII码","cards":1,"memorized":1,"done":100,"level4":[{"name":"ASCII码","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"计算机系统","cards":7,"memorized":4,"done":57,"level3":[{"name":"计算机工作原理","cards":3,"memorized":1,"done":33,"level4":[{"name":"指令","cards":1,"mastered":0,"unmastered":1},{"name":"存储程序工作原理","cards":1,"mastered":1,"unmastered":0},{"name":"计算机的工作过程","cards":1,"mastered":0,"unmastered":1}]},{"name":"计算机系统","cards":4,"memorized":3,"done":75,"level4":[{"name":"计算机系统","cards":1,"mastered":1,"unmastered":0},{"name":"硬件系统","cards":1,"mastered":1,"unmastered":0},{"name":"软件系统","cards":1,"mastered":1,"unmastered":0},{"name":"计算机语言的三个阶段及特点","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"微型计算机","cards":10,"memorized":8,"done":80,"level3":[{"name":"微型计算机的分类及性能指标","cards":2,"memorized":2,"done":100,"level4":[{"name":"微型计算机的分类","cards":1,"mastered":1,"unmastered":0},{"name":"微型计算机的性能指标","cards":1,"mastered":1,"unmastered":0}]},{"name":"常见的微型计算机硬件设备","cards":4,"memorized":3,"done":75,"level4":[{"name":"微处理器","cards":1,"mastered":0,"unmastered":1},{"name":"存储器","cards":1,"mastered":1,"unmastered":0},{"name":"主板","cards":1,"mastered":1,"unmastered":0},{"name":"输入输出设备","cards":1,"mastered":1,"unmastered":0}]},{"name":"微机常见总线标准","cards":4,"memorized":3,"done":75,"level4":[{"name":"数据总线","cards":1,"mastered":1,"unmastered":0},{"name":"地址总线","cards":1,"mastered":1,"unmastered":0},{"name":"控制总线","cards":1,"mastered":0,"unmastered":1},{"name":"常见的总线标准","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"多媒体技术概述","cards":6,"memorized":6,"done":100,"level3":[{"name":"多媒体技术的概念及特点","cards":2,"memorized":2,"done":100,"level4":[{"name":"多媒体技术的概念","cards":1,"mastered":1,"unmastered":0},{"name":"多媒体技术特点","cards":1,"mastered":1,"unmastered":0}]},{"name":"多媒体技术中的媒体元素及相关技术","cards":2,"memorized":2,"done":100,"level4":[{"name":"多媒体技术中的媒体元素","cards":1,"mastered":1,"unmastered":0},{"name":"多媒体相关技术","cards":1,"mastered":1,"unmastered":0}]},{"name":"多媒体技术的应用领域及多媒体计算机系统组成","cards":2,"memorized":2,"done":100,"level4":[{"name":"多媒体技术应用领域","cards":1,"mastered":1,"unmastered":0},{"name":"多媒体计算机系统组成","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"常用多媒体处理软件","cards":4,"memorized":2,"done":50,"level3":[{"name":"常用多媒体处理软件","cards":4,"memorized":2,"done":50,"level4":[{"name":"图形/图像处理软件","cards":1,"mastered":0,"unmastered":1},{"name":"音频处理","cards":1,"mastered":1,"unmastered":0},{"name":"视频处理","cards":1,"mastered":1,"unmastered":0},{"name":"动画处理","cards":1,"mastered":0,"unmastered":1}]}]}]},{"id":2,"name":"计算思维","icon":"brain","cards":14,"memorized":10,"stubborn":4,"done":71,"subs":[{"name":"计算思维基础","cards":6,"memorized":5,"done":83,"level3":[{"name":"计算思维的概念和应用领域","cards":4,"memorized":3,"done":75,"level4":[{"name":"计算思维的概念","cards":1,"mastered":1,"unmastered":0},{"name":"计算思维的特征","cards":1,"mastered":1,"unmastered":0},{"name":"计算思维的本质","cards":1,"mastered":0,"unmastered":1},{"name":"计算思维的应用领域","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机求解和计算思维解决简单问题的方法","cards":2,"memorized":2,"done":100,"level4":[{"name":"计算机求解问题的基本方法","cards":1,"mastered":1,"unmastered":0},{"name":"计算思维解决简单计算问题","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"计算机算法和程序设计基础","cards":8,"memorized":5,"done":62,"level3":[{"name":"计算机算法","cards":6,"memorized":3,"done":50,"level4":[{"name":"数据结构","cards":1,"mastered":1,"unmastered":0},{"name":"算法的概念","cards":1,"mastered":0,"unmastered":1},{"name":"算法的特性","cards":1,"mastered":0,"unmastered":1},{"name":"算法的表示方法","cards":1,"mastered":1,"unmastered":0},{"name":"典型问题求解策略","cards":1,"mastered":1,"unmastered":0},{"name":"算法复杂度分析","cards":1,"mastered":0,"unmastered":1}]},{"name":"程序设计基础","cards":2,"memorized":2,"done":100,"level4":[{"name":"计算机程序的基本结构","cards":1,"mastered":1,"unmastered":0},{"name":"面向对象程序设计","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":3,"name":"操作系统（Windows 10）","icon":"settings","cards":59,"memorized":46,"stubborn":4,"done":78,"subs":[{"name":"操作系统概述","cards":5,"memorized":2,"done":40,"level3":[{"name":"操作系统的概念及功能","cards":2,"memorized":1,"done":50,"level4":[{"name":"操作系统的概念","cards":1,"mastered":0,"unmastered":1},{"name":"操作系统的功能","cards":1,"mastered":1,"unmastered":0}]},{"name":"操作系统的主要特征及分类","cards":3,"memorized":1,"done":33,"level4":[{"name":"操作系统的主要特征","cards":1,"mastered":0,"unmastered":1},{"name":"操作系统的分类","cards":1,"mastered":1,"unmastered":0},{"name":"常见的操作系统","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"Windows 10基本知识及基本操作","cards":19,"memorized":16,"done":84,"level3":[{"name":"Windows 10预备知识","cards":4,"memorized":3,"done":75,"level4":[{"name":"Windows 10操作系统的特性","cards":1,"mastered":1,"unmastered":0},{"name":"Windows 10的启动","cards":1,"mastered":1,"unmastered":0},{"name":"关闭与重启计算机","cards":1,"mastered":1,"unmastered":0},{"name":"键盘、鼠标的基本操作","cards":1,"mastered":0,"unmastered":1}]},{"name":"桌面及个性化桌面设置","cards":2,"memorized":2,"done":100,"level4":[{"name":"桌面","cards":1,"mastered":1,"unmastered":0},{"name":"个性化桌面设置","cards":1,"mastered":1,"unmastered":0}]},{"name":"任务栏与开始菜单","cards":6,"memorized":5,"done":83,"level4":[{"name":"任务栏","cards":1,"mastered":1,"unmastered":0},{"name":"开始菜单","cards":1,"mastered":0,"unmastered":1},{"name":"任务栏与“开始”菜单的设置","cards":1,"mastered":1,"unmastered":0},{"name":"输入法设置","cards":1,"mastered":1,"unmastered":0},{"name":"日期和时间设置","cards":1,"mastered":1,"unmastered":0},{"name":"任务管理器","cards":1,"mastered":1,"unmastered":0}]},{"name":"窗口的组成","cards":3,"memorized":2,"done":67,"level4":[{"name":"窗口的定义","cards":1,"mastered":0,"unmastered":1},{"name":"窗口的组成","cards":1,"mastered":1,"unmastered":0},{"name":"窗口的操作","cards":1,"mastered":1,"unmastered":0}]},{"name":"对话框和控件的使用","cards":2,"memorized":2,"done":100,"level4":[{"name":"对话框","cards":1,"mastered":1,"unmastered":0},{"name":"控件的使用","cards":1,"mastered":1,"unmastered":0}]},{"name":"设置快捷方式","cards":1,"memorized":1,"done":100,"level4":[{"name":"设置快捷方式","cards":1,"mastered":1,"unmastered":0}]},{"name":"剪贴板的基本操作","cards":1,"memorized":1,"done":100,"level4":[{"name":"剪贴板的基本操作","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"Windows 10文件与文件夹的基本概念及操作","cards":14,"memorized":11,"done":79,"level3":[{"name":"文件和文件夹的基本概念","cards":2,"memorized":1,"done":50,"level4":[{"name":"文件和文件夹的概念","cards":1,"mastered":0,"unmastered":1},{"name":"文件和文件夹的命名规则","cards":1,"mastered":1,"unmastered":0}]},{"name":"“此电脑”和“文件资源管理器”","cards":3,"memorized":3,"done":100,"level4":[{"name":"此电脑","cards":1,"mastered":1,"unmastered":0},{"name":"文件资源管理器","cards":1,"mastered":1,"unmastered":0},{"name":"库","cards":1,"mastered":1,"unmastered":0}]},{"name":"文件和文件夹管理","cards":9,"memorized":7,"done":78,"level4":[{"name":"文件和文件夹的选定","cards":1,"mastered":0,"unmastered":1},{"name":"设置文件和文件夹的属性","cards":1,"mastered":1,"unmastered":0},{"name":"新建文件夹和文件","cards":1,"mastered":1,"unmastered":0},{"name":"复制/移动文件或文件夹","cards":1,"mastered":1,"unmastered":0},{"name":"删除文件或文件夹","cards":1,"mastered":1,"unmastered":0},{"name":"重命名文件或文件夹","cards":1,"mastered":1,"unmastered":0},{"name":"查找文件或文件夹","cards":1,"mastered":1,"unmastered":0},{"name":"文件和文件夹的加密","cards":1,"mastered":0,"unmastered":1},{"name":"文件与文件夹的压缩","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"控制面板、设置和实用工具","cards":21,"memorized":17,"done":81,"level3":[{"name":"硬件和声音","cards":3,"memorized":2,"done":67,"level4":[{"name":"打印机设置","cards":1,"mastered":0,"unmastered":1},{"name":"鼠标设置","cards":1,"mastered":1,"unmastered":0},{"name":"声音设置","cards":1,"mastered":1,"unmastered":0}]},{"name":"程序","cards":2,"memorized":2,"done":100,"level4":[{"name":"卸载程序","cards":1,"mastered":1,"unmastered":0},{"name":"启用或关闭 Windows功能","cards":1,"mastered":1,"unmastered":0}]},{"name":"用户帐户","cards":3,"memorized":3,"done":100,"level4":[{"name":"用户帐户","cards":1,"mastered":1,"unmastered":0},{"name":"创建新帐户","cards":1,"mastered":1,"unmastered":0},{"name":"更改帐户","cards":1,"mastered":1,"unmastered":0}]},{"name":"控制面板的其他类别","cards":3,"memorized":1,"done":33,"level4":[{"name":"时钟和区域","cards":1,"mastered":0,"unmastered":1},{"name":"系统和安全","cards":1,"mastered":1,"unmastered":0},{"name":"网络和Internet","cards":1,"mastered":0,"unmastered":1}]},{"name":"设置","cards":2,"memorized":2,"done":100,"level4":[{"name":"设置与控制面板","cards":1,"mastered":1,"unmastered":0},{"name":"Windows 10 设置的基本操作","cards":1,"mastered":1,"unmastered":0}]},{"name":"实用工具","cards":7,"memorized":7,"done":100,"level4":[{"name":"画图","cards":1,"mastered":1,"unmastered":0},{"name":"记事本","cards":1,"mastered":1,"unmastered":0},{"name":"写字板","cards":1,"mastered":1,"unmastered":0},{"name":"计算器","cards":1,"mastered":1,"unmastered":0},{"name":"截图","cards":1,"mastered":1,"unmastered":0},{"name":"录音机","cards":1,"mastered":1,"unmastered":0},{"name":"步骤记录器","cards":1,"mastered":1,"unmastered":0}]},{"name":"控制面板的基本知识","cards":1,"memorized":0,"done":0,"level4":[{"name":"控制面板的基本知识","cards":1,"mastered":0,"unmastered":1}]}]}]},{"id":4,"name":"文档处理（Word 2016）","icon":"doc","cards":90,"memorized":64,"stubborn":6,"done":71,"subs":[{"name":"Word 2016基础知识和基本操作","cards":20,"memorized":16,"done":80,"level3":[{"name":"Word 2016的主要功能、启动和退出","cards":3,"memorized":3,"done":100,"level4":[{"name":"主要功能","cards":1,"mastered":1,"unmastered":0},{"name":"启动","cards":1,"mastered":1,"unmastered":0},{"name":"退出","cards":1,"mastered":1,"unmastered":0}]},{"name":"Word 2016文档视图、界面结构与界面定制","cards":3,"memorized":3,"done":100,"level4":[{"name":"Word 2016界面结构","cards":1,"mastered":1,"unmastered":0},{"name":"Word 2016界面的定制","cards":1,"mastered":1,"unmastered":0},{"name":"Word 2016的文档视图","cards":1,"mastered":1,"unmastered":0}]},{"name":"文档的创建、打开和保存","cards":3,"memorized":2,"done":67,"level4":[{"name":"文档的创建","cards":1,"mastered":1,"unmastered":0},{"name":"文档的打开","cards":1,"mastered":0,"unmastered":1},{"name":"文档的保存","cards":1,"mastered":1,"unmastered":0}]},{"name":"文档内容的录入、撤消和恢复","cards":3,"memorized":3,"done":100,"level4":[{"name":"录入","cards":1,"mastered":1,"unmastered":0},{"name":"撤消","cards":1,"mastered":1,"unmastered":0},{"name":"恢复","cards":1,"mastered":1,"unmastered":0}]},{"name":"文本选择、移动、复制和删除","cards":4,"memorized":2,"done":50,"level4":[{"name":"文本选择","cards":1,"mastered":0,"unmastered":1},{"name":"移动文本","cards":1,"mastered":1,"unmastered":0},{"name":"复制文本","cards":1,"mastered":1,"unmastered":0},{"name":"删除文本","cards":1,"mastered":0,"unmastered":1}]},{"name":"查找、替换和文档校对","cards":4,"memorized":3,"done":75,"level4":[{"name":"查找","cards":1,"mastered":1,"unmastered":0},{"name":"替换","cards":1,"mastered":1,"unmastered":0},{"name":"文档校对","cards":1,"mastered":0,"unmastered":1},{"name":"字数统计","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"文档格式化与排版","cards":19,"memorized":13,"done":68,"level3":[{"name":"设置字符格式与段落格式","cards":4,"memorized":2,"done":50,"level4":[{"name":"设置字符格式","cards":1,"mastered":0,"unmastered":1},{"name":"格式刷","cards":1,"mastered":1,"unmastered":0},{"name":"快速清除格式","cards":1,"mastered":1,"unmastered":0},{"name":"设置段落格式","cards":1,"mastered":0,"unmastered":1}]},{"name":"设置项目符号、编号、边框和底纹","cards":4,"memorized":4,"done":100,"level4":[{"name":"添加项目符号或编号","cards":1,"mastered":1,"unmastered":0},{"name":"添加自定义项目符号和编号","cards":1,"mastered":1,"unmastered":0},{"name":"添加多级列表","cards":1,"mastered":1,"unmastered":0},{"name":"边框和底纹","cards":1,"mastered":1,"unmastered":0}]},{"name":"设置分页、分节和分栏","cards":3,"memorized":2,"done":67,"level4":[{"name":"分页","cards":1,"mastered":0,"unmastered":1},{"name":"分节","cards":1,"mastered":1,"unmastered":0},{"name":"分栏","cards":1,"mastered":1,"unmastered":0}]},{"name":"设置页眉、页脚和页码","cards":2,"memorized":1,"done":50,"level4":[{"name":"插入页眉和页脚","cards":1,"mastered":1,"unmastered":0},{"name":"设置页码","cards":1,"mastered":0,"unmastered":1}]},{"name":"样式、模板和目录设计","cards":3,"memorized":2,"done":67,"level4":[{"name":"样式","cards":1,"mastered":0,"unmastered":1},{"name":"模板","cards":1,"mastered":1,"unmastered":0},{"name":"目录","cards":1,"mastered":1,"unmastered":0}]},{"name":"版面设计","cards":3,"memorized":2,"done":67,"level4":[{"name":"插入封面","cards":1,"mastered":1,"unmastered":0},{"name":"设置主题","cards":1,"mastered":0,"unmastered":1},{"name":"页面设置","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"Word 2016表格操作","cards":19,"memorized":12,"done":63,"level3":[{"name":"创建表格","cards":6,"memorized":5,"done":83,"level4":[{"name":"使用虚拟表格","cards":1,"mastered":1,"unmastered":0},{"name":"插入表格（命令对话框）","cards":1,"mastered":1,"unmastered":0},{"name":"绘制表格","cards":1,"mastered":1,"unmastered":0},{"name":"Excel电子表格","cards":1,"mastered":1,"unmastered":0},{"name":"快速表格","cards":1,"mastered":1,"unmastered":0},{"name":"文本与表格的相互转换","cards":1,"mastered":0,"unmastered":1}]},{"name":"编辑表格","cards":4,"memorized":3,"done":75,"level4":[{"name":"选择操作区域","cards":1,"mastered":1,"unmastered":0},{"name":"调整行高与列宽","cards":1,"mastered":1,"unmastered":0},{"name":"插入与删除行、列或单元格","cards":1,"mastered":0,"unmastered":1},{"name":"合并与拆分单元格、表格","cards":1,"mastered":1,"unmastered":0}]},{"name":"格式化表格","cards":4,"memorized":2,"done":50,"level4":[{"name":"设置文本对齐方式","cards":1,"mastered":0,"unmastered":1},{"name":"重复标题行","cards":1,"mastered":1,"unmastered":0},{"name":"设置边框与底纹","cards":1,"mastered":1,"unmastered":0},{"name":"自动套用格式","cards":1,"mastered":0,"unmastered":1}]},{"name":"表格数据的计算与排序","cards":4,"memorized":1,"done":25,"level4":[{"name":"单元格命名","cards":1,"mastered":1,"unmastered":0},{"name":"计算数据","cards":1,"mastered":0,"unmastered":1},{"name":"计算数据更新","cards":1,"mastered":0,"unmastered":1},{"name":"排序","cards":1,"mastered":0,"unmastered":1}]},{"name":"Word与Excel表格的协同操作","cards":1,"memorized":1,"done":100,"level4":[{"name":"Word与Excel表格的协同操作","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"Word 2016图文混排","cards":14,"memorized":9,"done":64,"level3":[{"name":"插入图片、联机图片和屏幕截图","cards":3,"memorized":1,"done":33,"level4":[{"name":"插入图片","cards":1,"mastered":1,"unmastered":0},{"name":"插入联机图片","cards":1,"mastered":0,"unmastered":1},{"name":"插入屏幕截图","cards":1,"mastered":0,"unmastered":1}]},{"name":"图片格式化和图文混排","cards":3,"memorized":2,"done":67,"level4":[{"name":"图片格式化","cards":1,"mastered":1,"unmastered":0},{"name":"图文混排","cards":1,"mastered":0,"unmastered":1},{"name":"插入和编辑 SmartArt图形","cards":1,"mastered":1,"unmastered":0}]},{"name":"插入和编辑形状、艺术字、文本框和数学公式","cards":6,"memorized":5,"done":83,"level4":[{"name":"插入和编辑形状","cards":1,"mastered":1,"unmastered":0},{"name":"图形叠放次序","cards":1,"mastered":1,"unmastered":0},{"name":"组合对象","cards":1,"mastered":1,"unmastered":0},{"name":"插入和编辑艺术字","cards":1,"mastered":1,"unmastered":0},{"name":"插入和编辑文本框","cards":1,"mastered":1,"unmastered":0},{"name":"插入数学公式","cards":1,"mastered":0,"unmastered":1}]},{"name":"设置首字下沉和超链接","cards":2,"memorized":1,"done":50,"level4":[{"name":"首字下沉","cards":1,"mastered":1,"unmastered":0},{"name":"超链接","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"Word 2016高级应用","cards":18,"memorized":14,"done":78,"level3":[{"name":"邮件合并、页面背景设置与多窗口操作","cards":3,"memorized":3,"done":100,"level4":[{"name":"邮件合并","cards":1,"mastered":1,"unmastered":0},{"name":"页面背景","cards":1,"mastered":1,"unmastered":0},{"name":"多窗口操作","cards":1,"mastered":1,"unmastered":0}]},{"name":"批注、修订与比较文档","cards":3,"memorized":2,"done":67,"level4":[{"name":"批注","cards":1,"mastered":1,"unmastered":0},{"name":"修订文档","cards":1,"mastered":0,"unmastered":1},{"name":"比较文档","cards":1,"mastered":1,"unmastered":0}]},{"name":"插入题注、交叉引用、脚注和尾注","cards":4,"memorized":3,"done":75,"level4":[{"name":"题注","cards":1,"mastered":1,"unmastered":0},{"name":"交叉引用","cards":1,"mastered":1,"unmastered":0},{"name":"脚注","cards":1,"mastered":1,"unmastered":0},{"name":"尾注","cards":1,"mastered":0,"unmastered":1}]},{"name":"防止文档内容丢失与保护文档的安全","cards":4,"memorized":4,"done":100,"level4":[{"name":"自动恢复","cards":1,"mastered":1,"unmastered":0},{"name":"自动备份文档副本","cards":1,"mastered":1,"unmastered":0},{"name":"设置修改密码","cards":1,"mastered":1,"unmastered":0},{"name":"设置打开密码","cards":1,"mastered":1,"unmastered":0}]},{"name":"打印文档","cards":2,"memorized":2,"done":100,"level4":[{"name":"打印预览","cards":1,"mastered":1,"unmastered":0},{"name":"打印文档","cards":1,"mastered":1,"unmastered":0}]},{"name":"文档的常见格式和协同编辑软件","cards":2,"memorized":0,"done":0,"level4":[{"name":"文档的常见格式","cards":1,"mastered":0,"unmastered":1},{"name":"文档协同编辑软件","cards":1,"mastered":0,"unmastered":1}]}]}]},{"id":5,"name":"电子表格处理（Excel 2016）","icon":"chart","cards":65,"memorized":53,"stubborn":12,"done":82,"subs":[{"name":"Excel基础知识","cards":7,"memorized":6,"done":86,"level3":[{"name":"Excel 2016窗口界面","cards":5,"memorized":5,"done":100,"level4":[{"name":"行号与列标","cards":1,"mastered":1,"unmastered":0},{"name":"单元格","cards":1,"mastered":1,"unmastered":0},{"name":"编辑栏","cards":1,"mastered":1,"unmastered":0},{"name":"工作表控制按钮","cards":1,"mastered":1,"unmastered":0},{"name":"工作表标签","cards":1,"mastered":1,"unmastered":0}]},{"name":"工作簿与工作表","cards":2,"memorized":1,"done":50,"level4":[{"name":"工作簿与工作表","cards":1,"mastered":1,"unmastered":0},{"name":"新建工作簿","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"Excel 基本管理","cards":30,"memorized":24,"done":80,"level3":[{"name":"单元格区域的管理","cards":3,"memorized":1,"done":33,"level4":[{"name":"单元格区域","cards":1,"mastered":1,"unmastered":0},{"name":"单元格、单元格区域、行和列的选择","cards":1,"mastered":0,"unmastered":1},{"name":"单元格区域命名","cards":1,"mastered":0,"unmastered":1}]},{"name":"输入和编辑数据","cards":10,"memorized":8,"done":80,"level4":[{"name":"输入和编辑数据的常用方式","cards":1,"mastered":1,"unmastered":0},{"name":"文本型数据及输入","cards":1,"mastered":1,"unmastered":0},{"name":"数字（值）型数据及输入","cards":1,"mastered":0,"unmastered":1},{"name":"日期和时间型数据及输入","cards":1,"mastered":1,"unmastered":0},{"name":"逻辑型数据","cards":1,"mastered":1,"unmastered":0},{"name":"数据自动填充","cards":1,"mastered":1,"unmastered":0},{"name":"创建自定义序列","cards":1,"mastered":1,"unmastered":0},{"name":"数据的删除和清除","cards":1,"mastered":1,"unmastered":0},{"name":"数据复制和移动","cards":1,"mastered":0,"unmastered":1},{"name":"数据验证的设置","cards":1,"mastered":1,"unmastered":0}]},{"name":"工作表的管理","cards":8,"memorized":7,"done":88,"level4":[{"name":"选择工作表","cards":1,"mastered":1,"unmastered":0},{"name":"插入工作表","cards":1,"mastered":1,"unmastered":0},{"name":"删除工作表","cards":1,"mastered":1,"unmastered":0},{"name":"重命名工作表","cards":1,"mastered":0,"unmastered":1},{"name":"移动或复制工作表","cards":1,"mastered":1,"unmastered":0},{"name":"隐藏工作表和取消隐藏工作表","cards":1,"mastered":1,"unmastered":0},{"name":"保护工作表","cards":1,"mastered":1,"unmastered":0},{"name":"工作表的窗口的拆分与冻结","cards":1,"mastered":1,"unmastered":0}]},{"name":"行、列和单元格的管理","cards":4,"memorized":4,"done":100,"level4":[{"name":"插入行、列、单元格","cards":1,"mastered":1,"unmastered":0},{"name":"删除行、列、单元格","cards":1,"mastered":1,"unmastered":0},{"name":"隐藏行、列及取消隐藏","cards":1,"mastered":1,"unmastered":0},{"name":"单元格","cards":1,"mastered":1,"unmastered":0}]},{"name":"查找、替换和批注","cards":2,"memorized":2,"done":100,"level4":[{"name":"查找、替换","cards":1,"mastered":1,"unmastered":0},{"name":"批注","cards":1,"mastered":1,"unmastered":0}]},{"name":"格式化工作表","cards":3,"memorized":2,"done":67,"level4":[{"name":"格式化单元格及单元格区域","cards":1,"mastered":0,"unmastered":1},{"name":"设置单元格的行高和列宽","cards":1,"mastered":1,"unmastered":0},{"name":"自动套用格式和条件格式","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"公式与函数","cards":7,"memorized":6,"done":86,"level3":[{"name":"公式","cards":4,"memorized":3,"done":75,"level4":[{"name":"公式中的运算符类型","cards":1,"mastered":1,"unmastered":0},{"name":"公式中的运算顺序","cards":1,"mastered":1,"unmastered":0},{"name":"输入和编辑公式","cards":1,"mastered":1,"unmastered":0},{"name":"相对引用和绝对引用","cards":1,"mastered":0,"unmastered":1}]},{"name":"函数","cards":3,"memorized":3,"done":100,"level4":[{"name":"函数的组成与分类","cards":1,"mastered":1,"unmastered":0},{"name":"函数的输入与使用","cards":1,"mastered":1,"unmastered":0},{"name":"常用函数","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"数据处理","cards":11,"memorized":8,"done":73,"level3":[{"name":"排序","cards":2,"memorized":1,"done":50,"level4":[{"name":"单关键字排序","cards":1,"mastered":0,"unmastered":1},{"name":"多关键字排序","cards":1,"mastered":1,"unmastered":0}]},{"name":"筛选","cards":2,"memorized":1,"done":50,"level4":[{"name":"自动筛选","cards":1,"mastered":1,"unmastered":0},{"name":"高级筛选(【高级筛选】）","cards":1,"mastered":0,"unmastered":1}]},{"name":"合并计算","cards":2,"memorized":2,"done":100,"level4":[{"name":"按类别合并计算","cards":1,"mastered":1,"unmastered":0},{"name":"按位置合并计算","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据清单","cards":1,"memorized":1,"done":100,"level4":[{"name":"数据清单","cards":1,"mastered":1,"unmastered":0}]},{"name":"分类汇总","cards":1,"memorized":1,"done":100,"level4":[{"name":"分类汇总","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据透视表","cards":1,"memorized":1,"done":100,"level4":[{"name":"数据透视表","cards":1,"mastered":1,"unmastered":0}]},{"name":"获取外部数据","cards":1,"memorized":0,"done":0,"level4":[{"name":"获取外部数据","cards":1,"mastered":0,"unmastered":1}]},{"name":"模拟分析","cards":1,"memorized":1,"done":100,"level4":[{"name":"模拟分析","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"使用图表","cards":6,"memorized":5,"done":83,"level3":[{"name":"图表简介","cards":3,"memorized":2,"done":67,"level4":[{"name":"图表","cards":1,"mastered":1,"unmastered":0},{"name":"图表的分类","cards":1,"mastered":1,"unmastered":0},{"name":"图表的组成","cards":1,"mastered":0,"unmastered":1}]},{"name":"图表的创建和编辑","cards":3,"memorized":3,"done":100,"level4":[{"name":"创建图表","cards":1,"mastered":1,"unmastered":0},{"name":"编辑图表","cards":1,"mastered":1,"unmastered":0},{"name":"迷你图","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"打印","cards":4,"memorized":4,"done":100,"level3":[{"name":"页面设置","cards":2,"memorized":2,"done":100,"level4":[{"name":"分页符的插入与删除","cards":1,"mastered":1,"unmastered":0},{"name":"页面布局","cards":1,"mastered":1,"unmastered":0}]},{"name":"打印工作表","cards":2,"memorized":2,"done":100,"level4":[{"name":"打印预览","cards":1,"mastered":1,"unmastered":0},{"name":"打印","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":6,"name":"演示文稿制作（PowerPoint 2016）","icon":"slides","cards":59,"memorized":41,"stubborn":14,"done":69,"subs":[{"name":"PowerPoint 2016基础","cards":12,"memorized":10,"done":83,"level3":[{"name":"PowerPoint 2016的主要功能和窗口界面","cards":3,"memorized":2,"done":67,"level4":[{"name":"PowerPoint 2016的主要功能","cards":1,"mastered":0,"unmastered":1},{"name":"PowerPoint 2016的窗口界面","cards":1,"mastered":1,"unmastered":0},{"name":"PowerPoint 2016的关闭（与Word2016相同）","cards":1,"mastered":1,"unmastered":0}]},{"name":"新建和保护演示文稿","cards":3,"memorized":2,"done":67,"level4":[{"name":"新建演示文稿","cards":1,"mastered":0,"unmastered":1},{"name":"保护演示文稿","cards":1,"mastered":1,"unmastered":0},{"name":"演示文稿的打开与保存","cards":1,"mastered":1,"unmastered":0}]},{"name":"PowerPoint 2016视图模式","cards":6,"memorized":6,"done":100,"level4":[{"name":"普通视图","cards":1,"mastered":1,"unmastered":0},{"name":"大纲视图","cards":1,"mastered":1,"unmastered":0},{"name":"幻灯片浏览视图","cards":1,"mastered":1,"unmastered":0},{"name":"备注页视图","cards":1,"mastered":1,"unmastered":0},{"name":"阅读视图","cards":1,"mastered":1,"unmastered":0},{"name":"幻灯片放映视图","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"幻灯片设计","cards":20,"memorized":14,"done":70,"level3":[{"name":"新建和组织幻灯片","cards":8,"memorized":4,"done":50,"level4":[{"name":"添加新幻灯片","cards":1,"mastered":0,"unmastered":1},{"name":"浏览幻灯片","cards":1,"mastered":0,"unmastered":1},{"name":"选择幻灯片","cards":1,"mastered":1,"unmastered":0},{"name":"删除幻灯片","cards":1,"mastered":1,"unmastered":0},{"name":"移动或复制幻灯片","cards":1,"mastered":0,"unmastered":1},{"name":"重设幻灯片","cards":1,"mastered":1,"unmastered":0},{"name":"隐藏幻灯片","cards":1,"mastered":1,"unmastered":0},{"name":"设置幻灯片版式","cards":1,"mastered":0,"unmastered":1}]},{"name":"编辑和格式化幻灯片","cards":5,"memorized":5,"done":100,"level4":[{"name":"占位符","cards":1,"mastered":1,"unmastered":0},{"name":"输入文本","cards":1,"mastered":1,"unmastered":0},{"name":"设置字体格式","cards":1,"mastered":1,"unmastered":0},{"name":"设置文本的段落格式","cards":1,"mastered":1,"unmastered":0},{"name":"编辑文本","cards":1,"mastered":1,"unmastered":0}]},{"name":"插入对象","cards":5,"memorized":4,"done":80,"level4":[{"name":"插入文本框、图片、艺术字、公式、表格与图表","cards":1,"mastered":1,"unmastered":0},{"name":"插入音频对象","cards":1,"mastered":1,"unmastered":0},{"name":"插入视频对象","cards":1,"mastered":1,"unmastered":0},{"name":"插入屏幕录制","cards":1,"mastered":1,"unmastered":0},{"name":"插入SmartArt图形","cards":1,"mastered":0,"unmastered":1}]},{"name":"用“节”管理幻灯片","cards":2,"memorized":1,"done":50,"level4":[{"name":"新增节","cards":1,"mastered":0,"unmastered":1},{"name":"编辑节","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"幻灯片外观的修饰","cards":8,"memorized":7,"done":88,"level3":[{"name":"幻灯片的背景与大小设置","cards":2,"memorized":2,"done":100,"level4":[{"name":"设置幻灯片背景和尺寸","cards":1,"mastered":1,"unmastered":0},{"name":"设置备注页或讲义背景","cards":1,"mastered":1,"unmastered":0}]},{"name":"幻灯片的主题设置","cards":3,"memorized":2,"done":67,"level4":[{"name":"应用主题","cards":1,"mastered":1,"unmastered":0},{"name":"自定义主题","cards":1,"mastered":1,"unmastered":0},{"name":"保存主题","cards":1,"mastered":0,"unmastered":1}]},{"name":"幻灯片的母版设置","cards":3,"memorized":3,"done":100,"level4":[{"name":"幻灯片母版","cards":1,"mastered":1,"unmastered":0},{"name":"备注母版","cards":1,"mastered":1,"unmastered":0},{"name":"讲义母版","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"动画效果和动作设置","cards":10,"memorized":4,"done":40,"level3":[{"name":"设置幻灯片动画效果","cards":6,"memorized":2,"done":33,"level4":[{"name":"添加动画效果","cards":1,"mastered":1,"unmastered":0},{"name":"删除动画效果","cards":1,"mastered":0,"unmastered":1},{"name":"动画效果排序","cards":1,"mastered":0,"unmastered":1},{"name":"播放效果","cards":1,"mastered":0,"unmastered":1},{"name":"动画窗格","cards":1,"mastered":0,"unmastered":1},{"name":"动画刷","cards":1,"mastered":1,"unmastered":0}]},{"name":"幻灯片的切换效果设置","cards":2,"memorized":1,"done":50,"level4":[{"name":"设置幻灯片的切换效果","cards":1,"mastered":1,"unmastered":0},{"name":"设置幻灯片切换属性","cards":1,"mastered":0,"unmastered":1}]},{"name":"超链接和动作设置","cards":2,"memorized":1,"done":50,"level4":[{"name":"超链接设置","cards":1,"mastered":0,"unmastered":1},{"name":"动作设置","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"演示文稿的放映、打印、打包和发布","cards":9,"memorized":6,"done":67,"level3":[{"name":"幻灯片的放映与排练计时","cards":3,"memorized":2,"done":67,"level4":[{"name":"设置幻灯片的放映方式","cards":1,"mastered":1,"unmastered":0},{"name":"放映演示文稿","cards":1,"mastered":1,"unmastered":0},{"name":"排练计时","cards":1,"mastered":0,"unmastered":1}]},{"name":"幻灯片的打印","cards":2,"memorized":1,"done":50,"level4":[{"name":"打印幻灯片","cards":1,"mastered":1,"unmastered":0},{"name":"编辑页眉页脚","cards":1,"mastered":0,"unmastered":1}]},{"name":"演示文稿的打包、联机演示、发布和保存","cards":4,"memorized":3,"done":75,"level4":[{"name":"演示文稿的打包","cards":1,"mastered":1,"unmastered":0},{"name":"联机演示","cards":1,"mastered":1,"unmastered":0},{"name":"演示文稿发布","cards":1,"mastered":0,"unmastered":1},{"name":"演示文稿的保存","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":7,"name":"数据库技术","icon":"database","cards":32,"memorized":29,"stubborn":8,"done":91,"subs":[{"name":"数据库概述","cards":8,"memorized":7,"done":88,"level3":[{"name":"数据库的基本概念","cards":5,"memorized":5,"done":100,"level4":[{"name":"数据(Data)","cards":1,"mastered":1,"unmastered":0},{"name":"数据处理","cards":1,"mastered":1,"unmastered":0},{"name":"数据库(DataBase，DB)","cards":1,"mastered":1,"unmastered":0},{"name":"数据库管理系统(Database Management System,DBMS)","cards":1,"mastered":1,"unmastered":0},{"name":"数据库系统(DBS)","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据库系统的组成","cards":2,"memorized":2,"done":100,"level4":[{"name":"数据库系统的组成","cards":1,"mastered":1,"unmastered":0},{"name":"数据库管理系统的组成和功能","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据管理技术的发展","cards":1,"memorized":0,"done":0,"level4":[{"name":"数据管理技术的发展","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"数据模型","cards":14,"memorized":13,"done":93,"level3":[{"name":"数据模型基础","cards":3,"memorized":3,"done":100,"level4":[{"name":"层次模型","cards":1,"mastered":1,"unmastered":0},{"name":"网状模型","cards":1,"mastered":1,"unmastered":0},{"name":"关系模型","cards":1,"mastered":1,"unmastered":0}]},{"name":"关系数据库","cards":5,"memorized":5,"done":100,"level4":[{"name":"关系数据库的基本概念","cards":1,"mastered":1,"unmastered":0},{"name":"关系运算","cards":1,"mastered":1,"unmastered":0},{"name":"专门的关系运算","cards":1,"mastered":1,"unmastered":0},{"name":"常见的关系型数据库管理系统","cards":1,"mastered":1,"unmastered":0},{"name":"数据库管理系统的选择原则","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据库管理系统Access 2016","cards":6,"memorized":5,"done":83,"level4":[{"name":"表对象","cards":1,"mastered":0,"unmastered":1},{"name":"查询对象","cards":1,"mastered":1,"unmastered":0},{"name":"窗体对象","cards":1,"mastered":1,"unmastered":0},{"name":"报表对象","cards":1,"mastered":1,"unmastered":0},{"name":"宏对象","cards":1,"mastered":1,"unmastered":0},{"name":"模块对象","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"数据库基本操作","cards":7,"memorized":7,"done":100,"level3":[{"name":"数据库、表的基本操作","cards":2,"memorized":2,"done":100,"level4":[{"name":"创建数据库","cards":1,"mastered":1,"unmastered":0},{"name":"表的概念和基本操作","cards":1,"mastered":1,"unmastered":0}]},{"name":"数据查询","cards":2,"memorized":2,"done":100,"level4":[{"name":"创建查询","cards":1,"mastered":1,"unmastered":0},{"name":"创建窗体和报表","cards":1,"mastered":1,"unmastered":0}]},{"name":"SQL查询","cards":3,"memorized":3,"done":100,"level4":[{"name":"数据定义","cards":1,"mastered":1,"unmastered":0},{"name":"数据查询","cards":1,"mastered":1,"unmastered":0},{"name":"数据更新","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"非关系型数据库","cards":3,"memorized":2,"done":67,"level3":[{"name":"NoSQL特点及分类","cards":3,"memorized":2,"done":67,"level4":[{"name":"NoSQL特点","cards":1,"mastered":0,"unmastered":1},{"name":"NoSQL的分类","cards":1,"mastered":1,"unmastered":0},{"name":"NoSQL适用场景","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":8,"name":"计算机网络与信息检索","icon":"globe","cards":47,"memorized":35,"stubborn":14,"done":74,"subs":[{"name":"计算机网络基础知识","cards":14,"memorized":11,"done":79,"level3":[{"name":"计算机网络概述","cards":3,"memorized":3,"done":100,"level4":[{"name":"计算机网络定义","cards":1,"mastered":1,"unmastered":0},{"name":"计算机网络的发展历程","cards":1,"mastered":1,"unmastered":0},{"name":"计算机网络的功能","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机网络的组成","cards":2,"memorized":1,"done":50,"level4":[{"name":"从物理连接划分","cards":1,"mastered":0,"unmastered":1},{"name":"从逻辑功能划分","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机网络的分类","cards":4,"memorized":3,"done":75,"level4":[{"name":"根据网络的覆盖范围划分：局域网、城域网和广域网","cards":1,"mastered":1,"unmastered":0},{"name":"按网络的拓扑结构划分","cards":1,"mastered":1,"unmastered":0},{"name":"按传输介质划分","cards":1,"mastered":0,"unmastered":1},{"name":"按网络的使用性质划分","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机网络性能指标","cards":1,"memorized":1,"done":100,"level4":[{"name":"计算机网络性能指标","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机网络体系结构","cards":4,"memorized":3,"done":75,"level4":[{"name":"计算机网络协议","cards":1,"mastered":1,"unmastered":0},{"name":"网络协议分层","cards":1,"mastered":0,"unmastered":1},{"name":"计算机网络体系结构","cards":1,"mastered":1,"unmastered":0},{"name":"计算机网络软件","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"Internet基础","cards":15,"memorized":10,"done":67,"level3":[{"name":"Internet的起源与发展","cards":5,"memorized":4,"done":80,"level4":[{"name":"Internet 的起源和发展","cards":1,"mastered":1,"unmastered":0},{"name":"Internet在中国的发展","cards":1,"mastered":1,"unmastered":0},{"name":"Internet的发展趋势","cards":1,"mastered":1,"unmastered":0},{"name":"Internet的组成及常用专业术语","cards":1,"mastered":1,"unmastered":0},{"name":"常用网络测试命令","cards":1,"mastered":0,"unmastered":1}]},{"name":"IP地址及域名系统","cards":2,"memorized":1,"done":50,"level4":[{"name":"IP地址","cards":1,"mastered":1,"unmastered":0},{"name":"域名系统","cards":1,"mastered":0,"unmastered":1}]},{"name":"Internet的接入方式及WWW","cards":2,"memorized":2,"done":100,"level4":[{"name":"Internet的接入方式","cards":1,"mastered":1,"unmastered":0},{"name":"WWW及相关概念","cards":1,"mastered":1,"unmastered":0}]},{"name":"Internet应用","cards":6,"memorized":3,"done":50,"level4":[{"name":"电子邮件服务","cards":1,"mastered":0,"unmastered":1},{"name":"文件传输","cards":1,"mastered":1,"unmastered":0},{"name":"远程登录Telnet","cards":1,"mastered":0,"unmastered":1},{"name":"即时通信","cards":1,"mastered":0,"unmastered":1},{"name":"网络音乐和网络视频","cards":1,"mastered":1,"unmastered":0},{"name":"流媒体应用","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"网页基础知识","cards":4,"memorized":4,"done":100,"level3":[{"name":"网站与网页的概念","cards":2,"memorized":2,"done":100,"level4":[{"name":"网站","cards":1,"mastered":1,"unmastered":0},{"name":"网页","cards":1,"mastered":1,"unmastered":0}]},{"name":"Web服务器及网页制作工具","cards":2,"memorized":2,"done":100,"level4":[{"name":"Web服务器","cards":1,"mastered":1,"unmastered":0},{"name":"网页制作工具","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"网页设计语言","cards":8,"memorized":6,"done":75,"level3":[{"name":"网页设计的相关计算机语言","cards":1,"memorized":1,"done":100,"level4":[{"name":"脚本语言","cards":1,"mastered":1,"unmastered":0}]},{"name":"HTML语言的基本概念","cards":2,"memorized":2,"done":100,"level4":[{"name":"HTML语言概述","cards":1,"mastered":1,"unmastered":0},{"name":"HTML网页的结构","cards":1,"mastered":1,"unmastered":0}]},{"name":"常用HTML标识","cards":5,"memorized":3,"done":60,"level4":[{"name":"文本布局","cards":1,"mastered":1,"unmastered":0},{"name":"文字格式","cards":1,"mastered":1,"unmastered":0},{"name":"图片","cards":1,"mastered":0,"unmastered":1},{"name":"超链接","cards":1,"mastered":1,"unmastered":0},{"name":"表格","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"信息检索","cards":6,"memorized":4,"done":67,"level3":[{"name":"信息检索的概念及使用方法","cards":6,"memorized":4,"done":67,"level4":[{"name":"信息检索的概念","cards":1,"mastered":1,"unmastered":0},{"name":"信息检索的分类","cards":1,"mastered":0,"unmastered":1},{"name":"信息检索的基本流程","cards":1,"mastered":1,"unmastered":0},{"name":"信息检索的方法","cards":1,"mastered":1,"unmastered":0},{"name":"搜索引擎","cards":1,"mastered":0,"unmastered":1},{"name":"检索数字信息资源","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":9,"name":"信息安全与社会责任","icon":"shield","cards":23,"memorized":18,"stubborn":10,"done":78,"subs":[{"name":"信息安全基础","cards":8,"memorized":4,"done":50,"level3":[{"name":"信息安全概述","cards":5,"memorized":3,"done":60,"level4":[{"name":"信息安全的概念","cards":1,"mastered":1,"unmastered":0},{"name":"信息安全的危害","cards":1,"mastered":0,"unmastered":1},{"name":"信息安全的技术体系","cards":1,"mastered":0,"unmastered":1},{"name":"信息安全当前特点及未来发展趋势","cards":1,"mastered":1,"unmastered":0},{"name":"信息安全意识","cards":1,"mastered":1,"unmastered":0}]},{"name":"计算机犯罪","cards":3,"memorized":1,"done":33,"level4":[{"name":"计算机犯罪","cards":1,"mastered":1,"unmastered":0},{"name":"网络黑客","cards":1,"mastered":0,"unmastered":1},{"name":"计算机病毒","cards":1,"mastered":0,"unmastered":1}]}]},{"name":"信息安全技术及应用","cards":8,"memorized":8,"done":100,"level3":[{"name":"防火墙技术","cards":3,"memorized":3,"done":100,"level4":[{"name":"防火墙的概念","cards":1,"mastered":1,"unmastered":0},{"name":"防火墙的分类","cards":1,"mastered":1,"unmastered":0},{"name":"防火墙的优缺点","cards":1,"mastered":1,"unmastered":0}]},{"name":"其他信息安全技术","cards":5,"memorized":5,"done":100,"level4":[{"name":"密码技术","cards":1,"mastered":1,"unmastered":0},{"name":"虚拟专用网（VPN）技术","cards":1,"mastered":1,"unmastered":0},{"name":"病毒与反病毒技术","cards":1,"mastered":1,"unmastered":0},{"name":"数字签名技术","cards":1,"mastered":1,"unmastered":0},{"name":"其他安全保密技术","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"社会责任","cards":7,"memorized":6,"done":86,"level3":[{"name":"信息网络社会责任","cards":7,"memorized":6,"done":86,"level4":[{"name":"网络礼仪","cards":1,"mastered":1,"unmastered":0},{"name":"网络道德（行为规范）","cards":1,"mastered":1,"unmastered":0},{"name":"信息伦理","cards":1,"mastered":0,"unmastered":1},{"name":"隐私保护","cards":1,"mastered":1,"unmastered":0},{"name":"辨别网络虚假信息","cards":1,"mastered":1,"unmastered":0},{"name":"信息安全与信息伦理相关职业行为自律","cards":1,"mastered":1,"unmastered":0},{"name":"信息技术自主可控","cards":1,"mastered":1,"unmastered":0}]}]}]},{"id":10,"name":"新一代信息技术","icon":"cpu","cards":56,"memorized":35,"stubborn":10,"done":62,"subs":[{"name":"新一代信息技术概况","cards":52,"memorized":31,"done":60,"level3":[{"name":"云计算","cards":6,"memorized":5,"done":83,"level4":[{"name":"云计算的定义","cards":1,"mastered":1,"unmastered":0},{"name":"云计算的特点","cards":1,"mastered":1,"unmastered":0},{"name":"体系结构和服务类型","cards":1,"mastered":0,"unmastered":1},{"name":"云计算的分类","cards":1,"mastered":1,"unmastered":0},{"name":"云计算的关键技术","cards":1,"mastered":1,"unmastered":0},{"name":"云计算的应用","cards":1,"mastered":1,"unmastered":0}]},{"name":"大数据","cards":7,"memorized":6,"done":86,"level4":[{"name":"大数据的概念","cards":1,"mastered":0,"unmastered":1},{"name":"大数据的特征","cards":1,"mastered":1,"unmastered":0},{"name":"大数据关键技术","cards":1,"mastered":1,"unmastered":0},{"name":"大数据的数据来源","cards":1,"mastered":1,"unmastered":0},{"name":"大数据的应用","cards":1,"mastered":1,"unmastered":0},{"name":"大数据的影响","cards":1,"mastered":1,"unmastered":0},{"name":"大数据处理流程","cards":1,"mastered":1,"unmastered":0}]},{"name":"物联网","cards":5,"memorized":2,"done":40,"level4":[{"name":"物联网的概念","cards":1,"mastered":0,"unmastered":1},{"name":"物联网的特征","cards":1,"mastered":1,"unmastered":0},{"name":"物联网的关键技术","cards":1,"mastered":0,"unmastered":1},{"name":"物联网的层次结构","cards":1,"mastered":0,"unmastered":1},{"name":"物联网的应用","cards":1,"mastered":1,"unmastered":0}]},{"name":"移动通信","cards":5,"memorized":3,"done":60,"level4":[{"name":"移动通信的概念","cards":1,"mastered":1,"unmastered":0},{"name":"移动通信的特点","cards":1,"mastered":1,"unmastered":0},{"name":"关键技术","cards":1,"mastered":0,"unmastered":1},{"name":"发展历程","cards":1,"mastered":0,"unmastered":1},{"name":"5G移动通信","cards":1,"mastered":1,"unmastered":0}]},{"name":"人工智能","cards":6,"memorized":3,"done":50,"level4":[{"name":"人工智能的概念","cards":1,"mastered":1,"unmastered":0},{"name":"人工智能的分类","cards":1,"mastered":1,"unmastered":0},{"name":"人工智能的研究目标","cards":1,"mastered":0,"unmastered":1},{"name":"人工智能的关键技术","cards":1,"mastered":1,"unmastered":0},{"name":"人工智能的主要研究方法","cards":1,"mastered":0,"unmastered":1},{"name":"人工智能的应用领域","cards":1,"mastered":0,"unmastered":1}]},{"name":"区块链","cards":6,"memorized":4,"done":67,"level4":[{"name":"区块链的概念","cards":1,"mastered":1,"unmastered":0},{"name":"区块链的起源和发展","cards":1,"mastered":1,"unmastered":0},{"name":"区块链的分类","cards":1,"mastered":0,"unmastered":1},{"name":"区块链的特点","cards":1,"mastered":1,"unmastered":0},{"name":"区块链的技术原理","cards":1,"mastered":1,"unmastered":0},{"name":"区块链的应用","cards":1,"mastered":0,"unmastered":1}]},{"name":"量子信息","cards":2,"memorized":0,"done":0,"level4":[{"name":"量子信息的基础概念","cards":1,"mastered":0,"unmastered":1},{"name":"量子信息的应用领域","cards":1,"mastered":0,"unmastered":1}]},{"name":"元宇宙","cards":6,"memorized":4,"done":67,"level4":[{"name":"元宇宙的概念","cards":1,"mastered":0,"unmastered":1},{"name":"元宇宙的发展历史","cards":1,"mastered":1,"unmastered":0},{"name":"元宇宙的特点","cards":1,"mastered":1,"unmastered":0},{"name":"元宇宙的八大要素","cards":1,"mastered":1,"unmastered":0},{"name":"元宇宙支撑技术","cards":1,"mastered":0,"unmastered":1},{"name":"面临的风险挑战","cards":1,"mastered":1,"unmastered":0}]},{"name":"虚拟现实","cards":5,"memorized":2,"done":40,"level4":[{"name":"虚拟现实的概念","cards":1,"mastered":0,"unmastered":1},{"name":"虚拟现实技术的主要特征","cards":1,"mastered":0,"unmastered":1},{"name":"虚拟现实技术的系统组成","cards":1,"mastered":1,"unmastered":0},{"name":"虚拟现实系统的分类","cards":1,"mastered":0,"unmastered":1},{"name":"虚拟现实系统的应用","cards":1,"mastered":1,"unmastered":0}]},{"name":"增强现实","cards":4,"memorized":2,"done":50,"level4":[{"name":"增强现实技术的概念","cards":1,"mastered":0,"unmastered":1},{"name":"增强现实技术的系统组成","cards":1,"mastered":1,"unmastered":0},{"name":"增强现实技术的应用","cards":1,"mastered":0,"unmastered":1},{"name":"虚拟现实与增强现实技术的区别","cards":1,"mastered":1,"unmastered":0}]}]},{"name":"新一代信息技术的应用与发展趋势","cards":4,"memorized":4,"done":100,"level3":[{"name":"数字经济、智慧城市与智能制造","cards":3,"memorized":3,"done":100,"level4":[{"name":"数字经济","cards":1,"mastered":1,"unmastered":0},{"name":"智慧城市","cards":1,"mastered":1,"unmastered":0},{"name":"智能制造","cards":1,"mastered":1,"unmastered":0}]},{"name":"信息新技术之间的关系","cards":1,"memorized":1,"done":100,"level4":[{"name":"信息新技术之间的关系","cards":1,"mastered":1,"unmastered":0}]}]}]}];
+
+/* Lucide 风格线性图标 */
+const ICONS = {
+  monitor:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  brain:'<path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2z"/>',
+  settings:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3"/>',
+  doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4"/><path d="M9 13h6M9 17h6"/>',
+  chart:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx=".8"/><rect x="12" y="7" width="3" height="10" rx=".8"/><rect x="17" y="13" width="3" height="4" rx=".8"/>',
+  slides:'<rect x="2" y="3" width="20" height="13" rx="2"/><path d="M12 16v3M8 21l4-2 4 2"/><path d="M8 10l2.5-2 2 2L16 7"/>',
+  database:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18 13.5 13.5 0 0 1 0-18z"/>',
+  shield:'<path d="M12 2l8 3.5v5c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11v-5z"/><path d="M9 12l2 2 4-4"/>',
+  cpu:'<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+};
+
+function icon(name, size){
+  size = size || 23;
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>';
+}
+function fmt(n){ return n.toLocaleString('en-US'); }
+/* 数据兜底：非有限数字一律按 0 渲染，杜绝 NaN 上屏 */
+function safeNum(v){ return Number.isFinite(v) ? v : 0; }
+
+function render(){
+  /* 每日卡片数量：读学生配置（闪卡题库.js），演示卡池自动收缩 */
+  var dailyEl = document.getElementById('dailyLabel');
+  if (dailyEl) dailyEl.textContent = getDailyCount();
+
+  /* 核心卡数据：由章节实时汇总，保证首页与章节口径一致 */
+  const total = CHAPTERS.reduce(function(s,c){ return s + safeNum(c.cards); }, 0);
+  const done  = CHAPTERS.reduce(function(s,c){ return s + safeNum(c.memorized); }, 0);
+  const pct   = total > 0 ? +(done / total * 100).toFixed(1) : 0;
+
+  document.getElementById('heroNums').innerHTML = '<strong>' + fmt(done) + '</strong><span> / ' + fmt(total) + ' 张</span>';
+  document.getElementById('heroPct').textContent = pct + '%';
+
+  /* 章节按进度升序（最薄弱排最前 = 学习主次） */
+  const sorted = CHAPTERS.slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); });
+
+  const html = sorted.map(function(c){
+    const memorized = safeNum(c.memorized);
+    const cards     = safeNum(c.cards);
+    const donePct   = safeNum(c.done);
+    const stubborn  = safeNum(c.stubborn);
+
+    /* 二级：同样按进度升序 */
+    const subs = (c.subs || []).slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); })
+      .map(function(s){
+        /* 三级结构：标题 + 已答题/总数 + 百分比；外层 .l3-block 浅边框建立层级 */
+        const level3Html = (s.level3 || []).map(function(l3){
+          /* 四级答题情况：对✓N / 错×N / 顽固N 三项常驻显示（含 0），直观展示该知识点答题状态 */
+          const level4Html = (l3.level4 || []).map(function(l4){
+            var stubborn = 0;
+            for (var i = 0; i < CARDS.length; i++) {
+              if ((CARDS[i].forgotCount || 0) >= 3 && CARDS[i].point === l4.name) stubborn++;
+            }
+            var statusHtml = '<span class="l4-check">✓'+safeNum(l4.mastered)+'</span>'
+              + '<span class="l4-cross">×'+safeNum(l4.unmastered)+'</span>'
+              + '<span class="l4-tag">顽固'+stubborn+'</span>';
+            return '<div class="level4-item" onclick="goLevel4(\''+esc(c.name)+'\',\''+esc(s.name)+'\',\''+esc(l4.name)+'\', event)">'
+              +   '<div class="level4-dot"></div>'
+              +   '<div class="level4-title">'+l4.name+'</div>'
+              +   '<div class="level4-right">'+statusHtml+'</div>'
+              + '</div>';
+          }).join('');
+
+          return '<div class="l3-block">'
+            + '<div class="level3-item" onclick="toggleLevel3(this, event)">'
+            +   '<span class="level3-arrow">›</span>'
+            +   '<div class="level3-title">'+l3.name+'</div>'
+            +   '<div class="level3-right">'
+            +     '<span class="l3-mem">'+fmt(safeNum(l3.memorized))+'/'+fmt(safeNum(l3.cards))+'</span>'
+            +     '<span class="l3-pct">'+safeNum(l3.done)+'%</span>'
+            +   '</div>'
+            + '</div>'
+            + '<div class="level4-list"><div class="level4-inner">'+level4Html+'</div></div>'
+            + '</div>';
+        }).join('');
+
+        return '<div class="sub-container">'
+          + '<div class="sub-item" onclick="toggleLevel2(this, event)">'
+          +   '<div class="sub-dot"></div>'
+          +   '<div class="sub-title">'+s.name+'</div>'
+          +   '<div class="sub-right">'
+          +     '<span class="sub-mem"><strong>'+fmt(safeNum(s.memorized))+'</strong>/'+fmt(safeNum(s.cards))+'</span>'
+          +     '<span class="sub-pct">'+safeNum(s.done)+'%</span>'
+          +     '<span class="sub-arrow">›</span>'
+          +   '</div>'
+          + '</div>'
+          + '<div class="sub-progress"><div class="sub-progress-inner" data-w="'+safeNum(s.done)+'"></div></div>'
+          + '<div class="level3-list"><div class="level3-inner">'+level3Html+'</div></div>'
+          + '</div>';
+      }).join('');
+
+    return ''
+      + '<div class="chapter-card" data-id="'+c.id+'">'
+      +   '<div class="chapter-head" onclick="toggleChapter(this.parentElement, event)">'
+      +     '<div class="chapter-main">'
+      +       '<div class="chapter-icon">'+icon(c.icon)+'</div>'
+      +       '<div class="chapter-info">'
+      +         '<div class="chapter-name">'+c.name+'</div>'
+      +         '<div class="chapter-data">'
+      +           '<span class="remembered">已记住 <strong>'+fmt(memorized)+'</strong></span>'
+      +           '<span>/</span><span>'+fmt(cards)+' 个考点</span>'
+      +           (stubborn > 0 ? '<span class="stubborn">顽固 '+stubborn+'</span>' : '')
+      +         '</div>'
+      +       '</div>'
+      +       '<div class="chapter-right">'
+      +         '<div class="chapter-percent">'+donePct+'%</div>'
+      +         '<div class="arrow">›</div>'
+      +       '</div>'
+      +     '</div>'
+      +     '<div class="chapter-progress"><div class="chapter-progress-inner" data-w="'+donePct+'"></div></div>'
+      +   '</div>'
+      +   '<div class="sub-list"><div class="sub-inner">'+subs+'</div></div>'
+      + '</div>';
+  }).join('');
+  document.getElementById('chapterList').innerHTML = html;
+
+  /* 手风琴：点击一级箭头展开二级，同时只展开一个（Q16A） */
+  let openId = null;
+  window.toggleChapter = function(el, e) {
+    if (e) e.stopPropagation();
+    const id = +el.dataset.id;
+    const sub = el.querySelector('.sub-list');
+    if (openId === id){
+      // 关闭时同时关闭所有二、三、四级
+      sub.querySelectorAll('.level3-item.open').forEach(function(li){
+        li.classList.remove('open');
+        const l4 = li.nextElementSibling;
+        if (l4) l4.style.maxHeight = '0';
+      });
+      sub.querySelectorAll('.sub-item.open-level2').forEach(function(si){
+        si.classList.remove('open-level2');
+        const l3 = si.nextElementSibling;
+        if (l3) l3.style.maxHeight = '0';
+      });
+      sub.style.maxHeight = '0';
+      el.classList.remove('open');
+      openId = null;
+    } else {
+      document.querySelectorAll('.chapter-card').forEach(function(c){
+        c.classList.remove('open');
+        c.querySelectorAll('.level3-item.open').forEach(function(li){ li.classList.remove('open'); });
+        c.querySelectorAll('.sub-item.open-level2').forEach(function(si){ si.classList.remove('open-level2'); });
+        c.querySelectorAll('.level3-list, .level4-list').forEach(function(l){ l.style.maxHeight = '0'; });
+        const sl = c.querySelector('.sub-list');
+        if (sl) sl.style.maxHeight = '0';
+      });
+      sub.style.maxHeight = sub.scrollHeight + 'px';
+      el.classList.add('open');
+      openId = id;
+    }
+  };
+
+  /* 同步祖先容器高度：子级展开/收起后，外层 max-height 需要跟上 */
+  function syncAncestors(el){
+    let node = el.parentElement;
+    while (node) {
+      if ((node.classList.contains('level3-list') || node.classList.contains('level4-list') || node.classList.contains('sub-list'))
+          && node.style.maxHeight && node.style.maxHeight !== 'none' && node.style.maxHeight !== '0px') {
+        node.style.maxHeight = node.scrollHeight + 'px';
+      }
+      node = node.parentElement;
+    }
+  }
+
+  /* 二级展开/折叠 */
+  window.toggleLevel2 = function(item, e) {
+    if (e) e.stopPropagation();
+    // 找下一个 .level3-list 兄弟元素（中间可能隔着 .sub-progress）
+    let list = item.nextElementSibling;
+    while (list && !list.classList.contains('level3-list')) list = list.nextElementSibling;
+    if (!list) return;
+
+    const isOpen = item.classList.contains('open-level2');
+    if (isOpen) {
+      // 关闭所有三级项及其四级
+      list.querySelectorAll('.level3-item.open').forEach(function(l3) {
+        l3.classList.remove('open');
+        let l4List = l3.nextElementSibling;
+        while (l4List && !l4List.classList.contains('level4-list')) l4List = l4List.nextElementSibling;
+        if (l4List) l4List.style.maxHeight = '0';
+      });
+      list.style.maxHeight = list.scrollHeight + 'px';
+      list.offsetHeight;
+      list.style.maxHeight = '0';
+      item.classList.remove('open-level2');
+      setTimeout(function(){ syncAncestors(list); }, 320);
+    } else {
+      list.style.maxHeight = list.scrollHeight + 'px';
+      item.classList.add('open-level2');
+      syncAncestors(list);
+      setTimeout(function(){ syncAncestors(list); }, 320);
+    }
+  };
+
+  /* 三级展开/折叠 */
+  window.toggleLevel3 = function(item, e) {
+    if (e) e.stopPropagation();
+    // 找下一个 .level4-list 兄弟元素
+    let list = item.nextElementSibling;
+    while (list && !list.classList.contains('level4-list')) list = list.nextElementSibling;
+    if (!list) return;
+
+    const isOpen = item.classList.contains('open');
+    if (isOpen) {
+      list.style.maxHeight = list.scrollHeight + 'px';
+      list.offsetHeight;
+      list.style.maxHeight = '0';
+      item.classList.remove('open');
+      setTimeout(function(){ syncAncestors(list); }, 320);
+    } else {
+      list.style.maxHeight = list.scrollHeight + 'px';
+      item.classList.add('open');
+      syncAncestors(list);
+      setTimeout(function(){ syncAncestors(list); }, 320);
+    }
+  };
+
+  /* 进度条入场动画 */
+  requestAnimationFrame(function(){
+    setTimeout(function(){
+      document.getElementById('heroFill').style.width = pct + '%';
+      document.querySelectorAll('.chapter-progress-inner, .sub-progress-inner').forEach(function(el){
+        el.style.width = el.dataset.w + '%';
+      });
+    }, 120);
+  });
+}
+
+function continueStudy(){
+  /* 默认进入单卡模式；右上角按钮可随时切换列表模式，数据共享 */
+  window.location.href = '闪卡单卡模式.html';
+}
+
+/* ============================================================
+   每日学习卡片设置弹窗（底部上滑 + 背景遮罩）
+   保存逻辑与闪卡设置页一致（闪卡题库.js saveConfig）：
+   今天还没开始刷 → 立即生效；已开始 → 次日生效
+   ============================================================ */
+var popTimer = null;
+
+function toggleSettingsPop(e){
+  if (e) e.stopPropagation();
+  var sheet = document.getElementById('settingsSheet');
+  if (sheet.classList.contains('show')) { closeSettingsPop(); return; }
+  hidePopTip(); /* 每次打开重置提示 */
+  var range = document.getElementById('popRange');
+  var cfg = loadConfig();
+  range.value = Math.min(Math.max(cfg.dailyCount, +range.min), +range.max);
+  syncPopUI();
+  document.getElementById('settingsMask').classList.add('show');
+  sheet.classList.add('show');
+}
+
+function closeSettingsPop(){
+  document.getElementById('settingsSheet').classList.remove('show');
+  document.getElementById('settingsMask').classList.remove('show');
+}
+
+function syncPopUI(){
+  var range = document.getElementById('popRange');
+  var v = +range.value;
+  document.getElementById('popCount').textContent = v;
+  document.querySelectorAll('#settingsSheet .pop-chip').forEach(function(c){
+    c.classList.toggle('on', +c.getAttribute('data-v') === v);
+  });
+  var pct = (v - +range.min) / (+range.max - +range.min) * 100;
+  range.style.background = 'linear-gradient(to right, #5B72F5 0%, #5B72F5 ' + pct + '%, #E7EAF6 ' + pct + '%, #E7EAF6 100%)';
+}
+
+function setPopCount(v){
+  var range = document.getElementById('popRange');
+  range.value = Math.min(Math.max(v, +range.min), +range.max);
+  syncPopUI();
+}
+
+function savePopSettings(){
+  var daily = +document.getElementById('popRange').value;
+  var cfg = loadConfig(); /* 保留现有题型比例，仅更新每日数量 */
+  saveConfig({ dailyCount: daily, weights: cfg.weights });
+
+  /* 生效提示：与 saveConfig 内部判定同口径 */
+  var s = null;
+  try {
+    var raw = localStorage.getItem(FLASH_KEY);
+    if (raw) s = JSON.parse(raw);
+  } catch (e) {}
+  var immediate = !s || s.date !== todayStr() || calcStats(s).done === 0;
+  showPopTip(immediate ? 'ok' : 'next',
+    immediate ? '✓ 今天还没开始刷，已按新数量立即生效'
+              : '⏳ 今天已开始背诵，新数量将于明日生效');
+
+  /* 首页「每日 N 张」标签同步（卡池不足时自动收缩） */
+  var dailyEl = document.getElementById('dailyLabel');
+  if (dailyEl) dailyEl.textContent = getDailyCount();
+
+  if (popTimer) clearTimeout(popTimer);
+  popTimer = setTimeout(closeSettingsPop, 1800);
+}
+
+function showPopTip(type, text){
+  var tip = document.getElementById('popTip');
+  tip.className = 'pop-tip ' + type;
+  tip.textContent = text;
+  tip.hidden = false;
+}
+function hidePopTip(){
+  var tip = document.getElementById('popTip');
+  tip.hidden = true;
+  tip.className = 'pop-tip';
+}
+
+function goChapterDetail(id){
+  var c = CHAPTERS.find(function(x){ return x.id === id; });
+  var name = c ? c.name : '';
+  window.location.href = '闪卡章节统计.html?chapter=' + encodeURIComponent(name);
+}
+
+/* ============================================================
+   跳转单卡模式（仅演示：传章节名称参数，进度数据不联动）
+   ============================================================ */
+function goLevel1(chapterName, e) {
+  if (e) e.stopPropagation();
+  window.location.href = '闪卡单卡模式.html?chapter=' + encodeURIComponent(chapterName);
+}
+
+function goLevel2(chapterName, subName, e) {
+  if (e) e.stopPropagation();
+  window.location.href = '闪卡单卡模式.html?chapter=' + encodeURIComponent(chapterName) + '&sub=' + encodeURIComponent(subName);
+}
+
+function goLevel4(chapterName, subName, pointName, e) {
+  if (e) e.stopPropagation();
+  window.location.href = '闪卡单卡模式.html?chapter=' + encodeURIComponent(chapterName) + '&sub=' + encodeURIComponent(subName) + '&point=' + encodeURIComponent(pointName);
+}
+
+render();
+</script>
+</body>
+</html>
