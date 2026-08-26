@@ -41,26 +41,6 @@
     overflow: hidden;
   }
 
-  /* ========================= 顶栏 ========================= */
-  .topbar {
-    height: 48px; flex-shrink: 0;
-    display: flex; align-items: center;
-    justify-content: center;
-    padding: 0 24px;
-    background: #FFFFFF;
-    border-bottom: 1px solid #ECEFF6;
-  }
-  .topbar-title {
-    font-size: 16px; font-weight: 700;
-    color: var(--text-primary);
-    white-space: nowrap;
-  }
-  .topbar-title .ver {
-    font-size: 11px; font-weight: 600;
-    color: var(--primary); background: var(--primary-light);
-    padding: 3px 8px; border-radius: 10px;
-    margin-left: 8px; vertical-align: 2px;
-  }
   /* 顶部 tab（5 页切换） */
   .tabs {
     display: flex; align-items: center; gap: 6px;
@@ -119,7 +99,7 @@
     position: relative;
     flex-shrink: 0;
     width: 390px;
-    height: clamp(560px, calc(100vh - 82px), 844px);
+    height: clamp(640px, calc(100vh - 48px), 900px);
     background: #1E2130;
     border-radius: 44px;
     padding: 12px;
@@ -256,12 +236,6 @@
     color: var(--text-primary);
     display: flex; align-items: center; gap: 6px;
   }
-  .logic-head .ver-chip {
-    font-size: 11px; font-weight: 600;
-    color: var(--primary-dark);
-    background: var(--primary-light);
-    padding: 2px 8px; border-radius: 8px;
-  }
   .logic-head .close-x {
     margin-left: auto;
     border: none; background: none; cursor: pointer;
@@ -376,18 +350,6 @@
     100% { box-shadow: 0 0 0 0 rgba(242,139,61,0); }
   }
 
-  /* ==================== 页脚（版本号常驻） ==================== */
-  .footbar {
-    height: 34px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px;
-    background: #FFFFFF;
-    border-top: 1px solid #ECEFF6;
-    font-size: 12px; color: var(--text-tertiary);
-  }
-  .footbar .ver-badge {
-    color: var(--primary-dark); font-weight: 600;
-  }
 
 
 /* ============ 合并追加 ============ */
@@ -3167,11 +3129,6 @@
 </head>
 <body>
 
-  <header class="topbar">
-    <div class="topbar-title">闪卡原型<span class="ver">v1.0</span></div>
-  </header>
-
-
   <div class="main">
     <div class="phone-col">
       <div class="phone">
@@ -3875,7 +3832,6 @@
       <div class="logic-panel">
         <div class="logic-head">
           <div class="title">📋 逻辑说明</div>
-          <span class="ver-chip" id="panelVersionChip">外壳 v1.0</span>
           <button class="close-x" id="logicClose" title="收起">×</button>
         </div>
         <div class="view-switch" id="viewSwitch"></div>
@@ -3884,12 +3840,7 @@
     </aside>
   </div>
 
-  <footer class="footbar">
-    <span>闪卡原型 <span class="ver-badge">v1.0</span></span>
-    <span id="footVer"></span>
-  </footer>
-
-<script src="闪卡题库.js"></script>
+  <script src="闪卡题库.js"></script>
 <script>
 
 /* ============================================================
@@ -4015,10 +3966,7 @@ function buildTabs() {
 }
 
 /* ---------- 版本 UI ---------- */
-function syncVersionUI() {
-  document.getElementById('panelVersionChip').textContent = '外壳 v1.0 · ' + (VERSION[CURRENT] || '—');
-  document.getElementById('footVer').textContent = '当前 ' + (VIEW_NAMES[CURRENT] || '') + ' ' + (VERSION[CURRENT] || '');
-}
+function syncVersionUI() {}
 
 /* ---------- 逻辑面板 ---------- */
 var logicCol = document.getElementById('logicCol');
