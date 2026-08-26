@@ -227,29 +227,23 @@
   .logic-global {
     flex-shrink: 0;
     margin: 10px 18px 0;
-    padding: 10px 12px;
+    padding: 6px 12px;
     background: #FFFFFF;
     border: 1px solid #ECEFF6;
     border-radius: 10px;
-    font-size: 12px; line-height: 1.5;
+    font-size: 12px; line-height: 1;
     color: var(--text-secondary);
   }
-  .logic-global-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-  .logic-global p { margin: 2px 0 6px; }
-  .global-tabs {
-    display: flex; align-items: center; gap: 6px;
-    margin-top: 4px;
-  }
   .g-tab {
+    display: inline-block;
     font-size: 11px; font-weight: 600;
-    padding: 2px 8px; border-radius: 4px;
+    margin-right: 8px;
+    padding: 3px 8px; border-radius: 10px;
     white-space: nowrap;
   }
   .g-tab.g-ok   { background: #E8F8F0; color: #20A866; }
   .g-tab.g-no   { background: #FEECEC; color: #EF4444; }
   .g-tab.g-stub { background: #FFF1E6; color: #F28B3D; }
-  .g-arrow { color: var(--text-tertiary); }
-  .g-foot { margin: 6px 0 0; color: var(--text-tertiary); }
   .logic-head {
     flex-shrink: 0;
     height: 46px;
@@ -3846,24 +3840,9 @@
         </div>
         <div class="view-switch" id="viewSwitch"></div>
         <div class="logic-global" id="logicGlobal">
-          <div class="logic-global-title">卡片状态标签（全局统一口径）</div>
-          <p>每张卡跳过即「处理过」；只有划卡判定才写标记。</p>
-          <div class="global-tabs">
-            <span class="g-tab g-ok">已记住</span>
-            <span class="g-arrow">=</span>
-            <span>右滑判定 · 绿</span>
-          </div>
-          <div class="global-tabs">
-            <span class="g-tab g-no">未记住</span>
-            <span class="g-arrow">=</span>
-            <span>左滑判定 · 红</span>
-          </div>
-          <div class="global-tabs">
-            <span class="g-tab g-stub">顽固</span>
-            <span class="g-arrow">=</span>
-            <span>同一张未记住 ≥3 次（跨天累计），每日必现</span>
-          </div>
-          <p class="g-foot">标记实时写回当日状态（flashCardState_v2 当日队列），跨模式共享，退出即保存。</p>
+          <span class="g-tab g-ok">已记住 · 右滑</span>
+          <span class="g-tab g-no">未记住 · 左滑</span>
+          <span class="g-tab g-stub">顽固 · 未记住≥3，每日必现</span>
         </div>
         <div class="logic-body" id="logicBody"></div>
       </div>
@@ -4036,30 +4015,21 @@ function currentLogicData() {
             '按钮文案：今日已开始学习（当日队列有已答卡）→「继续背诵」；今日未刷 →「开始学习」。',
             '「继续背诵」进入单卡模式后，从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
             '右上角设置入口 → 每日数量弹窗，保存落库 flashCardConfig_v1；今日未开始学习 → 立即生效，今日已开始 → 次日生效。'
-          ] },
-        { num:'5', title:'与其它页面联动',
-          tableHead:['入口','去向'],
-          table: [
-            ['学习入口','单卡模式（当日队列）'],
-            ['4 级考点','单卡模式（带 point 过滤，全卡池队列）'],
-            ['任意章节卡','逐级展开考点，无单独统计页入口']
           ] }
       ]
     },
     'view-single': {
-      desc: '单卡模式 v3.0：一张一张翻卡、左右滑动判定「已记住 / 未记住」。学生可操作。',
+      desc: '单卡模式 v3.0：由首页「开始学习/继续背诵」或章节/统计页考点进入，翻卡 + 左右滑动判定；进度与列表模式共享。学生可操作。',
       sections: [
-        { num:'1', title:'队列来源与过滤（区块① 顶部进度）',
+        { num:'1', title:'进入单卡模式（入口与队列）',
           paras: [
-            '两套队列独立，由「进入方式」决定：',
-            '无 URL 参数（首页「开始学习/继续背诵」）→ loadState() 读当日队列（flashCardState_v2，按天隔离），与列表模式同一份，进度跨模式共享。',
-            '带 URL 参数（?chapter/?sub/?topic/?point，从首页章节或统计页跳入）→ buildFullQueue() 构建全卡池队列（全部 CARDS，不抽样不按配额），保证任意考点刷到全部题目；marked 复用当日已标记，baseState 仍存当日。',
-            '顶部「已刷 N / 总量」：N = state.marked 已标记数；总量 = state.quota（当日队列=每日配额；过滤队列=匹配卡数）。',
-            '标记一律写回 baseState；过滤视图即时刷新（filterState）。'
+            '首页「开始学习 / 继续背诵」→ 无参数进入，读取当日队列（flashCardState_v2，按天隔离）。继续背诵从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
+            '章节/统计页考点进入 → 带 ?chapter/?sub/?topic/?point 参数，构建全卡池队列（buildFullQueue，全部 CARDS，不抽样不按配额），保证该考点的题目全部刷完；标记复用当日已答。',
+            '顶部「已刷 N / 总量」：N = 当日已标记数，总量 = 每日配额（无参数）或过滤范围卡数（带参数）；标记一律写回当日状态，过滤视图即时刷新。'
           ],
           labels: [
             {k:'进入方式', v:'无参数→当日队列；带参数→全卡池'},
-            {k:'进度口径', v:'已标记数 / 队列长度'},
+            {k:'进度延续', v:'标记写回当日状态；中途退出/刷新后从上次进度继续'},
             {k:'数据隔离', v:'按天隔离，跨模式共享'}
           ] },
         { num:'2', title:'翻卡（区块② 卡片正反面）',
