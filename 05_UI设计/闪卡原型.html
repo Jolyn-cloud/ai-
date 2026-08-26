@@ -262,27 +262,20 @@
     background: var(--primary-light);
     border-radius: 12px;
   }
-  .logic-sec {
-    margin-bottom: 14px;
-    border: 1px solid #EAEDF6;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #FFFFFF;
-  }
+  .logic-sec { margin-bottom: 10px; }
   .logic-sec-head {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 14px;
-    background: #FFFFFF;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0;
   }
   .logic-sec-head .num {
-    width: 22px; height: 22px; border-radius: 7px;
+    width: 18px; height: 18px; border-radius: 5px;
     background: var(--primary); color: #FFFFFF;
-    font-size: 12px; font-weight: 700;
+    font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .logic-sec-head .sec-name { font-size: 14px; font-weight: 700; }
-  .logic-sec-body { display: block; padding: 2px 14px 14px; }
+  .logic-sec-head .sec-name { font-size: 13px; font-weight: 700; }
+  .logic-sec-body { display: block; padding: 2px 0 0 24px; }
 
   .logic-para {
     margin: 10px 0 4px;
@@ -3151,7 +3144,7 @@
         <div class="greeting">你好，团团酱 👋</div>
         <div class="countdown">
           <div class="countdown-icon"></div>
-          <span>距离专升本考试还有</span>
+          <span>距离2026届专升本考试还有</span>
           <span class="days-num">42</span>
           <span class="days-unit">天</span>
         </div>
@@ -3970,20 +3963,33 @@ function currentLogicData() {
   /* 单卡视图：完整逻辑说明（草稿 §0-§8）；其余视图：职责 + 联动精简版 */
   var PANELS = {
     'view-home': {
-      desc: '首页：章节树 + 继续背诵 / 开始学习。学生可操作。',
+      desc: '首页：考试倒计时 + 章节树 + 学习入口。仅已初始化用户进入（游客引导完成初始化后才可用），考试倒计时为全局统一口径。',
       sections: [
-        { num:'1', title:'章节树（手风琴）',
+        { num:'1', title:'考试倒计时（Hero 顶部）',
+          paras: [
+            '锚点：距离最近一届统招专升本考试还有 N 天，N = 当年统考日 − 今日（自然日差）。',
+            '考试日期从山东招考院当年公布时间爬取/人工维护，每年更新 1 次，不写入用户画像。'
+          ],
+          labels: [
+            {k:'判断阈值', v:'考试日 ≤ 今日 → 视为过期/待更新'},
+            {k:'异常空态', v:'未爬取到或已过期 → 显示「考试日待更新」，不显示负数'}
+          ] },
+        { num:'2', title:'章节树（手风琴）',
           paras: [
             '10 个一级章节，逐级展开二级 / 三级 / 四级知识点。',
             '点击一级章（左侧章卡可收起/展开）；点击二级/三级项展开子级，同一层同时只展开一个。',
             '每级右侧数字为「待刷 / 总量」；末级（4 级）点击直接进入单卡模式该考点过滤队列。'
           ] },
-        { num:'2', title:'学习入口',
+        { num:'3', title:'背诵计划卡（Hero 下方）',
+          paras: [
+            '每日 N 张 = 用户设置值（卡池不足自动收缩）；连续 N 天 = 连续学习天数；总进度 = 已记/总量百分比，由章节实时汇总。'
+          ] },
+        { num:'4', title:'学习入口',
           paras: [
             '「开始学习 / 继续背诵」→ 无参数进入单卡模式，读取当日队列（跨模式共享）。',
             '右上角设置入口 → 弹出每日数量选择弹窗，保存即落库（flashCardConfig_v1）。'
           ] },
-        { num:'3', title:'与其它页面联动',
+        { num:'5', title:'与其它页面联动',
           tableHead:['入口','去向'],
           table: [
             ['学习入口','单卡模式（当日队列）'],
