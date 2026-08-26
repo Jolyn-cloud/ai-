@@ -117,8 +117,9 @@
   /* 手机壳 */
   .phone {
     position: relative;
+    flex-shrink: 0;
     width: 390px;
-    height: min(844px, calc(100vh - 56px - 48px));
+    height: clamp(560px, calc(100vh - 82px), 844px);
     background: #1E2130;
     border-radius: 44px;
     padding: 12px;
@@ -485,11 +486,14 @@
     position: relative;
     z-index: 2;
     flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding: 0 18px 30px;
   }
+  /* 内容超高时走滚动，不被 flex 压缩；否则纵向 flex 布局会把长卡片压扁 */
+  .content > * { flex-shrink: 0; }
   .content::-webkit-scrollbar { display: none; }
 
   /* ========================= 手机壳：桌面端固定手机比例居中，页面在壳内滚动 ========================= */
