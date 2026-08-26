@@ -272,11 +272,7 @@
   .logic-sec-head {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 14px;
-    cursor: pointer;
     background: #FFFFFF;
-    border: none; width: 100%;
-    font: inherit;
-    text-align: left;
   }
   .logic-sec-head .num {
     width: 22px; height: 22px; border-radius: 7px;
@@ -286,13 +282,7 @@
     flex-shrink: 0;
   }
   .logic-sec-head .sec-name { font-size: 14px; font-weight: 700; }
-  .logic-sec-head .chev {
-    margin-left: auto; color: var(--text-tertiary);
-    transition: transform .2s ease;
-  }
-  .logic-sec.open .logic-sec-head .chev { transform: rotate(180deg); }
-  .logic-sec-body { display: none; padding: 2px 14px 14px; }
-  .logic-sec.open .logic-sec-body { display: block; }
+  .logic-sec-body { display: block; padding: 2px 14px 14px; }
 
   .logic-para {
     margin: 10px 0 4px;
@@ -4161,9 +4151,8 @@ function renderLogicPanel(data) {
   var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc || ''; logicBody.appendChild(de);
   (data.sections || []).forEach(function(sec) {
     var card = document.createElement('div'); card.className = 'logic-sec';
-    var head = document.createElement('button'); head.className = 'logic-sec-head';
-    head.innerHTML = '<span class="num">' + sec.num + '</span><span class="sec-name">' + esc(sec.title) + '</span><span class="chev">▾</span>';
-    head.addEventListener('click', function() { card.classList.toggle('open'); });
+    var head = document.createElement('div'); head.className = 'logic-sec-head';
+    head.innerHTML = '<span class="num">' + sec.num + '</span><span class="sec-name">' + esc(sec.title) + '</span>';
     card.appendChild(head);
     var body = document.createElement('div'); body.className = 'logic-sec-body';
     (sec.paras || []).forEach(function(t) { var p = document.createElement('div'); p.className = 'logic-para'; p.textContent = t; body.appendChild(p); });
