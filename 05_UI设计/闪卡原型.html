@@ -3194,7 +3194,7 @@
 
       <div class="main-progress"><div class="main-progress-inner" id="heroFill"></div></div>
 
-      <button class="continue-button" onclick="continueStudy()">继续背诵<span>→</span></button>
+      <button class="continue-button" id="studyCta" onclick="continueStudy()">继续背诵<span>→</span></button>
     </section>
 
     <!-- 全部章节 -->
@@ -3986,8 +3986,9 @@ function currentLogicData() {
           ] },
         { num:'4', title:'学习入口',
           paras: [
-            '「开始学习 / 继续背诵」→ 无参数进入单卡模式，读取当日队列（跨模式共享）。',
-            '右上角设置入口 → 弹出每日数量选择弹窗，保存即落库（flashCardConfig_v1）。'
+            '按钮文案：今日已开始学习（当日队列有已答卡）→「继续背诵」；今日未刷 →「开始学习」。',
+            '「继续背诵」进入单卡模式后，从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
+            '右上角设置入口 → 每日数量弹窗，保存落库 flashCardConfig_v1；今日未开始学习 → 立即生效，今日已开始 → 次日生效。'
           ] },
         { num:'5', title:'与其它页面联动',
           tableHead:['入口','去向'],
@@ -4244,6 +4245,14 @@ function render(){
   /* 每日卡片数量：读学生配置（闪卡题库.js），演示卡池自动收缩 */
   var dailyEl = getById('dailyLabel');
   if (dailyEl) dailyEl.textContent = getDailyCount();
+
+  /* 学习入口按钮：今日已刷 →「继续背诵」（未标记锚点续接），未刷 →「开始学习」 */
+  var cta = getById('studyCta');
+  if (cta) {
+    var st = typeof loadState === 'function' ? loadState() : null;
+    var doneToday = st ? (typeof calcStats === 'function' ? calcStats(st).done : 0) : 0;
+    cta.innerHTML = (doneToday > 0 ? '继续背诵' : '开始学习') + '<span>→</span>';
+  }
 
   /* 核心卡数据：由章节实时汇总，保证首页与章节口径一致 */
   const total = CHAPTERS.reduce(function(s,c){ return s + safeNum(c.cards); }, 0);
