@@ -3628,16 +3628,17 @@ var VIEWS = [
   { id: 'view-home',     title: '首页' },
   { id: 'view-single',   title: '单卡模式' },
   { id: 'view-list',     title: '列表模式' },
+  { id: 'view-stats',    title: '章节统计' },
   { id: 'view-settings', title: '背诵设置' },
   { id: 'view-complete', title: '完成结算页' }
 ];
 var VERSION = {
   'view-home': 'v2.5', 'view-single': 'v3.0', 'view-list': 'v2.8',
-  'view-settings': 'v1.3', 'view-complete': 'v1.0'
+  'view-stats': 'v1.6', 'view-settings': 'v1.3', 'view-complete': 'v1.0'
 };
 var VIEW_NAMES = {
   'view-home':'首页','view-single':'单卡模式','view-list':'列表模式',
-  'view-settings':'背诵设置','view-complete':'完成结算页'
+  'view-stats':'章节统计','view-settings':'背诵设置','view-complete':'完成结算页'
 };
 var VIEW_IDS = {};
 VIEWS.forEach(function(v) { VIEW_IDS[v.id] = true; });
@@ -3697,16 +3698,21 @@ function __jump(url) {
 function nav(viewId, filter) {
   if (viewId === CURRENT && !filter) return;
   if (filter) FILTER = filter;
+  /* 章节统计：逻辑说明面板用 view-stats，手机壳显示到首页（章节树在首页）
+     让 active class 落在 view-stats（面板 tab 高亮），页面容器显示 view-home */
+  var shellId = (viewId === 'view-stats') ? 'view-home' : viewId;
   Object.keys(VIEW_IDS).forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) el.classList.toggle('active', id === viewId);
+    if (el) el.classList.toggle('active', id === shellId);
   });
   CURRENT = viewId;
   document.querySelectorAll('.view-chip').forEach(function(chip) {
     chip.classList.toggle('active', chip.getAttribute('data-view') === viewId);
   });
-  /* 视图启动/重入：每次进入都调对应模块的 __<name>_enter(FILTER) */
-  var enterFn = window['__' + viewId.replace('view-', '') + '_enter'];
+  /* 视图启动/重入：每次进入都调对应模块的 __<name>_enter(FILTER)
+     view-stats 无独立页面（章节树在首页），复用 __home_enter */
+  var enterName = (viewId === 'view-stats') ? 'view-home' : viewId;
+  var enterFn = window['__' + enterName.replace('view-', '') + '_enter'];
   if (typeof enterFn === 'function') enterFn(FILTER);
   syncVersionUI();
   renderLogicPanel(currentLogicData());
@@ -3876,6 +3882,31 @@ function currentLogicData() {
         { num:'3', title:'完成结算',
           paras: [
             '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。'
+          ] }
+      ]
+    },
+    'view-stats': {
+      desc: '章节统计：首页章节树的掌握度视图（四层章节树）。无需独立页面，展示在首页。',
+      sections: [
+        { num:'1', title:'章节树结构（首页）',
+          paras: [
+            '首页章节卡片即章节统计载体：一级章节 → 二级（子章节）→ 三级（考点）→ 四级（知识点），点击层层展开，章节卡片默认收起。',
+            '10 个一级章节按掌握率升序排列（最薄弱在前）；「背诵计划卡」「总进度」由各章节实时汇总，与章节树口径一致。'
+          ] },
+        { num:'2', title:'层级数字口径',
+          tableHead:['层级','展示'],
+          table: [
+            ['一级章节','掌握率（已记住 ÷ 卡片数）+ 已记住/卡片数 + 顽固卡数'],
+            ['二级（子章节）','已记住 / 卡片数 + 掌握率%'],
+            ['三级（考点）','已记住 / 卡片数 + 掌握率%'],
+            ['四级（知识点）','✓已记住  ×未记住  顽固 计数'],
+            ['来源','CHAPTERS 演示数据；固执卡按 CARDS 题库 forgotCount≥3 实时统计'],
+            ['排序','章节/子章节均按 progress（已答比例）升序，最薄弱排最前']
+          ] },
+        { num:'3', title:'联动',
+          paras: [
+            '点击三级（考点）/四级（知识点）标题 → 进入单卡模式对应考点过滤队列刷题（goLevel4 传 chapter/sub/point）。',
+            '当前视图为首页，顶部按钮仍可切换单卡/列表等模式，数据共享同一份今日进度。'
           ] }
       ]
     },
