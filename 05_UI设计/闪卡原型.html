@@ -2219,6 +2219,7 @@
     display: flex; gap: 10px;
     margin-top: 11px;
   }
+  .lc-actions.ld-hidden { display: none; }
   .lc-btn {
     flex: 1; height: 40px; border: none;
     border-radius: 11px;
@@ -5974,7 +5975,7 @@ function cardHtml(item, done) {
     '<div class="lc-head">' + tagHtml(item) + badgesHtml(item, false) + '</div>' +
     '<div class="lc-q">' + clozeMaskHtml(item.question, item.answer) + '</div>' +
     '<div class="lc-answer" data-open="0"><div class="lc-answer-inner">' + analysisInner + '</div></div>' +
-    '<div class="lc-actions">' +
+    '<div class="lc-actions ld-hidden">' +
     '<button class="lc-btn lc-btn-forgot" data-result="forgot" disabled>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M18 6L6 18M6 6l12 12"/></svg>未记住</button>' +
@@ -6033,6 +6034,8 @@ function openAnswer(cardEl) {
   wrap.setAttribute('data-open', '1');
   wrap.classList.add('open');
   wrap.style.maxHeight = inner.scrollHeight + 'px';
+  var acts = cardEl.querySelector('.lc-actions');
+  if (acts) acts.classList.remove('ld-hidden');
   var btns = cardEl.querySelectorAll('.lc-btn');
   for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
   var mask = cardEl.querySelector('.lc-mask');
@@ -6073,7 +6076,9 @@ function revealClozeAnswer(cardEl, maskEl) {
     wrap.style.maxHeight = inner.scrollHeight + 'px';
   }
 
-  /* 3. 启用操作按钮 */
+  /* 3. 显示并启用操作按钮（初始 ld-hidden 隐藏） */
+  var acts = cardEl.querySelector('.lc-actions');
+  if (acts) acts.classList.remove('ld-hidden');
   var btns = cardEl.querySelectorAll('.lc-btn');
   for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
 }
