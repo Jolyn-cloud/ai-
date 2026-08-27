@@ -415,6 +415,18 @@
     background-color: #F8F9FC;
   }
 
+  /* 完成结算页独立演示页：背景使用完成页淡紫渐变（与 completion.show 一致） */
+  #completeDemoPage {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    background: linear-gradient(180deg, #E7EFFF 0%, #F8F9FC 100%);
+  }
+  #completeDemoPage .completion-scroll { position: relative; z-index: 1; }
+
   /* 底部白色渐隐：让长列表在下方保持可读 */
   .bottom-mask {
     position: absolute;
@@ -3855,6 +3867,129 @@
 
 <script src="闪卡题库.js"></script>
         </div>
+        <div class="view" id="view-complete">
+<div class="page" id="completeDemoPage">
+
+  <div class="completion-scroll" id="completeDemoScroll" style="flex:1;min-height:0;overflow-y:auto;padding:24px 22px 96px;">
+    <!-- 顶部 hero（演示数据） -->
+    <div class="completion-hero">
+      <div class="completion-emoji" id="demoEmoji">🎉</div>
+      <div class="completion-title" id="demoTitle">不错哦！</div>
+      <div class="completion-subtitle" id="demoSubtitle">今日 350 张 · 2026/08/27</div>
+    </div>
+
+    <!-- 核心指标卡：环形图 + 三指标 -->
+    <div class="completion-summary">
+      <div class="ring-wrap">
+        <svg width="92" height="92" viewBox="0 0 92 92">
+          <circle class="ring-bg" cx="46" cy="46" r="40"/>
+          <circle class="ring-fill" id="demoRingFill" cx="46" cy="46" r="40"
+            stroke-dasharray="251.33" stroke-dashoffset="35"/>
+        </svg>
+        <div class="ring-text">
+          <div class="ring-pct" id="demoRingPct">86%</div>
+          <div class="ring-label">正确率</div>
+        </div>
+      </div>
+      <div class="summary-bars">
+        <div class="summary-row s-total"><span>总张数</span><strong id="demoTotal">350</strong></div>
+        <div class="summary-row s-ok"><span>已记住</span><strong id="demoRemembered">301</strong></div>
+        <div class="summary-row s-bad"><span>未记住</span><strong id="demoForgot">49</strong></div>
+      </div>
+    </div>
+
+    <!-- 薄弱知识点 TOP5（演示数据） -->
+    <div class="comp-section">
+      <div class="comp-section-header">
+        <div class="comp-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          薄弱知识点
+        </div>
+        <span class="comp-section-extra">错误次数</span>
+      </div>
+      <div class="weak-list" id="demoWeakList"></div>
+    </div>
+
+    <!-- 章节掌握度分布（演示数据） -->
+    <div class="comp-section">
+      <div class="comp-section-header">
+        <div class="comp-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          章节掌握度
+        </div>
+      </div>
+      <div class="chapter-dist-list" id="demoChapterDist"></div>
+    </div>
+
+    <!-- 背诵效率分析（演示数据） -->
+    <div class="comp-section">
+      <div class="comp-section-header">
+        <div class="comp-section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          背诵效率分析
+        </div>
+      </div>
+      <div class="efficiency-grid">
+        <div class="eff-item">
+          <div class="eff-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="eff-value" id="demoEffTime">32:15</div>
+          <div class="eff-label">本次用时</div>
+        </div>
+        <div class="eff-item">
+          <div class="eff-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <div class="eff-value" id="demoEffSpeed">5.5s</div>
+          <div class="eff-label">平均速度</div>
+        </div>
+        <div class="eff-item">
+          <div class="eff-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+              <polyline points="17 6 23 6 23 12"/>
+            </svg>
+          </div>
+          <div class="eff-value eff-up" id="demoEffCompare">↑ 12%</div>
+          <div class="eff-label">较上次</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 巩固 CTA -->
+    <div class="comp-cta">
+      <div>
+        <div class="comp-cta-title">去刷题巩固薄弱点</div>
+        <div class="comp-cta-desc">针对错误最多的知识点进行专项练习</div>
+      </div>
+      <button class="comp-cta-btn" id="demoCtaBtn">立即练习</button>
+    </div>
+  </div>
+
+  <!-- 底部操作（演示页固定，点按仅提示） -->
+  <div class="completion-actions">
+    <button class="comp-btn comp-btn-secondary" onclick="nav('view-single')">返回首页</button>
+    <button class="comp-btn comp-btn-primary" onclick="nav('view-single')">再背一轮</button>
+  </div>
+
+</div>
+        </div>
 
           </div>
           <!-- 退出小程序轻提示 -->
@@ -3886,6 +4021,61 @@
 /* ============================================================
    闪卡原型 v1.0 —— 合并导航壳
    ============================================================ */
+
+/* 完成结算页独立演示页：切到「完成结算页」tab 时填充静态演示数据
+   （真实完成页由单卡/列表 showCompletion 填充，此处仅演示效果） */
+function __complete_enter() {
+  /* 薄弱知识点 TOP5 演示数据 */
+  var demoWeak = [
+    { name: '数据的存储单位换算', chapter: '信息与计算机基础知识', sub: '数制与编码', wrong: 12 },
+    { name: 'TCP/IP 协议层次', chapter: '计算机网络的体系结构', sub: '网络协议', wrong: 9 },
+    { name: '关系数据库三大范式', chapter: '数据库技术基础', sub: '关系数据库', wrong: 7 },
+    { name: '二叉树后序遍历', chapter: '程序设计基础', sub: '数据结构', wrong: 5 },
+    { name: 'Excel 函数 IF/VLOOKUP', chapter: '信息安全与技术', sub: '办公应用', wrong: 3 }
+  ];
+  var weakEl = document.getElementById('demoWeakList');
+  var maxWrong = 12;
+  var wHtml = '';
+  for (var w = 0; w < demoWeak.length; w++) {
+    var wp = demoWeak[w];
+    var pct = Math.round(wp.wrong / maxWrong * 100);
+    wHtml += '<div class="weak-item">' +
+      '<div class="weak-rank' + (w === 0 ? ' top' : '') + '">' + (w + 1) + '</div>' +
+      '<div class="weak-info">' +
+        '<div class="weak-name">' + wp.name + '</div>' +
+        '<div class="weak-path">' + wp.chapter + (wp.sub ? ' · ' + wp.sub : '') + '</div>' +
+      '</div>' +
+      '<div class="weak-bar"><div class="weak-bar-fill" style="width:' + pct + '%;"></div></div>' +
+      '<div class="weak-count">' + wp.wrong + '次</div>' +
+    '</div>';
+  }
+  if (weakEl) weakEl.innerHTML = wHtml;
+
+  /* 章节掌握度分布 演示数据 */
+  var demoDist = [
+    { name: '计算机文化基础', remembered: 58, forgot: 6,  total: 64 },
+    { name: '网络技术基础',   remembered: 42, forgot: 14, total: 56 },
+    { name: '数据库基础',     remembered: 35, forgot: 13, total: 48 },
+    { name: '程序设计基础',   remembered: 22, forgot: 18, total: 40 }
+  ];
+  var distEl = document.getElementById('demoChapterDist');
+  var dHtml = '';
+  for (var i = 0; i < demoDist.length; i++) {
+    var ch = demoDist[i];
+    var okWidth = (ch.remembered / ch.total * 100).toFixed(1);
+    var badWidth = (ch.forgot / ch.total * 100).toFixed(1);
+    dHtml += '<div class="chapter-dist-item">' +
+      '<div class="chapter-dist-name">' + ch.name + '</div>' +
+      '<div class="chapter-dist-bar">' +
+        '<div class="cdb-ok" style="width:' + okWidth + '%;"></div>' +
+        '<div class="cdb-bad" style="width:' + badWidth + '%;"></div>' +
+      '</div>' +
+      '<div class="chapter-dist-pct">' + Math.round(ch.remembered / ch.total * 100) + '%</div>' +
+      '<div class="chapter-dist-total">' + ch.total + '张</div>' +
+    '</div>';
+  }
+  if (distEl) distEl.innerHTML = dHtml;
+}
 
 /* ---------- 覆盖题库.js 的 URL 读参：合并壳用内存 FILTER ---------- */
 function getParam(name) {
