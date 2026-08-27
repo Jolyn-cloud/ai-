@@ -4075,15 +4075,15 @@ function currentLogicData() {
           ] },
         { num:'3', title:'滑动判定（区块③ 卡片拖拽）',
           paras: [
-            '判定结果：右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程右侧绿「已记住」/ 左侧红「未记住」反馈，opacity=min(|dx|/80,1)×0.9。'
+            '判定结果：右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」/「未记住」反馈标签（右绿左红），透明度随手指位移渐显：opacity = min(|dx| / 80, 1) × 0.9，即拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'
           ],
           tableHead:['场景','阈值口径','提交方式'],
           table: [
-            ['背面拖动','|dx|≥170（EDGE_THRESHOLD，卡片区约50%）','拖到侧边立即判定'],
-            ['背面拖动','|dx|≥80（SWIPE_THRESHOLD）','松手判定'],
+            ['背面拖动','|dx|≥170（卡片区约50%，拖到侧边）','立即判定，无需松手'],
+            ['背面拖动','|dx|≥80','松手判定'],
             ['背面拖动','|dx|<80','回弹归位，不标记'],
             ['正面拖拽','左滑 dx<-80 / 右滑 dx>80','松手判定，不标记（左滑=上一张/右滑=下一张）'],
-            ['水平意图','|dx|>8 且 |dx|>|dy|×1.2','否则不拦截滚动']
+            ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
           ],
           labels:[
             {k:'提交动作链', v:'防重复标记 → 记 historyStack → markCard（未记住 forgotCount+1 + 塞回队尾 round+1 副本）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
@@ -4987,8 +4987,8 @@ function onTouchStart(e) {
 
   /* 正反两面都记录起点：
      - 背面（已翻转）：立即进入拖拽（阻止页面滚动）
-     - 正面（未翻转）：先记录，等 touchmove 判定水平意图后再进入导航拖拽，
-       期间不阻止默认行为，保证轻点翻转与垂直滚动不受影响 */
+     - 正面（未翻转）：先记录，等 touchmove 位移超死区（|dx|>8）后进入导航拖拽，
+       期间不阻止默认行为，保证轻点翻转与页面滚动不受影响 */
   var touch = e.touches[0];
   dragStart = { x: touch.clientX, y: touch.clientY };
   dragOffsetX = 0;
@@ -5031,14 +5031,14 @@ function onTouchMove(e) {
     return;
   }
 
-  /* 正面（未翻转）：水平意图判定（|dx|>8 且明显大于 |dy|）→ 进入导航拖拽 */
+  /* 正面（未翻转）：横向位移超死区（|dx|>8）→ 进入导航拖拽 */
   if (!frontDrag) {
-    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+    if (Math.abs(dx) > 8) {
       frontDrag = true;
       card.classList.add('dragging');
       refreshOverlayLabels();
     } else {
-      return; /* 垂直滚动或未达阈值：不处理，不阻止默认行为 */
+      return; /* 未达死区：不处理，不阻止默认行为 */
     }
   }
 
