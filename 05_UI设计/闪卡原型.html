@@ -4065,7 +4065,7 @@ function currentLogicData() {
           ],
           tableHead:['场景','行为','标记？'],
           table: [
-            ['正面拖拽','左滑=上一张（撤销方向）/ 右滑=下一张（跳过）','否'],
+            ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
             ['背面拖拽','右滑=已记住 / 左滑=未记住','是'],
             ['边界回弹','无上一张/下一张 → 位移×0.25 回弹 + 摇晃提示','—'],
             ['翻卡动画中','忽略一切交互（飞出/飞入 400ms）','—']
@@ -4086,17 +4086,17 @@ function currentLogicData() {
             ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
           ],
           labels:[
-            {k:'提交动作链', v:'防重复标记 → 记 historyStack → markCard（未记住 forgotCount+1 + 塞回队尾 round+1 副本）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
+            {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删副本/扣回 forgotCount）→ markCard（未记住 forgotCount+1 + 塞回队尾 round+1 副本）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
           ] },
         { num:'4', title:'上一张 / 下一张（区块④ 导航）',
           paras: [
-            '上一张：pop 最近标记，delete marked[key]；未记住撤销时移除 round 最大的副本并恢复 forgotCount；saveState + refreshFilter，重置 historyRecorded。',
+            '上一张：返回「上一道题」的原卡（跳过未记住副本 round≥2），无论该卡是否已答都显示；标记不可逆，不触发重答。',
             '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
             '进度不因跳过改变（marked 未写）。',
-            '导航只发生在正面拖拽或底部按钮；边界回弹 + shakeWarn。'
+            '导航只发生在正面拖拽或底部按钮；边界（无上一张原卡 / 无下一张待答）回弹 + shakeWarn。'
           ],
           labels:[
-            {k:'撤销后', v:'该卡可重新作答；全部重新标记完可再进结算页'}
+            {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删副本/扣回 forgotCount）再重新标记，数据不脏；手动点按钮无撤销概念'}
           ] },
         { num:'5', title:'完成结算页（区块⑤ 学习成果）',
           paras: [
@@ -4684,7 +4684,6 @@ var SWIPE_THRESHOLD = 80;
 var EDGE_THRESHOLD = 170;   // 卡片拖到侧边（移出卡片区约 50%）立即判定，无需松手
 var autoCommitted = false;  // 侧边已自动提交标记，防止重复提交
 var frontDrag = false;      // 正面（未翻转）导航拖拽中：左滑上一张 / 右滑下一张
-var historyStack = [];      // 「上一张」撤销栈：记录每次标记的 { key, result, prevForgotCount }
 var historyRecorded = false; // 本次成果是否已写入历史（防止重复记录）
 
 /* 同一天、同张数的成果只记录一次（持久化，防止刷新/重进后重复写入） */
@@ -4731,9 +4730,24 @@ function findNextPendingAfter(card) {
   return null;
 }
 
+/* 查找当前卡之前最近的「原卡」（round=1）：跳过未记住副本（round≥2），可看到已答卡（标记不可逆） */
+function findPrevOriginal(card) {
+  if (!card) return null;
+  var idx = -1;
+  for (var i = 0; i < filteredQueue.length; i++) {
+    if (filteredQueue[i].key === card.key) { idx = i; break; }
+  }
+  if (idx < 0) return null;
+  for (var j = idx - 1; j >= 0; j--) {
+    var c = filteredQueue[j];
+    if ((c.round || 1) === 1) return c;
+  }
+  return null;
+}
+
 /* 正面导航位移：边界方向阻尼（无上一张仍左滑 / 无下一张仍右滑 → 移动量打 2.5 折） */
 function frontNavDx(dx) {
-  if (dx < 0 && historyStack.length === 0) return dx * 0.25;
+  if (dx < 0 && !findPrevOriginal(currentCard)) return dx * 0.25;
   if (dx > 0 && !findNextPendingAfter(currentCard)) return dx * 0.25;
   return dx;
 }
@@ -4791,7 +4805,6 @@ function init() {
   if (!getSessionStart()) startSession();
   isFlipped = false;
   isAnimating = false;
-  historyStack = [];
 
   /* 已刷达到总数（配额）→ 直接进入学习成果页
      （未记住副本可能仍在队列中，不再继续出现） */
@@ -5177,7 +5190,7 @@ function handleDragEnd() {
   if (frontDrag && !isFlipped) {
     frontDrag = false;
     if (dx < -SWIPE_THRESHOLD) {
-      if (historyStack.length > 0) {
+      if (findPrevOriginal(currentCard)) {
         goPrev();
       } else {
         bounceCard(card);
@@ -5210,6 +5223,35 @@ function handleDragEnd() {
   }
 }
 
+/* 还原某张卡的标记副作用（用于已答卡重答：先还原旧标记，再按新结果重新标记）
+   副作用 = 未记住时 markCard 造的 round≥2 副本 + forgotCount 累加
+   还原后该卡回到「未标记」状态（旧 marked 被删除） */
+function undoMarkSideEffects(card) {
+  if (!card) return;
+  var key = card.key;
+  var oldResult = baseState.marked[key];
+
+  /* 找该 id 下所有副本，删除 round≥2 的（即重答前塞回队尾的） */
+  for (var i = baseState.queue.length - 1; i >= 0; i--) {
+    var q = baseState.queue[i];
+    if (q.id === card.id && (q.round || 1) > 1) {
+      baseState.queue.splice(i, 1);
+    }
+  }
+
+  /* 若旧标记是「未记住」，把 forgotCount 减回标记前（未记住标记次数已在 markCard 累加） */
+  if (oldResult === 'forgot') {
+    for (var j = 0; j < baseState.queue.length; j++) {
+      var c = baseState.queue[j];
+      if (c.id === card.id) {
+        c.forgotCount = Math.max(0, (c.forgotCount || 0) - 1);
+      }
+    }
+  }
+
+  delete baseState.marked[key];
+}
+
 /* ============================================================
    提交卡片判定
    ============================================================ */
@@ -5221,19 +5263,16 @@ function commitCard(result) {
   var cardData = currentCard;
   if (!cardData) { isAnimating = false; return; }
 
-  if (baseState.marked[cardData.key]) { isAnimating = false; return; } // 防重复标记
+  /* 已答卡重答：先还原上次标记的副作用（删副本 + 恢复 forgotCount），再用新结果重新标记 */
+  if (baseState.marked[cardData.key]) {
+    undoMarkSideEffects(cardData);
+  }
 
   if (result === 'remembered') {
     if (card) card.classList.add('commit-right');
   } else {
     if (card) card.classList.add('commit-left');
   }
-
-  /* 记录历史用于「上一张」撤销 */
-  var prevFC = 0;
-  var cardEl = findCard(baseState, cardData.key);
-  if (cardEl) prevFC = cardEl.forgotCount || 0;
-  historyStack.push({ key: cardData.key, result: result, prevForgotCount: prevFC });
 
   /* 走共享数据层：标记 + 未记住副本塞回队尾（当天重现） */
   markCard(baseState, cardData.key, result);
@@ -5284,11 +5323,12 @@ function updateBottomStats() {
 }
 
 /* ============================================================
-   上一张：撤销最近一次标记，回到上一张卡重新作答（含飞出过渡动画）
+   上一张：返回「上一道题」原卡（跳过副本，可看已答卡，标记不可逆）
    ============================================================ */
 function goPrev() {
   if (isAnimating) return;
-  if (historyStack.length === 0) {
+  var prev = findPrevOriginal(currentCard);
+  if (!prev) {
     /* 已是第一张：回弹 + 摇晃提示 */
     var cur = getById('activeCard');
     bounceCard(cur);
@@ -5296,44 +5336,7 @@ function goPrev() {
     return;
   }
 
-  var last = historyStack.pop();
-  var key = last.key;
-
-  /* 撤销标记 */
-  delete baseState.marked[key];
-
-  /* 如果当时是「未记住」，还需撤销 markCard 新增的副本和 forgotCount 累加 */
-  if (last.result === 'forgot') {
-    var card = findCard(baseState, key);
-    if (card) {
-      /* 找到该 id 下 round 最大的卡（即 markCard 塞回队尾的副本），移除 */
-      var maxRound = 1, dupIdx = -1;
-      for (var i = baseState.queue.length - 1; i >= 0; i--) {
-        var q = baseState.queue[i];
-        if (q.id === card.id && (q.round || 1) > maxRound) {
-          maxRound = q.round || 1;
-          dupIdx = i;
-        }
-      }
-      if (dupIdx >= 0 && maxRound > 1) {
-        baseState.queue.splice(dupIdx, 1);
-      }
-      /* 恢复 forgotCount 到标记前的值 */
-      for (var j = 0; j < baseState.queue.length; j++) {
-        if (baseState.queue[j].id === card.id) {
-          baseState.queue[j].forgotCount = last.prevForgotCount;
-        }
-      }
-    }
-  }
-
-  saveState(baseState);
-  refreshFilter();
-  historyRecorded = false;   // 撤销后重新完成允许重新记录
-  clearResultRecorded();
-
-  /* 渲染该卡（未标记状态，可重新作答）：与翻页一致的飞出过渡 */
-  var prevCard = findCard(baseState, key);
+  /* 回退到上一张原卡（可看到已答卡，标记不可逆，不触发重答） */
   isAnimating = true;
   var cardEl = getById('activeCard');
   if (cardEl) {
@@ -5345,17 +5348,14 @@ function goPrev() {
 
   setTimeout(function() {
     isAnimating = false;
-    if (prevCard) {
-      isFlipped = false;
-      getById('completionScreen').classList.remove('show');
-      renderCard(prevCard);
-      updateProgress();
-      updateBottomStats();
-      updatePrevBtn();
-      updateNextBtn();
-    } else {
-      init();
-    }
+    isFlipped = false;
+    currentCard = prev;
+    getById('completionScreen').classList.remove('show');
+    renderCard(prev);
+    updateProgress();
+    updateBottomStats();
+    updatePrevBtn();
+    updateNextBtn();
   }, 400);
 }
 
@@ -5394,10 +5394,10 @@ function goNext() {
   }, 400);
 }
 
-/* 更新「上一张」按钮可用状态 */
+/* 更新「上一张」按钮可用状态（前面没有上一张原卡时置灰） */
 function updatePrevBtn() {
   var btn = getById('prevBtn');
-  if (btn) btn.disabled = historyStack.length === 0;
+  if (btn) btn.disabled = !findPrevOriginal(currentCard);
 }
 
 /* 更新「下一张」按钮可用状态（后面没有待答卡时置灰） */
