@@ -4057,28 +4057,22 @@ function currentLogicData() {
             '首页「开始学习」/「继续背诵」进入：刷今日队列（每日 N 张）；「继续背诵」从今天下一张还没标记的卡接着刷。',
             '章节树 / 章节统计的考点进入：刷该考点全部题目（不受每日 N 张限制），刷完即完成该考点；两种入口的标记共用同一份今日进度。'
           ] },
-        { num:'2', title:'翻卡（区块② 卡片正反面）',
+        { num:'2', title:'翻卡与滑动（区块②③ 卡片交互）',
           paras: [
             '正面：clozeHtml(question) 填空题干（____ 渲染为视觉空位）。',
             '背面：clozeHtml(question, answer) 空位填答案高亮 + 答案 + 解析。',
             '轻触卡片 → flipCard() 翻转（正↔背）。翻转不计入答题、不改任何状态。'
           ],
-          tableHead:['场景','行为','标记？'],
+          tableHead:['卡片动作','行为','标记？'],
           table: [
-            ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
+            ['轻触卡片','左右翻转（正↔背）','否，不改任何状态'],
             ['背面拖拽','右滑=已记住 / 左滑=未记住','是'],
+            ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
             ['边界回弹','无上一张/下一张 → 位移×0.25 回弹 + 摇晃提示','—'],
             ['翻卡动画中','忽略一切交互（飞出/飞入 400ms）','—']
           ],
-          labels: [
-            {k:'强约束', v:'不翻卡不能滑动判定（防不看答案乱滑）'}
-          ] },
-        { num:'3', title:'滑动判定（区块③ 卡片拖拽）',
-          paras: [
-            '判定结果：右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」/「未记住」反馈标签（右绿左红），透明度随手指位移渐显：opacity = min(|dx| / 80, 1) × 0.9，即拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'
-          ],
-          tableHead:['场景','阈值口径','提交方式'],
-          table: [
+          tableHead2:['滑动判定','阈值口径','提交方式'],
+          table2: [
             ['背面拖动','|dx|≥170（卡片区约50%，拖到侧边）','立即判定，无需松手'],
             ['背面拖动','|dx|≥80','松手判定'],
             ['背面拖动','|dx|<80','回弹归位，不标记'],
@@ -4086,9 +4080,11 @@ function currentLogicData() {
             ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
           ],
           labels:[
+            {k:'强约束', v:'不翻卡不能滑动判定（防不看答案乱滑）'},
+            {k:'判定提交', v:'右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」（右绿）→「未记住」（左红）反馈标签，透明度随手指位移渐显：opacity = min(|dx|/80, 1) × 0.9，拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'},
             {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删掉当天重刷的重复卡/未记住次数减回一次）→ markCard（未记住：未记住次数+1 + 队尾补同一张卡等会再刷一次）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
           ] },
-        { num:'4', title:'上一张 / 下一张（区块④ 导航）',
+        { num:'3', title:'上一张 / 下一张（区块④ 导航）',
           paras: [
             '上一张：返回「上一道题」的原卡——同一题若因为答未记住而补了重复卡，直接跳过，回到那张唯一的原卡；无论该卡是否已答都显示；标记不可逆，不触发重答。',
             '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
@@ -4098,7 +4094,7 @@ function currentLogicData() {
           labels:[
             {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
           ] },
-        { num:'5', title:'完成结算页（区块⑤ 学习成果）',
+        { num:'4', title:'完成结算页（区块⑤ 学习成果）',
           paras: [
             '触发：commitCard 后 stats.done ≥ stats.total（当日=配额全刷完；过滤=范围内全刷完；未记住补的重复卡不再继续出现）。',
             '历史去重：同一日期同一已刷数只记一次（flashCardResultRecorded_v1）；recordHistory 存 flashCardHistory_v1（保留 30 条）。',
@@ -4113,13 +4109,13 @@ function currentLogicData() {
             ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次 ↑/↓% 或「首次」'],
             ['底部按钮','有 chapter 过滤时多「下一章」（尾章回绕首章）；恒有「返回首页」「再背一轮」']
           ] },
-        { num:'6', title:'进入/退出与会话',
+        { num:'5', title:'进入/退出与会话',
           paras: [
             '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
             '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
             '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
           ] },
-        { num:'7', title:'与其它页面联动',
+        { num:'6', title:'与其它页面联动',
           tableHead:['本页操作','去向'],
           table: [
             ['右上「切到列表」','列表模式，带当前过滤参数（filterQuery），进度保留'],
@@ -4128,7 +4124,7 @@ function currentLogicData() {
             ['返回按钮','首页'],
             ['顶部退出图标','退出确认浮层 → 确认后回首页（或继续）']
           ] },
-        { num:'8', title:'权限',
+        { num:'7', title:'权限',
           tableHead:['角色','查看','判卡/标记','进度/LocalStorage'],
           table: [
             ['学生（登录后）','✅','✅','✅'],
@@ -4213,6 +4209,12 @@ function renderLogicPanel(data) {
       var hr = '<tr>' + (sec.tableHead || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
       var br = sec.table.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
       t.innerHTML = hr + br; body.appendChild(t);
+    }
+    if (sec.table2 && sec.table2.length) {
+      var t2 = document.createElement('table'); t2.className = 'logic-table';
+      var hr2 = '<tr>' + (sec.tableHead2 || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
+      var br2 = sec.table2.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
+      t2.innerHTML = hr2 + br2; body.appendChild(t2);
     }
     card.appendChild(body);
     logicBody.appendChild(card);
