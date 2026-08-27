@@ -10634,14 +10634,15 @@ function buildQueue() {
     return false;
   }
 
-  /* 第 1 优先级：顽固卡每天必现（规则 §2.1） */
+  /* 第 1 优先级：复习卡每天必现 = 未记住卡（累计 forgotCount≥1）+ 顽固卡（≥3，属未记住子集） */
   order.forEach(function(ch) {
     groups[ch].forEach(function(i) {
-      if ((CARDS[i].forgotCount || 0) >= 3) pushCard(i);
+      if ((CARDS[i].forgotCount || 0) >= 1) pushCard(i);
     });
   });
 
-  /* 第 2 优先级：剩余配额按题型比例抽新卡 */
+  /* 第 2 优先级：每章配额扣减该章复习卡后，余量抽新卡（扣减式）
+     该章应得 = 每日数量 × 该章比例；该章新卡 = max(0, 该章应得 − 该章复习卡数) */
   var remaining = daily - queue.length;
   if (remaining > 0) {
     var totalW = 0;
@@ -10649,13 +10650,19 @@ function buildQueue() {
       var w = weights[ch];
       if (typeof w === 'number' && isFinite(w) && w > 0) totalW += w;
     });
+    var quotaMap = {};
+    order.forEach(function(ch) {
+      var w = weights[ch] || 0;
+      quotaMap[ch] = totalW > 0 ? Math.round(daily * w / totalW) : Math.round(daily / order.length);
+    });
+    var usedCh = {};
+    queue.forEach(function(x) { usedCh[x.chapter] = (usedCh[x.chapter] || 0) + 1; });
     order.forEach(function(ch) {
       if (remaining <= 0) return;
-      var w = weights[ch] || 0;
-      var n = totalW > 0 ? Math.round(remaining * w / totalW) : Math.round(remaining / order.length);
-      n = Math.max(0, Math.min(n, groups[ch].length));
+      var fresh = Math.max(0, quotaMap[ch] - (usedCh[ch] || 0)); /* 扣已入队复习卡 */
       var pool = shuffle(groups[ch].filter(function(i) { return !isUsed(i); }));
-      for (var k = 0; k < n && k < pool.length; k++) pushCard(pool[k]);
+      fresh = Math.min(fresh, pool.length);
+      for (var k = 0; k < fresh; k++) { pushCard(pool[k]); remaining--; }
     });
   }
 
