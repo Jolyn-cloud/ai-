@@ -4116,11 +4116,11 @@ function currentLogicData() {
           tableHead:['元素','口径'],
           table: [
             ['Hero 文案','accuracy≥80「不错哦🎉」；≥60「继续加油💪」；否则「再加把劲📚」'],
-            ['环形图','圆心 accuracy=round(remembered/done×100)；strokeDashoffset 251.33→×(1-accuracy/100)'],
+            ['环形图','圆心 accuracy=round(remembered/done×100)'],
             ['薄弱 TOP5','getWeakPoints(state,5)：forgot 降序→同次 total 降序；无则「全部掌握🎉」'],
-            ['章节分布','按 chapter 聚合 remembered/forgot/total，柱条 ok% / bad%'],
-            ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次 ↑/↓% 或「首次」'],
-            ['底部按钮','有 chapter 过滤时多「下一章」（尾章回绕首章）；恒有「返回首页」「再背一轮」']
+            ['章节分布','按 chapter 聚合绿条=已记住 / 红条=未记住（顽固卡含在未记住内），单章 ok%=已记住/总数'],
+            ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次：本次成果 vs 上次成果（最近一条历史）'],
+            ['底部按钮','只留「再背一轮」：重新计入成绩，刷新所有章节分布']
           ] },
         { num:'3', title:'历史与再背',
           paras: [
