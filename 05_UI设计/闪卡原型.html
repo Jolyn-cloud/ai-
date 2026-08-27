@@ -3021,6 +3021,27 @@
   }
   .count-display span { font-size: 14px; color: var(--text-secondary); }
 
+  /* ========================= 明日组成预估 ========================= */
+  .ahead-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px dashed #EEF0F7;
+  }
+  .ahead-row:last-child { border-bottom: none; padding-bottom: 2px; }
+  .ahead-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ahead-name { font-size: 12.5px; color: var(--text-secondary); flex: 1; }
+  .ahead-val { font-size: 13px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .ahead-pct { font-size: 12px; color: var(--text-tertiary); min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+  .ahead-warn {
+    margin-top: 10px; padding: 9px 11px;
+    background: #FFF7EE; border-radius: 9px;
+    font-size: 11.5px; line-height: 1.5; color: #B25E09;
+  }
+  .ahead-dot.g-success  { background: var(--success); }
+  .ahead-dot.g-danger   { background: var(--danger); }
+  .ahead-dot.g-warning  { background: var(--warning); }
+  .ahead-dot.g-primary  { background: var(--primary); }
+
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
     width: 100%; height: 5px; border-radius: 10px;
@@ -3794,6 +3815,16 @@
       <div class="cfg-tip" id="countTip">当前题库 <strong id="bankCount">0</strong> 张卡，实际每日数量按可用卡数自动收缩；不足部分由其余章节补齐。</div>
     </section>
 
+    <!-- 明日组成预估 -->
+    <section class="cfg-card" id="tomorrowCard">
+      <div class="cfg-head">
+        <div class="cfg-name">明日组成预估</div>
+        <div class="cfg-desc">由今日标记确定性回算明日到期 · 复习优先，新卡按余量补足</div>
+      </div>
+      <div id="tomorrowRows"></div>
+      <div class="cfg-tip" id="tomorrowTip" data-empty="1">今日还没开始学习，明日构成将根据今天的记忆情况自动生成（已记住 → 次日到期复习；未记住 → 次日必现；顽固卡每天必现；余量补新卡）。</div>
+    </section>
+
     <!-- 题型比例 -->
     <section class="cfg-card">
       <div class="cfg-head">
@@ -3878,7 +3909,7 @@ var VIEWS = [
 ];
 var VERSION = {
   'view-home': 'v2.5', 'view-single': 'v3.0', 'view-list': 'v2.8',
-  'view-stats': 'v1.5', 'view-settings': 'v1.2'
+  'view-stats': 'v1.5', 'view-settings': 'v1.3'
 };
 var VIEW_NAMES = {
   'view-home':'首页','view-single':'单卡模式','view-list':'列表模式',
@@ -4158,6 +4189,12 @@ function currentLogicData() {
           labels:[
             {k:'保存', v:'saveConfig → flashCardConfig_v1；当天未开始则重建队列立即生效，已开始则次日生效'},
             {k:'去向', v:'保存后回到首页'}
+          ] },
+        { num:'3', title:'明日组成预估（确定性回算）',
+          paras: [
+            '今日已记住 → +1 天到期，明日重现；今日未记住 → 明日必现；顽固卡（累计未记住 ≥3）→ 每日必现；余量补新卡。',
+            '配额基准 = min(配置 dailyCount, 卡池可用卡数)。三态互斥（顽固优先），不重复计数。',
+            '今日未学习 → 显提示文案；复习卡占满配额 → 新卡 0，警示「明日无新卡，新卡顺延到后天」。'
           ] }
       ]
     }
@@ -6517,6 +6554,7 @@ countRange.addEventListener('input', function() {
   paintRange(countRange);
   syncChips();
   updateCountTip();
+  renderTomorrow();
 });
 
 getById('countChips').addEventListener('click', function(e) {
@@ -6528,7 +6566,60 @@ getById('countChips').addEventListener('click', function(e) {
   paintRange(countRange);
   syncChips();
   updateCountTip();
+  renderTomorrow();
 });
+
+/* ============================================================
+   明日组成预估（确定性回算，规则 §1.2 补充）
+   今日标记 → 明日到期分布，无记忆率假设
+   ============================================================ */
+function renderTomorrow() {
+  var st = typeof loadState === 'function' ? loadState() : null;
+  var todayEmpty = !st || (typeof calcStats === 'function' ? calcStats(st).done : 0) === 0;
+  var tip = getById('tomorrowTip');
+  if (todayEmpty) {
+    getById('tomorrowRows').innerHTML = '';
+    tip.style.display = '';
+    tip.innerHTML = '今日还没开始学习，明日构成将根据今天的记忆情况自动生成（已记住 → 次日到期复习；未记住 → 次日必现；顽固卡每天必现；余量补新卡）。';
+    return;
+  }
+
+  var comp = typeof calcTomorrowComposition === 'function' ? calcTomorrowComposition() : null;
+  var rows = getById('tomorrowRows');
+  if (!comp) {
+    rows.innerHTML = '';
+    tip.style.display = '';
+    tip.innerHTML = '明日构成计算不可用。';
+    return;
+  }
+
+  /* 时间轴顺序：已记住复习 / 未记住复习 / 顽固 / 新卡 */
+  var items = [
+    { cls: 'g-success', name: '已记住复习（明日到期）',   n: comp.remembered },
+    { cls: 'g-danger',  name: '未记住复习（明日必现）',  n: comp.forgot },
+    { cls: 'g-warning', name: '顽固卡（每日必现）',     n: comp.stubborn },
+    { cls: 'g-primary', name: '新卡',                   n: comp.fresh }
+  ];
+  var quota = comp.quota || 0;
+  var html = items.map(function(it) {
+    var pct = quota > 0 ? Math.round(it.n * 100 / quota) : 0;
+    return '<div class="ahead-row">' +
+      '<span class="ahead-dot ' + it.cls + '"></span>' +
+      '<span class="ahead-name">' + it.name + '</span>' +
+      '<span class="ahead-val">' + it.n + '张</span>' +
+      '<span class="ahead-pct">' + pct + '%</span>' +
+      '</div>';
+  }).join('');
+  rows.innerHTML = html;
+
+  /* 边界态：复习卡占满 → 无新卡 / 超出配额 */
+  if (comp.overflow) {
+    tip.style.display = '';
+    tip.innerHTML = '⚠️ 明日复习卡（' + (comp.stubborn + comp.remembered + comp.forgot) + ' 张）将占满 ' + quota + ' 张配额，明日无新卡，新卡顺延到后天。';
+  } else {
+    tip.style.display = 'none';
+  }
+}
 
 /* ============================================================
    题型比例
@@ -6651,7 +6742,7 @@ getById('backBtn').addEventListener('click', goBack);
 
 /* ============ 视图启动：外壳 nav() 首启/重入时调用 ============ */
 function _doEnter(f) {
-  initCount(); renderWeights();
+  initCount(); renderWeights(); renderTomorrow();
 }
   glob['__settings_enter'] = _doEnter;
 

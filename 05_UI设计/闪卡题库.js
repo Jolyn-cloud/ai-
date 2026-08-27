@@ -10989,3 +10989,50 @@ function getChapterDistribution(state) {
   list.sort(function(a, b) { return b.total - a.total; });
   return list;
 }
+
+/* ------------------------------------------------------------
+   明日组成预估（规则 §1.2 补充）
+   确定性回算：今日标记 → 明日到期分布，无记忆率假设
+   明日复习卡 = 今日标已记住（+1天到期） + 今日标未记住（明天必现） + 顽固卡（每天必现）
+   明日新卡 = max(0, 明日配额 - 明日复习卡数)；复习卡占满则无新卡
+   配额基准 = 学生配置 dailyCount，钳制到卡池可用卡数内
+   返回 { remembered, forgot, stubborn, fresh, quota, overflow }
+   ------------------------------------------------------------ */
+function calcTomorrowComposition() {
+  var cfg = loadConfig();
+  var daily = cfg.dailyCount || DEFAULT_CONFIG.dailyCount;
+  /* 卡池收缩：配置值超过可用卡数时，实际配额 = 卡池数 */
+  daily = Math.max(0, Math.min(daily, CARDS.length));
+
+  var state = loadState();
+  var queue = (state && state.queue) || [];
+  var marked = (state && state.marked) || {};
+  var byId = {};
+  var i, x;
+
+  /* 按卡 id 去重聚合当日标记态（副本 round 取最后 / 未记住副本覆盖） */
+  for (i = 0; i < queue.length; i++) {
+    x = queue[i];
+    if (!byId[x.id]) byId[x.id] = { marked: false, result: null, forgotCount: x.forgotCount || 0 };
+    if (marked[x.key]) {
+      byId[x.id].marked = true;
+      byId[x.id].result = marked[x.key];
+    }
+  }
+
+  /* 三态互斥分类：顽固卡每天必现（独立一行）；今日已记住/未记住复习均排除顽固，避免重复计数 */
+  var remembered = 0, forgot = 0, stubborn = 0;
+  for (var id in byId) {
+    if (!byId.hasOwnProperty(id)) continue;
+    var b = byId[id];
+    if (b.forgotCount >= 3) { stubborn++; continue; }
+    if (!b.marked) continue;
+    if (b.result === 'remembered') remembered++;
+    else if (b.result === 'forgot') forgot++;
+  }
+  var review = stubborn + remembered + forgot;
+  var fresh = Math.max(0, daily - review);
+  var overflow = review > daily; /* 复习卡占满 → 明日无新卡，新卡顺延到后天 */
+
+  return { remembered: remembered, forgot: forgot, stubborn: stubborn, fresh: fresh, quota: daily, overflow: overflow };
+}
