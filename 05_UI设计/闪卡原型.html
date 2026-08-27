@@ -2074,7 +2074,7 @@
   .tag-sep { color: rgba(91,114,245,0.45); font-weight: 500; margin: 0 1px; }
   .tag-sub { color: #7C66E8; font-weight: 650; }
 
-  /* 今日重现角标（未记住副本） */
+  /* 今日重现角标（未记住补的重复卡） */
   .round-tag {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 4px 8px; border-radius: 7px;
@@ -4086,21 +4086,21 @@ function currentLogicData() {
             ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
           ],
           labels:[
-            {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删副本/扣回 forgotCount）→ markCard（未记住 forgotCount+1 + 塞回队尾 round+1 副本）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
+            {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删掉当天重刷的重复卡/未记住次数减回一次）→ markCard（未记住：未记住次数+1 + 队尾补同一张卡等会再刷一次）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
           ] },
         { num:'4', title:'上一张 / 下一张（区块④ 导航）',
           paras: [
-            '上一张：返回「上一道题」的原卡（跳过未记住副本 round≥2），无论该卡是否已答都显示；标记不可逆，不触发重答。',
+            '上一张：返回「上一道题」的原卡——同一题若因为答未记住而补了重复卡，直接跳过，回到那张唯一的原卡；无论该卡是否已答都显示；标记不可逆，不触发重答。',
             '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
             '进度不因跳过改变（marked 未写）。',
             '导航只发生在正面拖拽或底部按钮；边界（无上一张原卡 / 无下一张待答）回弹 + shakeWarn。'
           ],
           labels:[
-            {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删副本/扣回 forgotCount）再重新标记，数据不脏；手动点按钮无撤销概念'}
+            {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
           ] },
         { num:'5', title:'完成结算页（区块⑤ 学习成果）',
           paras: [
-            '触发：commitCard 后 stats.done ≥ stats.total（当日=配额全刷完；过滤=范围内全刷完；未记住副本不再继续出现）。',
+            '触发：commitCard 后 stats.done ≥ stats.total（当日=配额全刷完；过滤=范围内全刷完；未记住补的重复卡不再继续出现）。',
             '历史去重：同一日期同一已刷数只记一次（flashCardResultRecorded_v1）；recordHistory 存 flashCardHistory_v1（保留 30 条）。',
             '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重进。'
           ],
@@ -4730,7 +4730,7 @@ function findNextPendingAfter(card) {
   return null;
 }
 
-/* 查找当前卡之前最近的「原卡」（round=1）：跳过未记住副本（round≥2），可看到已答卡（标记不可逆） */
+/* 查找当前卡之前最近的「原卡」（第一遍出现的卡）：跳过答未记住后补的重复卡，可看到已答卡（标记不可逆） */
 function findPrevOriginal(card) {
   if (!card) return null;
   var idx = -1;
@@ -4807,7 +4807,7 @@ function init() {
   isAnimating = false;
 
   /* 已刷达到总数（配额）→ 直接进入学习成果页
-     （未记住副本可能仍在队列中，不再继续出现） */
+     （未记住补的重复卡可能仍在队列中，不再继续出现） */
   var initStats = calcStats(state);
   if (initStats.total > 0 && initStats.done >= initStats.total) {
     showCompletion();
@@ -5224,14 +5224,14 @@ function handleDragEnd() {
 }
 
 /* 还原某张卡的标记副作用（用于已答卡重答：先还原旧标记，再按新结果重新标记）
-   副作用 = 未记住时 markCard 造的 round≥2 副本 + forgotCount 累加
+   副作用 = 未记住时 markCard 造的重复卡 + 未记住次数累加
    还原后该卡回到「未标记」状态（旧 marked 被删除） */
 function undoMarkSideEffects(card) {
   if (!card) return;
   var key = card.key;
   var oldResult = baseState.marked[key];
 
-  /* 找该 id 下所有副本，删除 round≥2 的（即重答前塞回队尾的） */
+  /* 找该 id 下所有重复卡（答未记住时补到队尾的）删除 */
   for (var i = baseState.queue.length - 1; i >= 0; i--) {
     var q = baseState.queue[i];
     if (q.id === card.id && (q.round || 1) > 1) {
@@ -5274,7 +5274,7 @@ function commitCard(result) {
     if (card) card.classList.add('commit-left');
   }
 
-  /* 走共享数据层：标记 + 未记住副本塞回队尾（当天重现） */
+  /* 走共享数据层：标记 + 答未记住时补的重复卡塞回队尾（当天重现） */
   markCard(baseState, cardData.key, result);
   saveState(baseState);
   refreshFilter();  // 未记住产生的副本需要进入过滤视图
@@ -5660,7 +5660,7 @@ function getById(id) { return ROOT.querySelector('#' + id); }
    - 同一份今日队列（闪卡题库.js），与单卡模式进度/标记共享
    - 点击遮挡区 → 原位展开答案+解析；未展开不能点按钮
    - 已答卡置灰折叠保留，点击可展开只看答案（不可重复标记）
-   - 未记住副本当天队尾重现（「今日重现」角标）
+   - 未记住补的重复卡当天队尾重现（「今日重现」角标）
    - 全部标记完毕 → 完成结算页
    ============================================================ */
 var listEl = getById('listScroll');
