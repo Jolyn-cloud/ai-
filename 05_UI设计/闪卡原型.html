@@ -4340,12 +4340,11 @@ function currentLogicData() {
             ['已答卡点击','只展开解析查看，不可重复标记','否']
           ],
           labels:[
-            {k:'顽固卡', v:'未记住 ≥3 次的卡：卡片右上角 ⚡ 角标 + 边框强化，底部统计条单独计数（包含在「未记住」总数内）'}
+            {k:'顽固卡', v:'未记住 ≥3 次的卡：卡片右上角 ⚡ 角标 + 边框强化，底部统计条单独计数（不包含在「未记住」总数内）'}
           ] },
         { num:'3', title:'完成结算',
           paras: [
-            '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。',
-            '当前有章节过滤时，完成页多「下一章」入口（尾章回绕首章）。'
+            '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。'
           ] }
       ]
     },
@@ -6019,7 +6018,14 @@ function updateStats(stats) {
   getById('progressFill').style.width = pct + '%';
 
   getById('bsRemembered').textContent = stats.remembered;
-  getById('bsForgot').textContent = stats.forgot;
+
+  /* 未记住 = 今天标了 forgot 且非顽固（forgotCount<3）的卡；顽固单独计数不重复计入 */
+  var forgotEx = 0;
+  for (var fi = 0; fi < state.queue.length; fi++) {
+    var fx = state.queue[fi];
+    if (state.marked[fx.key] === 'forgot' && (fx.forgotCount || 0) < 3) forgotEx++;
+  }
+  getById('bsForgot').textContent = forgotEx;
   getById('bsStubborn').textContent = stats.stubborn;
 
   /* 全部标记完毕 → 结算页 */
