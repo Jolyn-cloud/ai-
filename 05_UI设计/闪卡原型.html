@@ -4375,7 +4375,10 @@ function currentLogicData() {
       ]
     }
   };
-  return PANELS[CURRENT] || { desc: '当前视图：' + (VIEW_NAMES[CURRENT] || ''), sections: [] };
+  /* 完成页浮层打开时 → 逻辑说明自动切到「完成结算页」（卡片模式完成学习进入成果页）
+     关闭时恢复原视图说明 */
+  var shown = !!(document.querySelector('.view.active .completion.show'));
+  return PANELS[shown ? 'view-complete' : CURRENT] || { desc: '当前视图：' + (VIEW_NAMES[CURRENT] || ''), sections: [] };
 }
 function renderLogicPanel(data) {
   logicBody.innerHTML = '';
@@ -5007,6 +5010,7 @@ function init() {
   currentCard = findNextPending();
 
   getById('completionScreen').classList.remove('show');
+  renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
   renderCard();
   updateProgress();
   updateBottomStats();
@@ -5537,6 +5541,7 @@ function goPrev() {
     isFlipped = false;
     currentCard = prev;
     getById('completionScreen').classList.remove('show');
+    renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
     renderCard(prev);
     updateProgress();
     updateBottomStats();
@@ -5726,6 +5731,7 @@ function showCompletion() {
   clearSessionStart();
 
   getById('completionScreen').classList.add('show');
+  renderLogicPanel(currentLogicData());  /* 逻辑说明自动切到「完成结算页」 */
 }
 
 /* 获取当前过滤范围文本 */
@@ -6252,6 +6258,7 @@ function showCompletion() {
   clearSessionStart();
 
   getById('completionScreen').classList.add('show');
+  renderLogicPanel(currentLogicData());  /* 逻辑说明自动切到「完成结算页」 */
 }
 
 /* 获取当前过滤范围文本 */
@@ -6306,6 +6313,7 @@ function restart() {
   baseState = newState();                        // 生成全新当天状态（跨天 forgotCount 保留）
   saveState(baseState);
   getById('completionScreen').classList.remove('show');
+  renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
   renderList();
 }
 
