@@ -3905,15 +3905,16 @@ var VIEWS = [
   { id: 'view-single',   title: '单卡模式' },
   { id: 'view-list',     title: '列表模式' },
   { id: 'view-stats',    title: '章节统计' },
-  { id: 'view-settings', title: '背诵设置' }
+  { id: 'view-settings', title: '背诵设置' },
+  { id: 'view-complete', title: '完成结算页' }
 ];
 var VERSION = {
   'view-home': 'v2.5', 'view-single': 'v3.0', 'view-list': 'v2.8',
-  'view-stats': 'v1.5', 'view-settings': 'v1.3'
+  'view-stats': 'v1.5', 'view-settings': 'v1.3', 'view-complete': 'v1.0'
 };
 var VIEW_NAMES = {
   'view-home':'首页','view-single':'单卡模式','view-list':'列表模式',
-  'view-stats':'章节统计','view-settings':'背诵设置'
+  'view-stats':'章节统计','view-settings':'背诵设置','view-complete':'完成结算页'
 };
 var VIEW_IDS = {};
 VIEWS.forEach(function(v) { VIEW_IDS[v.id] = true; });
@@ -3975,7 +3976,8 @@ function nav(viewId, filter) {
   if (viewId === CURRENT && !filter) return;
   if (filter) FILTER = filter;
   Object.keys(VIEW_IDS).forEach(function(id) {
-    document.getElementById(id).classList.toggle('active', id === viewId);
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('active', id === viewId);
   });
   CURRENT = viewId;
   document.querySelectorAll('.view-chip').forEach(function(chip) {
@@ -4094,12 +4096,23 @@ function currentLogicData() {
           labels:[
             {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
           ] },
-        { num:'4', title:'完成结算页（区块⑤ 学习成果）',
+        { num:'4', title:'进入/退出与会话',
           paras: [
-            '触发：commitCard 后 stats.done ≥ stats.total（当日=配额全刷完；过滤=范围内全刷完；未记住补的重复卡不再继续出现）。',
-            '历史去重：同一日期同一已刷数只记一次（flashCardResultRecorded_v1）；recordHistory 存 flashCardHistory_v1（保留 30 条）。',
-            '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重进。'
-          ],
+            '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
+            '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
+            '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
+          ] }
+      ]
+    },
+    'view-complete': {
+      desc: '完成结算页 v1.0：单卡/列表刷完当日或考点后进入的学习成果页。多入口共用同一份统计口径。',
+      sections: [
+        { num:'1', title:'触发条件',
+          paras: [
+            'commitCard 标记后，stats.done ≥ stats.total 即进入（当日=配额全刷完；考点过滤=该考点范围内全刷完；未记住补的重复卡不再继续出现）。',
+            '单卡/列表刷完都会进入本页，共享同一统计口径；「再背一轮」可重新开始当日学习。'
+          ] },
+        { num:'2', title:'内容元素与口径',
           tableHead:['元素','口径'],
           table: [
             ['Hero 文案','accuracy≥80「不错哦🎉」；≥60「继续加油💪」；否则「再加把劲📚」'],
@@ -4109,29 +4122,10 @@ function currentLogicData() {
             ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次 ↑/↓% 或「首次」'],
             ['底部按钮','有 chapter 过滤时多「下一章」（尾章回绕首章）；恒有「返回首页」「再背一轮」']
           ] },
-        { num:'5', title:'进入/退出与会话',
+        { num:'3', title:'历史与再背',
           paras: [
-            '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
-            '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
-            '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
-          ] },
-        { num:'6', title:'与其它页面联动',
-          tableHead:['本页操作','去向'],
-          table: [
-            ['右上「切到列表」','列表模式，带当前过滤参数（filterQuery），进度保留'],
-            ['完成页「下一章」','?chapter=下一章（尾章回绕首章）'],
-            ['完成页「巩固薄弱」','列表模式，过滤到最薄弱章节'],
-            ['返回按钮','首页'],
-            ['顶部退出图标','退出确认浮层 → 确认后回首页（或继续）']
-          ] },
-        { num:'7', title:'权限',
-          tableHead:['角色','查看','判卡/标记','进度/LocalStorage'],
-          table: [
-            ['学生（登录后）','✅','✅','✅'],
-            ['游客','⚠️ 演示数据可刷','⚠️ 当天标记','⚠️ 本地持久化，不跨设备']
-          ],
-          labels:[
-            {k:'注', v:'游客权限当前原型未区分，统一可刷；会员权益（配额差异）待确认（规则 F1）'}
+            '历史去重：同一日期同一已刷数只记一次（flashCardResultRecorded_v1）；recordHistory 存 flashCardHistory_v1（保留 30 条）。',
+            '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重进。'
           ] }
       ]
     },
