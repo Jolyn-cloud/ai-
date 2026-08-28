@@ -186,9 +186,9 @@ function handleLogin() {
   document.getElementById('loginBtn').disabled = true;
 }
 function navVip() {
-  /* 点击 VIP 卡 → 调父壳切到 VIP 领取页（总壳接管） */
-  if (window.parent && window.parent.switchTab) window.parent.switchTab('mine');
-  alert('VIP 领取页（待接入）');
+  /* 点击 VIP 卡 → 调父壳弹出 VIP 领取层 */
+  if (window.parent && window.parent.openVip) { window.parent.openVip(); return; }
+  alert('请在小程序总壳中打开');
 }
 function navProfile() {
   PROFILE_DONE = true;

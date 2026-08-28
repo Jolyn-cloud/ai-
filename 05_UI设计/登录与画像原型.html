@@ -332,6 +332,34 @@ body {
 }
 .done-tip.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ============================================================
+   VIP 福利弹窗（新用户第一次点功能触发，可关闭）
+   ============================================================ */
+.vip-crown-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.vip-box-title { font-size: 19px; font-weight: 800; text-align: center; color: #4A3200; margin-bottom: 6px; }
+.vip-box-sub { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 16px; }
+.vip-benefit-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-primary);
+  padding: 8px 0;
+  border-bottom: 1px dashed #F0F1F7;
+}
+.vip-benefit-item:last-child { border-bottom: none; }
+.vip-benefit-item .ok { color: var(--success); font-weight: 700; }
+.vip-actions { display: flex; gap: 10px; margin-top: 16px; }
+.vip-btn {
+  flex: 1; height: 46px;
+  border: none; border-radius: 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.vip-btn-secondary { background: #F3F4F8; color: var(--text-secondary); }
+.vip-btn-primary {
+  background: linear-gradient(135deg, #F5B940 0%, #FFD97A 100%);
+  color: #4A3200;
+  box-shadow: 0 8px 18px rgba(240,170,48,0.3);
+}
+.vip-btn-primary:active, .vip-btn-secondary:active { transform: scale(0.98); }
+
 /* 小屏适配 */
 @media (max-width: 360px) {
   .ai-top { padding: 30px 14px 0; }
@@ -466,6 +494,24 @@ body {
             </div>
           </div>
 
+          <!-- 弹窗：新用户 VIP 福利（第一次点功能触发，可关闭） -->
+          <div class="mask" id="vipMask">
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <div class="vip-crown-icon">👑</div>
+              <div class="vip-box-title">新用户专享 VIP</div>
+              <div class="vip-box-sub">登录立即领取，满屏权益免费解锁</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> AI 答疑无限次</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> VIP 押题全解锁</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> 视频课程完整观看</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> 闪卡无限制</div>
+              <div class="vip-actions">
+                <button class="vip-btn vip-btn-secondary" onclick="skipVip()">暂不需要</button>
+                <button class="vip-btn vip-btn-primary" onclick="takeVip()">立即领取 👑</button>
+              </div>
+            </div>
+          </div>
+
           <!-- 完成轻提示 -->
           <div class="done-tip" id="doneTip">画像已保存 ✅</div>
         </div>
@@ -483,6 +529,50 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(function(v) {
     v.classList.toggle('active', v.id === id);
   });
+}
+
+/* ---------- 新用户 VIP 福利（第一次点功能触发，可关；领取后不再弹） ---------- */
+var VIP_SHOWN = false;       /* 本次会话已弹过 */
+var VIP_CLAIMED = false;     /* 已领取 */
+var VIP_PENDING = null;      /* 暂不领取后要继续的动作 */
+
+function openProfile() {
+  /* 第一次点「补全资料」→ 先弹 VIP 福利；已弹/已领 → 走原登录/画像逻辑 */
+  if (!VIP_SHOWN && !VIP_CLAIMED) {
+    VIP_SHOWN = true;
+    VIP_PENDING = openProfile;
+    document.getElementById('vipMask').classList.add('show');
+    return;
+  }
+  if (!LOGGED) { ensureLogin(openProfile); return; }
+  document.getElementById('profileMask').classList.add('show');
+}
+
+/* 「暂不需要」→ 关弹窗，继续原功能 */
+function skipVip() {
+  document.getElementById('vipMask').classList.remove('show');
+  VIP_SHOWN = true;
+  var next = VIP_PENDING;
+  VIP_PENDING = null;
+  if (next) next();
+}
+
+/* 「立即领取」→ 跳 VIP 领取层（总壳）或独立打开 VIP 页 */
+function takeVip() {
+  var claim = window.parent && window.parent.openVip;
+  if (claim) {
+    document.getElementById('vipMask').classList.remove('show');
+    window.parent.openVip();
+    return;
+  }
+  /* 独立运行时：直接打开 VIP 领取页 */
+  document.getElementById('vipMask').classList.remove('show');
+  window.location.href = 'VIP领取页.html';
+}
+
+/* 供 VIP 领取页回调：标记已领（总壳代理到本页） */
+if (window.parent && window.parent.onVipClaimed) {
+  /* 已由总壳 onVipClaimed 统一处理 */
 }
 
 /* 手机状态栏时钟 */

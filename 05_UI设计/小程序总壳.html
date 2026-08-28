@@ -92,6 +92,36 @@ body {
   object-fit: contain;
   pointer-events: none;
 }
+
+/* ============ VIP 弹层（覆盖内容区） ============ */
+.vip-layer {
+  position: fixed; inset: 0;
+  z-index: 3000;
+  background: #fff;
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.vip-layer.show { opacity: 1; pointer-events: auto; }
+.vip-mini-top {
+  height: 50px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  background: #fff;
+  border-bottom: 1px solid #F0F1F7;
+  font-size: 15px; font-weight: 700;
+}
+.vip-close {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border: none; border-radius: 8px;
+  background: #F2F3F8; color: #6E778B;
+  font-size: 14px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.vip-close:hover { background: #E8EAF3; }
+.vip-layer iframe { flex: 1; min-height: 0; width: 100%; border: none; }
 </style>
 </head>
 <body>
@@ -138,7 +168,63 @@ body {
     <img src="闪屏.png" alt="升本智答" />
   </div>
 
+  <!-- VIP 弹层（领取VIP时覆盖内容区） -->
+  <div class="vip-layer" id="vipLayer">
+    <div class="vip-mini-top">
+      <span>VIP 领取</span>
+      <button class="vip-close" id="vipClose" title="关闭">✕</button>
+    </div>
+    <iframe id="frame-vip" src="VIP领取页.html"></iframe>
+  </div>
+
 <script>
+/* ============================================================
+   总壳状态中枢：登录/画像/VIP 全局唯一状态源
+   ============================================================ */
+var STATE = {
+  logged: false,
+  user: null,          /* {nick, grade, major, school} */
+  profile: false,      /* 画像已完善 */
+  vipClaimed: false
+};
+
+var FRAMES = ['study', 'quiz', 'flash', 'mine', 'vip'];
+function allFrames() {
+  return FRAMES.map(function(f) { return document.getElementById('frame-' + f); })
+    .filter(Boolean);
+}
+
+/* 广播最新状态到所有 iframe */
+function broadcast() {
+  allFrames().forEach(function(f) {
+    try { f.contentWindow.postMessage({ type: 'STATE', state: STATE }, '*'); } catch(e) {}
+  });
+}
+
+/* 子页面上报：LOGGED / PROFILE / VIP */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'LOGGED') {
+    STATE.logged = true;
+    if (d.user) STATE.user = d.user;
+    broadcast();
+  } else if (d.type === 'PROFILE') {
+    STATE.profile = true;
+    if (d.user) STATE.user = Object.assign({}, STATE.user, d.user);
+    broadcast();
+  } else if (d.type === 'VIP') {
+    STATE.vipClaimed = true;
+    broadcast();
+    closeVip();
+  }
+});
+
+/* 安全提示：caller tab 首次加载后向子页同步一次状态 */
+function syncChildState() {
+  broadcast();
+}
+
 /* ---------- 底部 tab 切换 ---------- */
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 function switchTab(name) {
@@ -153,15 +239,29 @@ function switchTab(name) {
   if (!next.getAttribute('src') && next.getAttribute('data-src')) {
     next.setAttribute('src', next.getAttribute('data-src'));
   }
+  /* 切入后同步状态 */
+  setTimeout(syncChildState, 150);
 }
-/* 父壳供 iframe 调用的跨页回调 */
-function onVipClaimed(claimed) { window.__VIP_CLAIMED = claimed; }
+
+/* ---------- VIP 弹层 ---------- */
+var vipLayer = document.getElementById('vipLayer');
+function openVip() {
+  vipLayer.classList.add('show');
+  setTimeout(syncChildState, 150);
+}
+function closeVip() {
+  vipLayer.classList.remove('show');
+}
+document.getElementById('vipClose').addEventListener('click', closeVip);
 
 /* ---------- 闪屏 2.5s 后隐藏 ---------- */
 setTimeout(function() {
   var s = document.getElementById('splashLayer');
   if (s) s.classList.add('hide');
 }, 2500);
+
+/* 各 tab 懒加载完成后再广播一次（保证迟到 iframe 拿到状态） */
+window.addEventListener('load', function() { setTimeout(broadcast, 800); });
 </script>
 </body>
 </html>
