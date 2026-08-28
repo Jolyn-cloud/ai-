@@ -181,8 +181,11 @@ function doLogin() {
   if (!box.checked) { alert('请先同意协议'); return; }
   document.getElementById('boxLogin').classList.add('hidden');
   document.getElementById('boxSuccess').classList.remove('hidden');
-  /* 通知父壳：VIP 已领取（父壳可更新「我的」页状态） */
-  try { if (window.parent && window.parent.onVipClaimed) { window.parent.onVipClaimed(true); } } catch(e) {}
+  /* 上报总壳：登录 + VIP 已领取（总壳广播到所有 tab） */
+  try {
+    window.parent.postMessage({ type: 'LOGGED', data: { user: { nick: '团团酱', grade: '大三', major: '计算机大类' } } }, '*');
+    window.parent.postMessage({ type: 'VIP' }, '*');
+  } catch(e) {}
 }
 function goExperience() {
   /* 立即体验 → 回到学习 tab */

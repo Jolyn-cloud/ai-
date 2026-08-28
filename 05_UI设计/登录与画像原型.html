@@ -570,11 +570,6 @@ function takeVip() {
   window.location.href = 'VIP领取页.html';
 }
 
-/* 供 VIP 领取页回调：标记已领（总壳代理到本页） */
-if (window.parent && window.parent.onVipClaimed) {
-  /* 已由总壳 onVipClaimed 统一处理 */
-}
-
 /* 手机状态栏时钟 */
 (function initStatusbar() {
   var t = document.getElementById('statusTime');
@@ -590,9 +585,34 @@ if (window.parent && window.parent.onVipClaimed) {
 /* 流程：闪屏 → 2.5s → 首页 */
 setTimeout(function() { showView('view-home'); }, 2500);
 
-/* 触发逻辑：点击「补全资料」及各关键功能 → 先登录（游客） */
-var LOGGED = false;   /* 游客态：未登录 */
-var openAfterLogin = null;  /* 登录后要续的动作 */
+/* 上报总壳状态中枢（跨 tab 联动） */
+function postToShell(type, data) {
+  try { window.parent.postMessage({ type: type, data: data || {} }, '*'); } catch(e) {}
+}
+/* 接收总壳广播的最新状态 */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'STATE') {
+    var s = d.state || {};
+    if (typeof s.logged === 'boolean') LOGGED = s.logged;
+    if (s.vipClaimed) VIP_CLAIMED = true;
+    return;
+  }
+  /* 其他 tab 转发过来的请求（我的页 → 总壳 → 本页） */
+  if (d.type === 'REQ_LOGIN') { ensureLogin(); return; }
+  if (d.type === 'OPEN_PROFILE') {
+    if (!VIP_SHOWN && !VIP_CLAIMED) {
+      /* 没领过 VIP → 先 VIP 福利弹窗（与 openProfile 一致） */
+      VIP_SHOWN = true;
+      VIP_PENDING = openProfile;
+      document.getElementById('vipMask').classList.add('show');
+    } else {
+      openProfile();
+    }
+    return;
+  }
+});
 
 function ensureLogin(next) {
   if (LOGGED) { if (next) next(); return; }
@@ -611,13 +631,11 @@ function doLogin() {
   if (!box.checked) return;
   LOGGED = true;
   document.getElementById('loginMask').classList.remove('show');
+  /* 上报总壳 → 广播到我的/VIP等所有 tab */
+  postToShell('LOGGED', { user: { nick: '团团酱', grade: '大三', major: '计算机大类' } });
   var next = openAfterLogin;
   openAfterLogin = null;
   if (next) next();
-  else showLoginSuccess();
-}
-function showLoginSuccess() {
-  /* 已登录：可直接补资料 */
 }
 /* 先进后登：暂不登录 → 关弹窗留首页，不拦截 */
 function skipLogin() {
@@ -625,11 +643,6 @@ function skipLogin() {
   openAfterLogin = null;
   document.getElementById('loginMask').classList.remove('show');
   if (next) { /* 游客继续用功能（弱提示即可） */ }
-}
-/* 首次登录 → 紧跟画像引导（业务用才采集：首次使用 AI 对话） */
-function openProfile() {
-  if (!LOGGED) { ensureLogin(openProfile); return; }
-  document.getElementById('profileMask').classList.add('show');
 }
 function closeProfile() {
   document.getElementById('profileMask').classList.remove('show');
@@ -646,8 +659,16 @@ document.querySelectorAll('.field-chip').forEach(function(chip) {
 
 /* 保存画像 */
 function doSaveProfile() {
+  var school = document.getElementById('schoolInput').value.trim();
+  var major  = document.getElementById('majorInput').value.trim();
+  var grade  = document.querySelector('#gradeGroup .field-chip.on')
+    ? document.querySelector('#gradeGroup .field-chip.on').getAttribute('data-v') : '';
+  var subj   = document.querySelector('#subjectGroup .field-chip.on')
+    ? document.querySelector('#subjectGroup .field-chip.on').getAttribute('data-v') : '计算机基础';
   closeProfile();
   showDoneTip('画像已保存 ✅');
+  /* 上报总壳 → 广播到我的/VIP等所有 tab（画像同步） */
+  postToShell('PROFILE', { user: { school: school, major: major, grade: grade, subject: subj } });
 }
 function showDoneTip(txt) {
   var tip = document.getElementById('doneTip');

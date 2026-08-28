@@ -205,13 +205,27 @@ function broadcast() {
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d || !d.type) return;
+  if (d.type === 'SUBREADY') {
+    /* 子页就绪 → 回发当前状态（懒加载 iframe 迟到的场景） */
+    broadcast();
+    return;
+  }
+  if (d.type === 'REQ_LOGIN' || d.type === 'OPEN_PROFILE') {
+    /* 我的页请求登录/完善资料 → 转发给学习页（登录/画像归属唯一：学习页） */
+    var study = document.getElementById('frame-study');
+    if (study && study.contentWindow) {
+      study.contentWindow.postMessage({ type: d.type }, '*');
+    }
+    switchTab('study');
+    return;
+  }
   if (d.type === 'LOGGED') {
     STATE.logged = true;
-    if (d.user) STATE.user = d.user;
+    if (d.data && d.data.user) STATE.user = d.data.user;
     broadcast();
   } else if (d.type === 'PROFILE') {
     STATE.profile = true;
-    if (d.user) STATE.user = Object.assign({}, STATE.user, d.user);
+    if (d.data && d.data.user) STATE.user = Object.assign({}, STATE.user, d.data.user);
     broadcast();
   } else if (d.type === 'VIP') {
     STATE.vipClaimed = true;

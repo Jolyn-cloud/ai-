@@ -173,17 +173,67 @@ body {
 </div>
 
 <script>
-/* ---------- 我的页：登录态模拟（与父壳无通信，演示用） ---------- */
-var LOGGED = false;  /* 演示：默认未登录 */
-var PROFILE_DONE = false;
+/* ---------- 我的页：登录态/画像态 全部来自父壳状态中枢，本地不做二次维护 ---------- */
+var STATE = { logged: false, user: null, profile: false, vipClaimed: false };
 
+/* 渲染我的页（依据 STATE） */
+function renderState() {
+  var nameEl = document.getElementById('userName');
+  var subEl  = document.getElementById('userSub');
+  var btn    = document.getElementById('loginBtn');
+  var tag    = document.getElementById('profileTag');
+
+  if (STATE.logged) {
+    var u = STATE.user || {};
+    nameEl.textContent = u.nick || '已登录';
+    subEl.textContent = [u.major, u.grade].filter(Boolean).join(' · ') || '学习进度已同步';
+    btn.textContent = '已登录';
+    btn.disabled = true;
+  } else {
+    nameEl.textContent = '未登录';
+    subEl.textContent = '登录后同步学习进度';
+    btn.textContent = '登录';
+    btn.disabled = false;
+  }
+
+  if (STATE.profile) {
+    tag.textContent = '已完善';
+    tag.classList.add('success');
+  } else {
+    tag.textContent = '去完善';
+    tag.classList.remove('success');
+  }
+
+  /* VIP 卡副文案：领取后变化 */
+  if (STATE.vipClaimed) {
+    var sub = document.querySelector('.vip-card .vip-sub');
+    if (sub) sub.textContent = 'VIP 体验已生效 · 随时查看';
+  }
+}
+
+/* 首次同步：先取父壳注入，再监听广播 */
+function requestState() {
+  try {
+    window.parent.postMessage({ type: 'SUBREADY' }, '*');
+  } catch(e) {}
+}
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'STATE') return;
+  STATE = {
+    logged:      !!d.state.logged,
+    user:        d.state.user || null,
+    profile:     !!d.state.profile,
+    vipClaimed:  !!d.state.vipClaimed
+  };
+  renderState();
+});
+requestState();
+renderState();  /* 初始默认态 */
+
+/* 点击登录 → 转发总壳 → 学习页弹微信登录（登录归属唯一：学习页） */
 function handleLogin() {
-  /* 演示：点击登录 → 变已登录（真实为微信授权弹窗） */
-  LOGGED = true;
-  document.getElementById('userName').textContent = '团团酱';
-  document.getElementById('userSub').textContent = '计算机大类 · 大三';
-  document.getElementById('loginBtn').textContent = '已登录';
-  document.getElementById('loginBtn').disabled = true;
+  try { window.parent.postMessage({ type: 'REQ_LOGIN' }, '*'); } catch(e) {}
 }
 function navVip() {
   /* 点击 VIP 卡 → 调父壳弹出 VIP 领取层 */
@@ -191,9 +241,8 @@ function navVip() {
   alert('请在小程序总壳中打开');
 }
 function navProfile() {
-  PROFILE_DONE = true;
-  document.getElementById('profileTag').textContent = '已完善';
-  document.getElementById('profileTag').classList.add('success');
+  /* 完善资料 → 转发总壳 → 学习页弹画像（画像采集归属唯一：学习页） */
+  try { window.parent.postMessage({ type: 'OPEN_PROFILE' }, '*'); } catch(e) {}
 }
 </script>
 </body>
