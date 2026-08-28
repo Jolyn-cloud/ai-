@@ -318,7 +318,7 @@ body {
 
         <!-- 品牌闪屏层（2.5s后隐藏，嵌入时跳过以避免双闪屏） -->
         <div class="splash-layer" id="splashLayer">
-          <img src="闪屏.png" alt="升本智答" />
+          <img src="../ui切图/闪屏.png" alt="升本智答" />
         </div>
 
         <!-- VIP 弹层（领取VIP时覆盖内容区，绝对定位于手机屏幕内） -->
@@ -516,15 +516,18 @@ function openBenefit() {
 function hideBenefit() {
   benefitMask.classList.remove('show');
 }
-/* 点领取权益：图缩小消失 → 请求学习页弹登录弹窗 */
+/* 点领取权益：图缩小消失 → 切回学习 tab 让其可见 → 弹登录弹窗 */
 function claimBenefit() {
   benefitUsing = true;      /* 标记：本次登录来自权益图 → 登录成功后自动 VIP 到账 */
   benefitCard.classList.add('leave');
-  setTimeout(hideBenefit, 230);          /* 缩小动画后遮罩隐藏 */
   var study = document.getElementById('frame-study');
-  if (study && study.contentWindow) {
-    study.contentWindow.postMessage({ type: 'REQ_LOGIN' }, '*');
-  }
+  setTimeout(function() {
+    hideBenefit();
+    switchTab('study');                    /* 登录弹窗在学习页内，需先显示学习 tab */
+    if (study && study.contentWindow) {
+      study.contentWindow.postMessage({ type: 'REQ_LOGIN' }, '*');
+    }
+  }, 230);
 }
 /* 事件绑定 */
 document.getElementById('benefitClose').addEventListener('click', function() {
