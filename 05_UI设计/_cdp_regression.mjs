@@ -174,7 +174,7 @@ try {
   const profileShown = await evalIn('study', `document.getElementById('profileMask').classList.contains('show')`);
   check('已领取后不再弹 VIP，直达画像', profileShown === true);
 
-  // 保存画像（先填完表单 → 个人资料完整）→ 我的页「已完善」
+  // 保存画像（先填完表单 → 个人资料完整）→ 画像 done，为后续链路做前置
   await evalIn('study', `
     document.getElementById('schoolInput').value = '山东大学';
     document.getElementById('majorInput').value = '计算机科学与技术';
@@ -182,17 +182,7 @@ try {
     if (g) { g.classList.add('on'); }
     doSaveProfile(); 'ok'
   `);
-  await sleep(400);
-  await evalJs(`document.querySelector('.tab-item[data-frame="mine"]').click()`);
-  await sleep(300);
-  const profileTag = await evalIn('mine', `document.getElementById('profileTag').textContent`);
-  check('我的页画像已完善(三态done)', profileTag === '已完善', `得到: ${profileTag}`);
-
-  // 我的页点「完善资料」→ 转发总壳 → 学习页直达画像（登录态下不再弹 VIP）
-  await evalIn('mine', `document.querySelector('.list-row[onclick="navProfile()"]').click(); 'ok'`);
   await sleep(500);
-  const profileFromMine = await evalIn('study', `document.getElementById('profileMask').classList.contains('show')`);
-  check('我的页完善资料转发 → 学习页弹画像', profileFromMine === true);
 
   console.log('\n== 2. 逻辑面板 ↔ 闪卡 iframe 联动 ==');
   // 切闪卡 tab（懒加载首次加载）

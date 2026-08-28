@@ -100,8 +100,6 @@ body {
 .list-row .txt { font-size: 14px; font-weight: 600; }
 .list-row .meta { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 .list-row .arrow { color: #C6CADE; }
-.tag { font-size: 11px; padding: 3px 8px; border-radius: 8px; background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
-.tag.success { background: #E8F8F0; color: var(--success); }
 </style>
 </head>
 <body>
@@ -129,20 +127,6 @@ body {
       <div class="vip-sub">新用户专享体验 · 立即领取</div>
     </div>
     <span class="vip-arrow">›</span>
-  </div>
-
-  <!-- 资料完善 -->
-  <div class="section-card">
-    <div class="list-row" onclick="navProfile()">
-      <div class="row-left">
-        <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></span>
-        <div>
-          <div class="txt">完善资料</div>
-          <div class="meta">院校 / 专业 / 年级，让 AI 更懂你</div>
-        </div>
-      </div>
-      <span class="tag" id="profileTag">去完善</span>
-    </div>
   </div>
 
   <!-- 通用设置 -->
@@ -181,7 +165,6 @@ function renderState() {
   var nameEl = document.getElementById('userName');
   var subEl  = document.getElementById('userSub');
   var btn    = document.getElementById('loginBtn');
-  var tag    = document.getElementById('profileTag');
 
   if (STATE.logged) {
     var u = STATE.user || {};
@@ -194,19 +177,6 @@ function renderState() {
     subEl.textContent = '登录后同步学习进度';
     btn.textContent = '登录';
     btn.disabled = false;
-  }
-
-  /* 画像三态（规则B）：none 去完善 / partial 继续完善 / done 已完善 */
-  var level = STATE.profileLevel || (STATE.profile ? 'done' : 'none');  /* 兼容旧字段 */
-  if (level === 'done') {
-    tag.textContent = '已完善';
-    tag.classList.add('success');
-  } else if (level === 'partial') {
-    tag.textContent = '继续完善';
-    tag.classList.remove('success');
-  } else {
-    tag.textContent = '去完善';
-    tag.classList.remove('success');
   }
 
   /* VIP 卡副文案：领取后变化 */
@@ -245,10 +215,6 @@ function navVip() {
   /* 点击 VIP 卡 → 调父壳弹出 VIP 领取层 */
   if (window.parent && window.parent.openVip) { window.parent.openVip(); return; }
   alert('请在小程序总壳中打开');
-}
-function navProfile() {
-  /* 完善资料 → 转发总壳 → 学习页弹画像（画像采集归属唯一：学习页） */
-  try { window.parent.postMessage({ type: 'OPEN_PROFILE' }, '*'); } catch(e) {}
 }
 </script>
 </body>
