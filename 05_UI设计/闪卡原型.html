@@ -356,11 +356,11 @@
 
 
 
-/* ============ 合并追加 ============ */
-.phone-screen .views { position: absolute; inset: 0; overflow: hidden; }
-.phone-screen .view { position: absolute; inset: 0; display: none; overflow: hidden; }
-.phone-screen .view.active { display: block; }
-.phone-screen .view .page { width: 100%; height: 100%; }
+/* ============ 合并追加（去壳后：.views 直接是 body 子级，选择器去掉 .phone-screen 前缀） ============ */
+#views { position: absolute; inset: 0; overflow: hidden; }
+#views .view { position: absolute; inset: 0; display: none; overflow: hidden; }
+#views .view.active { display: block; }
+#views .view .page { width: 100%; height: 100%; }
 
 
 /* ============ 闪卡首页.html CSS ============ */
