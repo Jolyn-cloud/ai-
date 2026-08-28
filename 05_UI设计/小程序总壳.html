@@ -105,12 +105,12 @@ body {
     </div>
   </div>
 
-  <!-- iframe 内容区：4个tab各一个iframe，切tab显隐 -->
+  <!-- iframe 内容区：4个tab各一个iframe，切tab显隐；懒加载（首次切才设src） -->
   <div class="content-frame">
     <iframe id="frame-study"  src="登录与画像原型.html"></iframe>
-    <iframe id="frame-quiz"   src="题库.html" class="hidden"></iframe>
-    <iframe id="frame-flash"  src="闪卡原型.html" class="hidden"></iframe>
-    <iframe id="frame-mine"   src="我的.html" class="hidden"></iframe>
+    <iframe id="frame-quiz"   data-src="题库.html" class="hidden"></iframe>
+    <iframe id="frame-flash"  data-src="闪卡原型.html" class="hidden"></iframe>
+    <iframe id="frame-mine"   data-src="我的.html" class="hidden"></iframe>
   </div>
 
   <!-- 底部 4 tab -->
@@ -150,9 +150,12 @@ function switchTab(name) {
   });
   /* 首次切入懒加载：切到才设 src，避免4个页面同载 */
   var next = document.getElementById('frame-' + name);
-  if (!next.getAttribute('src')) next.setAttribute('src', PAGE_SRC[name]);
+  if (!next.getAttribute('src') && next.getAttribute('data-src')) {
+    next.setAttribute('src', next.getAttribute('data-src'));
+  }
 }
-var PAGE_SRC = { /* src 已在 HTML 预置，占位 */ };
+/* 父壳供 iframe 调用的跨页回调 */
+function onVipClaimed(claimed) { window.__VIP_CLAIMED = claimed; }
 
 /* ---------- 闪屏 2.5s 后隐藏 ---------- */
 setTimeout(function() {
