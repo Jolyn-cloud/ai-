@@ -304,9 +304,10 @@ body {
   border: none; background: transparent; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   color: #9A9EAE; border-radius: 50%;
+  font-size: 22px; line-height: 1; padding: 0;
 }
 .vip-login-close:hover { color: #6E778B; background: #F0F1F7; }
-.vip-login-close svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.vip-login-close:active { background: #ECEDF3; }
 
 .vip-login-logo {
   width: 44px; height: 44px;
@@ -339,7 +340,6 @@ body {
   box-shadow: 0 10px 22px rgba(113,105,237,0.28);
 }
 .vip-login-button:active { transform: scale(.98); filter: brightness(.97); box-shadow: 0 5px 12px rgba(113,105,237,.24); }
-.vip-login-button svg { width: 20px; height: 20px; }
 
 .vip-login-privacy {
   display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -350,8 +350,11 @@ body {
   width: 16px; height: 16px; accent-color: #5B72F5; cursor: pointer;
   margin: 0;
 }
-.vip-login-privacy-text { color: #9A9EAE; }
-.vip-login-privacy-text a { color: #5B72F5; text-decoration: none; font-weight: 600; }
+.vip-login-privacy a {
+  color: #5B72F5; text-decoration: none; font-weight: 600;
+  cursor: pointer;
+}
+.vip-login-privacy a:hover { text-decoration: underline; }
 
 .vip-login-tip {
   min-height: 18px;
@@ -556,28 +559,30 @@ body {
         <!-- 登录 Bottom Sheet（领取专属权益后底部上浮） -->
         <div class="vip-login-modal" id="loginSheet">
           <div class="vip-login-overlay" id="loginOverlay"></div>
-          <div class="vip-login-sheet">
-            <button class="vip-login-close" id="loginClose" title="关闭" aria-label="关闭">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
+
+          <section class="vip-login-sheet">
+            <button class="vip-login-close" id="loginClose" title="关闭" aria-label="关闭">×</button>
+
             <div class="vip-login-logo">
               <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 22 C5 16 10 11 16 8 C19 6 22 5 23 4 C21 9 18 13 13 17 C9 20 6 21 4 22 Z"/>
                 <path d="M4 22 C7 17 11 14 16 12"/>
               </svg>
             </div>
-            <h3 class="vip-login-title">登录鹭数教育</h3>
+
+            <h2 class="vip-login-title">登录鹭数教育</h2>
             <p class="vip-login-desc">登录后即可领取新用户专属 VIP 学习权益</p>
-            <button class="vip-login-button" id="loginButton">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v5c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3z"/></svg>
-              微信一键登录
-            </button>
+
+            <button class="vip-login-button" id="loginButton">微信一键登录</button>
             <div class="vip-login-tip" id="loginTip">请先同意用户协议和隐私政策</div>
+
             <label class="vip-login-privacy">
               <input type="checkbox" id="loginAgree" />
-              <span class="vip-login-privacy-text">我已阅读并同意<span><a href="javascript:void(0)">《用户协议》</a>和<a href="javascript:void(0)">《隐私政策》</a></span></span>
+              我已阅读并同意
+              <a href="javascript:void(0)">《用户协议》</a>和
+              <a href="javascript:void(0)">《隐私政策》</a>
             </label>
-          </div>
+          </section>
         </div>
       </div>
       <nav class="tabbar">
