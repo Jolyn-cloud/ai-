@@ -6,7 +6,8 @@
 <title>山东专升本小程序 · 总壳</title>
 <style>
 /* ============================================================
-   总壳样式：顶部品牌带 + iframe内容区 + 底部4tab
+   总壳样式：左手机壳 + 右逻辑说明面板
+   （4 tab 在手机壳内，模拟真实小程序；逻辑说明随闪卡视图联动）
    ============================================================ */
 :root{
   --primary: #5B72F5;
@@ -25,30 +26,70 @@ body {
   display: flex; flex-direction: column;
 }
 
-/* ============ 顶部品牌带 ============ */
-.topbar {
-  height: 52px;
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  gap: 10px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #ECEEF6;
-}
-.topbar .brand-logo {
-  width: 26px; height: 26px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 13px; font-weight: 700;
-}
-.topbar .brand-name { font-size: 16px; font-weight: 700; letter-spacing: .3px; }
-.topbar .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+/* ============ 工作台：左手机壳区 + 右逻辑面板 ============ */
+.main { flex: 1; min-height: 0; display: flex; align-items: stretch; }
 
-/* ============ iframe 内容区 ============ */
-.content-frame {
-  flex: 1; min-height: 0;
-  position: relative;
-  background: #EDEFF7;
+/* 中间：手机壳区 */
+.phone-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(91,114,245,0.07) 0%, transparent 50%),
+    #EDEFF7;
 }
+
+/* 手机壳 */
+.phone {
+  position: relative;
+  flex-shrink: 0;
+  width: 390px;
+  height: clamp(600px, calc(100vh - 40px), 860px);
+  background: #1E2130;
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px rgba(30,33,48,0.12),
+    0 20px 60px rgba(30,33,48,0.28),
+    inset 0 0 0 2px rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
+}
+.phone-screen {
+  flex: 1; min-height: 0;
+  border-radius: 33px;
+  background: #FFFFFF;
+  overflow: hidden;
+  position: relative;
+}
+/* 手机状态栏：时间 / 信号 / 电量 */
+.phone-statusbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 34px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  font-size: 13px; font-weight: 600; color: #1E2130;
+}
+.phone-statusbar .status-time { letter-spacing: 0.4px; }
+.phone-statusbar .status-icons { display: flex; align-items: center; gap: 8px; }
+.phone-statusbar .status-icons svg { width: 16px; height: 12px; color: #1E2130; display: block; }
+.phone-statusbar .status-icons .wifi { transform: translateY(1px); }
+/* 刘海 */
+.phone-notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 26px; z-index: 10;
+  background: rgba(255,255,255,0.92);
+  border-radius: 0 0 16px 16px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.phone-notch .speaker { width: 42px; height: 5px; border-radius: 3px; background: rgba(30,33,48,0.2); }
+.phone-notch .cam { width: 9px; height: 9px; border-radius: 50%; background: rgba(30,33,48,0.35); }
+
+/* 内容区：4 tab 各自 iframe，切 tab 显隐 */
+.content-frame { position: absolute; inset: 0; }
 .content-frame iframe {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -56,46 +97,49 @@ body {
 }
 .content-frame iframe.hidden { visibility: hidden; pointer-events: none; }
 
-/* ============ 底部 4 tab ============ */
+/* 底部 4 tab（手机壳内） */
 .tabbar {
-  height: 62px;
-  flex-shrink: 0;
+  height: 56px; flex-shrink: 0;
   display: flex;
   background: #FFFFFF;
   border-top: 1px solid #ECEEF6;
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .tab-item {
   flex: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px;
+  gap: 2px;
   border: none; background: none; cursor: pointer;
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: 10px;
   transition: color .15s ease;
 }
-.tab-item svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.tab-item svg { width: 20px; height: 20px; stroke-width: 1.8; }
 .tab-item.active { color: var(--primary-dark); font-weight: 600; }
 .tab-item.active svg { stroke-width: 2.2; }
+/* Home 指示条 */
+.home-bar {
+  height: 5px; flex-shrink: 0;
+  width: 124px; margin: 6px auto 0;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
 
-/* ============ 闪屏层（覆盖全屏） ============ */
+/* ============ 闪屏层（覆盖手机屏幕） ============ */
 .splash-layer {
-  position: fixed; inset: 0;
+  position: absolute; inset: 0;
   z-index: 9999;
   background: #F8F9FC;
+  border-radius: 33px;
   display: flex; align-items: flex-end; justify-content: center;
   transition: opacity .4s ease;
 }
 .splash-layer.hide { opacity: 0; pointer-events: none; }
-.splash-layer img {
-  width: 100%; height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-}
+.splash-layer img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
 /* ============ VIP 弹层（覆盖内容区） ============ */
 .vip-layer {
-  position: fixed; inset: 0;
+  position: absolute; inset: 0;
   z-index: 3000;
   background: #fff;
   display: flex; flex-direction: column;
@@ -122,60 +166,163 @@ body {
 }
 .vip-close:hover { background: #E8EAF3; }
 .vip-layer iframe { flex: 1; min-height: 0; width: 100%; border: none; }
+
+/* ============ 右侧逻辑说明面板 ============ */
+.logic-col {
+  width: 0;               /* 收起态无宽度 */
+  overflow: hidden;
+  transition: width .25s ease;
+  background: #FBFBFF;
+  border-left: 1px solid #ECEFF6;
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.logic-col.open { width: 460px; }
+.logic-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* 视图切换胶囊 */
+.view-switch {
+  flex-shrink: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 10px 18px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #ECEFF6;
+}
+.view-chip {
+  padding: 5px 12px; border-radius: 14px;
+  border: 1px solid #E3E8F2; background: #F7F9FC;
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; transition: all .15s ease;
+  white-space: nowrap;
+}
+.view-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+.view-chip.active { background: var(--primary); border-color: var(--primary); color: #FFFFFF; font-weight: 600; }
+/* 全局通栏：卡片状态标签 */
+.logic-global {
+  flex-shrink: 0;
+  margin: 10px 18px 0;
+  padding: 6px 12px;
+  background: #FFFFFF;
+  border: 1px solid #ECEFF6;
+  border-radius: 10px;
+  font-size: 12px; line-height: 1;
+  color: var(--text-secondary);
+}
+.g-tab { display: inline-block; font-size: 11px; font-weight: 600; margin-right: 8px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.g-tab.g-ok   { background: #E8F8F0; color: #20A866; }
+.g-tab.g-no   { background: #FEECEC; color: #EF4444; }
+.g-tab.g-stub { background: #FFF1E6; color: #F28B3D; }
+.logic-head {
+  flex-shrink: 0;
+  height: 46px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 18px;
+  border-bottom: 1px solid #ECEFF6;
+  background: #FFFFFF;
+}
+.logic-head .title { font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+.logic-head .close-x { margin-left: auto; border: none; background: none; cursor: pointer; color: var(--text-tertiary); font-size: 18px; line-height: 1; padding: 4px 6px; }
+.logic-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 18px 30px;
+  scrollbar-width: thin;
+}
+.logic-body::-webkit-scrollbar { width: 6px; }
+.logic-body::-webkit-scrollbar-thumb { background: #DDE1F0; border-radius: 3px; }
+.logic-desc { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 14px; padding: 12px 14px; background: var(--primary-light); border-radius: 12px; }
+.logic-sec { margin-bottom: 10px; }
+.logic-sec-head { display: flex; align-items: center; gap: 6px; padding: 0; }
+.logic-sec-head .num { width: 18px; height: 18px; border-radius: 5px; background: var(--primary); color: #FFFFFF; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logic-sec-head .sec-name { font-size: 13px; font-weight: 700; }
+.logic-sec-body { display: block; padding: 2px 0 0 24px; }
+.logic-para { margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.logic-label { display: flex; align-items: flex-start; gap: 6px; font-size: 12.5px; line-height: 1.55; color: var(--text-primary); padding: 4px 0; }
+.logic-label .k { flex-shrink: 0; font-weight: 600; color: var(--primary-dark); min-width: 58px; }
+.logic-label .v { color: var(--text-primary); }
+.logic-note { margin-top: 6px; font-size: 11.5px; color: var(--text-tertiary); background: #F5F6FB; border-radius: 8px; padding: 6px 10px; line-height: 1.5; }
+.logic-table { width: 100%; margin: 8px 0; border-collapse: collapse; font-size: 12px; }
+.logic-table th, .logic-table td { border: 1px solid #EAEDF6; padding: 6px 8px; text-align: left; vertical-align: top; }
+.logic-table th { background: #F8F9FC; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
 </style>
 </head>
 <body>
 
-  <!-- 顶部品牌带 -->
-  <div class="topbar">
-    <div class="brand-logo">升</div>
-    <div>
-      <div class="brand-name">升本智答</div>
-      <div class="brand-sub">山东统招专升本</div>
+<div class="main">
+  <!-- 左侧：手机壳（内容 iframe + 手机内 tab） -->
+  <div class="phone-col">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="phone-notch"><div class="speaker"></div><div class="cam"></div></div>
+        <div class="phone-statusbar">
+          <span class="status-time" id="statusTime">9:41</span>
+          <span class="status-icons">
+            <svg class="wifi" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0-8c-2.5 0-4.8.9-6.6 2.5l2.2 2.2a6 6 0 0 1 8.8 0l2.2-2.2a9.4 9.4 0 0 0-6.6-2.5zm0-5.4c-4.1 0-7.8 1.6-10.6 4.3l2.3 2.3a11.2 11.2 0 0 1 16.6 0l2.3-2.3A14.2 14.2 0 0 0 12 5.1z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="3" height="9" rx="1"/><rect x="7" y="7" width="3" height="12" rx="1"/><rect x="12" y="3" width="3" height="16" rx="1"/><rect x="17" y="6" width="3" height="13" rx="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="8" width="18" height="11" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h3"/><path d="M20 11h1"/></svg>
+          </span>
+        </div>
+        <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
+        <div class="content-frame">
+          <iframe id="frame-study" src="登录与画像原型.html"></iframe>
+          <iframe id="frame-quiz" data-src="题库.html" class="hidden"></iframe>
+          <iframe id="frame-flash" data-src="闪卡原型.html" class="hidden"></iframe>
+          <iframe id="frame-mine" data-src="我的.html" class="hidden"></iframe>
+        </div>
+
+        <!-- 品牌闪屏层（2.5s后隐藏，嵌入时跳过以避免双闪屏） -->
+        <div class="splash-layer" id="splashLayer">
+          <img src="闪屏.png" alt="升本智答" />
+        </div>
+
+        <!-- VIP 弹层（领取VIP时覆盖内容区，绝对定位于手机屏幕内） -->
+        <div class="vip-layer" id="vipLayer">
+          <div class="vip-mini-top">
+            <span>VIP 领取</span>
+            <button class="vip-close" id="vipClose" title="关闭">✕</button>
+          </div>
+          <iframe id="frame-vip" src="VIP领取页.html"></iframe>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l10-9 10 9"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+          学习
+        </button>
+        <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          题库
+        </button>
+        <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
+          闪卡
+        </button>
+        <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+          我的
+        </button>
+      </nav>
+      <div class="home-bar"></div>
     </div>
   </div>
 
-  <!-- iframe 内容区：4个tab各一个iframe，切tab显隐；懒加载（首次切才设src） -->
-  <div class="content-frame">
-    <iframe id="frame-study"  src="登录与画像原型.html"></iframe>
-    <iframe id="frame-quiz"   data-src="题库.html" class="hidden"></iframe>
-    <iframe id="frame-flash"  data-src="闪卡原型.html" class="hidden"></iframe>
-    <iframe id="frame-mine"   data-src="我的.html" class="hidden"></iframe>
-  </div>
-
-  <!-- 底部 4 tab -->
-  <nav class="tabbar">
-    <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l10-9 10 9"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-      学习
-    </button>
-    <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      题库
-    </button>
-    <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
-      闪卡
-    </button>
-    <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
-      我的
-    </button>
-  </nav>
-
-  <!-- 品牌闪屏层（2.5s后隐藏） -->
-  <div class="splash-layer" id="splashLayer">
-    <img src="闪屏.png" alt="升本智答" />
-  </div>
-
-  <!-- VIP 弹层（领取VIP时覆盖内容区） -->
-  <div class="vip-layer" id="vipLayer">
-    <div class="vip-mini-top">
-      <span>VIP 领取</span>
-      <button class="vip-close" id="vipClose" title="关闭">✕</button>
+  <!-- 右侧：闪卡逻辑说明面板（复制自闪卡原型，经 postMessage 联动） -->
+  <aside class="logic-col open" id="logicCol">
+    <div class="logic-panel">
+      <div class="logic-head">
+        <div class="title">📋 闪卡逻辑说明</div>
+        <button class="close-x" id="logicClose" title="收起/展开">×</button>
+      </div>
+      <div class="view-switch" id="viewSwitch"></div>
+      <div class="logic-global" id="logicGlobal">
+        <span class="g-tab g-ok">已记住 · 右滑</span>
+        <span class="g-tab g-no">未记住 · 左滑</span>
+        <span class="g-tab g-stub">顽固 · 未记住≥3，每日必现</span>
+      </div>
+      <div class="logic-body" id="logicBody"></div>
     </div>
-    <iframe id="frame-vip" src="VIP领取页.html"></iframe>
-  </div>
+  </aside>
+</div>
 
 <script>
 /* ============================================================
@@ -231,6 +378,21 @@ window.addEventListener('message', function(evt) {
     STATE.vipClaimed = true;
     broadcast();
     closeVip();
+  } else if (d.type === 'NAV') {
+    /* 闪卡视图切换 → 逻辑面板跟随（高亮 + 说明同步） */
+    setActivePanel(d.view);
+    renderLogicPanel(currentLogicData());
+  } else if (d.type === 'POPUP') {
+    /* 闪卡弹窗/浮层开关 → 逻辑面板跟随（完成页/settings） */
+    if (d.name === 'settings') { settingsOpen = !!d.open; }
+    else if (d.name === 'completion') { completionOpen = !!d.open; }
+    renderLogicPanel(currentLogicData());
+  } else if (d.type === 'REQUEST_NAV') {
+    /* 面板视图胶囊 → 转发给闪卡 iframe 跳转 */
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: d.view }, '*');
+    }
   }
 });
 
@@ -255,6 +417,13 @@ function switchTab(name) {
   }
   /* 切入后同步状态 */
   setTimeout(syncChildState, 150);
+  if (name === 'flash') {
+    /* 切到闪卡：让 flash iframe 感知当前面板高亮，并校准逻辑说明 */
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: activePanel }, '*');
+    }
+  }
 }
 
 /* ---------- VIP 弹层 ---------- */
@@ -268,14 +437,311 @@ function closeVip() {
 }
 document.getElementById('vipClose').addEventListener('click', closeVip);
 
-/* ---------- 闪屏 2.5s 后隐藏 ---------- */
+/* ---------- 闪屏 2.5s 后隐藏（嵌入小程序总壳时跳过，避免双闪屏） ---------- */
+var EMBEDDED = (function() {
+  try {
+    return window.parent !== window.self &&
+      /小程序总壳\.html$/.test(window.parent.location.pathname);
+  } catch(e) { return false; }
+})();
 setTimeout(function() {
   var s = document.getElementById('splashLayer');
   if (s) s.classList.add('hide');
-}, 2500);
+}, EMBEDDED ? 0 : 2500);
 
 /* 各 tab 懒加载完成后再广播一次（保证迟到 iframe 拿到状态） */
 window.addEventListener('load', function() { setTimeout(broadcast, 800); });
+
+/* ============================================================
+   逻辑说明面板（复制自闪卡原型，随闪卡视图/弹窗 postMessage 联动）
+   ============================================================ */
+var logicBody = document.getElementById('logicBody');
+var viewSwitch = document.getElementById('viewSwitch');
+var activePanel = 'view-home';       /* 当前高亮胶囊的视图 */
+var settingsOpen = false;            /* 首页设置弹窗开关 */
+var completionOpen = false;          /* 完成结算浮层开关 */
+
+var PANELS = {
+  'view-home': {
+    desc: '首页：考试倒计时 + 章节树 + 学习入口。仅已初始化用户进入（游客引导完成初始化后才可用），考试倒计时为全局统一口径。',
+    sections: [
+      { num:'1', title:'考试倒计时（Hero 顶部）',
+        paras: [
+          '锚点：距离最近一届统招专升本考试还有 N 天，N = 当年统考日 − 今日（自然日差）。',
+          '考试日期从山东招考院当年公布时间爬取/人工维护，每年更新 1 次，不写入用户画像。'
+        ],
+        labels: [
+          {k:'判断阈值', v:'考试日 ≤ 今日 → 视为过期/待更新'},
+          {k:'异常空态', v:'未爬取到或已过期 → 显示「考试日待更新」，不显示负数'}
+        ] },
+      { num:'2', title:'全部章节（掌握率一览）',
+        paras: [
+          '10 个一级章节，章节树按页面上下顺序排列；以章卡为一级，逐级展开二级 / 三级（子考点）、四级（知识点）。',
+          '一级至三级右侧展示「已记住 / 卡片数」+ 掌握率百分比；四级展示该知识点答题情况（已记住 ✓ / 未记住 × / 顽固）。',
+          '一级章节按掌握率升序（弱章节排最前），便于优先夯实薄弱；点击四级知识点直接进入单卡模式该考点过滤队列，刷该知识的全部题目。'
+        ] },
+      { num:'3', title:'背诵计划卡（Hero 下方）',
+        paras: [
+          '每日 N 张 = 用户设置值（卡池不足自动收缩）；连续 N 天 = 连续学习天数；总进度 = 已记/总量百分比，由章节实时汇总。'
+        ] },
+      { num:'4', title:'学习入口',
+        paras: [
+          '按钮文案：今日已开始学习（当日队列有已答卡）→「继续背诵」；今日未刷 →「开始学习」。',
+          '「继续背诵」进入单卡模式后，从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
+          '右上角设置入口 → 每日数量弹窗，保存落库 flashCardConfig_v1；今日未开始学习 → 立即生效，今日已开始 → 次日生效。'
+        ] }
+    ]
+  },
+  'view-single': {
+    desc: '单卡模式 v3.0：翻卡记忆 + 左右滑动标记「已记住/未记住」的学习模块；两种入口（今日队列 / 考点全题）都能进，卡片状态标签见全局通栏。',
+    sections: [
+      { num:'1', title:'进入单卡模式（入口与队列）',
+        paras: [
+          '首页「开始学习」/「继续背诵」进入：刷今日队列（每日 N 张）；「继续背诵」从今天下一张还没标记的卡接着刷。',
+          '首页章节树的考点进入：刷该考点全部题目（不受每日 N 张限制），刷完即完成该考点；两种入口的标记共用同一份今日进度。'
+        ] },
+      { num:'2', title:'翻卡与滑动（区块②③ 卡片交互）',
+        paras: [
+          '正面：clozeHtml(question) 填空题干（____ 渲染为视觉空位）。',
+          '背面：clozeHtml(question, answer) 空位填答案高亮 + 答案 + 解析。',
+          '轻触卡片 → flipCard() 翻转（正↔背）。翻转不计入答题、不改任何状态。'
+        ],
+        tableHead:['卡片动作','行为','标记？'],
+        table: [
+          ['轻触卡片','左右翻转（正↔背）','否，不改任何状态'],
+          ['背面拖拽','右滑=已记住 / 左滑=未记住','是'],
+          ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
+          ['边界回弹','无上一张/下一张 → 位移×0.25 回弹 + 摇晃提示','—'],
+          ['翻卡动画中','忽略一切交互（飞出/飞入 400ms）','—']
+        ],
+        tableHead2:['滑动判定','阈值口径','提交方式'],
+        table2: [
+          ['背面拖动','|dx|≥170（卡片区约50%，拖到侧边）','立即判定，无需松手'],
+          ['背面拖动','|dx|≥80','松手判定'],
+          ['背面拖动','|dx|<80','回弹归位，不标记'],
+          ['正面拖拽','左滑 dx<-80 / 右滑 dx>80','松手判定，不标记（左滑=上一张/右滑=下一张）'],
+          ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
+        ],
+        labels:[
+          {k:'强约束', v:'不翻卡不能滑动判定（防不看答案乱滑）'},
+          {k:'判定提交', v:'右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」（右绿）→「未记住」（左红）反馈标签，透明度随手指位移渐显：opacity = min(|dx|/80, 1) × 0.9，拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'},
+          {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删掉当天重刷的重复卡/未记住次数减回一次）→ markCard（未记住：未记住次数+1 + 队尾补同一张卡等会再刷一次）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
+        ] },
+      { num:'3', title:'上一张 / 下一张（区块④ 导航）',
+        paras: [
+          '上一张：返回「上一道题」的原卡——同一题若因为答未记住而补了重复卡，直接跳过，回到那张唯一的原卡；无论该卡是否已答都显示；标记不可逆，不触发重答。',
+          '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
+          '进度不因跳过改变（marked 未写）。',
+          '导航只发生在正面拖拽或底部按钮；边界（无上一张原卡 / 无下一张待答）回弹 + shakeWarn。'
+        ],
+        labels:[
+          {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
+        ] },
+      { num:'4', title:'进入/退出与会话',
+        paras: [
+          '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
+          '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
+          '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
+        ] }
+    ]
+  },
+  'view-complete': {
+    desc: '完成结算页 v1.0：单卡/列表刷完当日或考点后进入的学习成果页。多入口共用同一份统计口径。',
+    sections: [
+      { num:'1', title:'触发条件',
+        paras: [
+          'commitCard 标记后，stats.done ≥ stats.total 即进入（当日=配额全刷完；考点过滤=该考点范围内全刷完；未记住补的重复卡不再继续出现）。',
+          '单卡/列表刷完都会进入本页，共享同一统计口径；「再背一轮」可重新开始当日学习。'
+        ] },
+      { num:'2', title:'内容元素与口径',
+        tableHead:['元素','口径'],
+        table: [
+          ['Hero 文案','accuracy≥80「不错哦🎉」；≥60「继续加油💪」；否则「再加把劲📚」'],
+          ['环形图','圆心 accuracy=round(remembered/done×100)'],
+          ['薄弱 TOP5','getWeakPoints(state,5)：forgot 降序→同次 total 降序；无则「全部掌握🎉」'],
+          ['章节分布','按 chapter 聚合绿条=已记住 / 红条=未记住（顽固卡含在未记住内），单章 ok%=已记住/总数'],
+          ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次：本次成果 vs 上次成果（最近一条历史）'],
+          ['底部按钮','只留「再背一轮」：重新计入成绩，刷新所有章节分布']
+        ] },
+      { num:'3', title:'历史与再背',
+        paras: [
+          '成绩记历史：每完成一轮记一条（flashCardHistory_v1，保留最近 30 条，新纪录放最前）；同一天背 3 轮就是 3 条历史，完成页「较上次」= 和最近一条比。',
+          '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重新计时。'
+        ] }
+    ]
+  },
+  'view-list': {
+    desc: '列表模式：全部卡片铺开浏览 / 标记的刷题页。学生可操作。',
+    sections: [
+      { num:'1', title:'职责与队列',
+        paras: [
+          '与单卡模式共用同一份当日队列、过滤参数与 marked 进度（同一份数据，切换模式进度不丢）。',
+          '列表按「未答在上、已答置灰折叠在下」排布；无卡片时展示空态「暂无卡片 · 请返回首页重新开始背诵」。'
+        ] },
+      { num:'2', title:'标记操作',
+        paras: [
+          '点击题干行内遮罩 → 原位揭示答案 + 同步展开解析 + 启用该卡「已记住/未记住」按钮；未揭答前按钮禁用，防不看答案乱标。'
+        ],
+        tableHead:['动作','行为','标记？'],
+        table: [
+          ['点击行内遮罩','原位替换为答案，并展开该卡解析','否，仅揭示'],
+          ['点「已记住」','卡片折叠置灰到已答区','是，写入同一份 marked'],
+          ['点「未记住」','卡片折叠置灰 + 队尾补同一张副本（「今日重现」角标，当天会再刷一遍）','是'],
+          ['已答卡点击','只展开解析查看，不可重复标记','否']
+        ],
+        labels:[
+          {k:'顽固卡', v:'未记住 ≥3 次的卡：卡片右上角 ⚡ 角标 + 边框强化，底部统计条单独计数（不包含在「未记住」总数内）'}
+        ] },
+      { num:'3', title:'完成结算',
+        paras: [
+          '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。'
+        ] }
+    ]
+  },
+  'view-stats': {
+    desc: '章节统计：首页章节树的掌握度视图（四层章节树）。无需独立页面，展示在首页。',
+    sections: [
+      { num:'1', title:'章节树结构（首页）',
+        paras: [
+          '首页章节卡片即章节统计载体：一级章节 → 二级（子章节）→ 三级（考点）→ 四级（知识点），点击层层展开，章节卡片默认收起。',
+          '10 个一级章节按掌握率升序排列（最薄弱在前）；「背诵计划卡」「总进度」由各章节实时汇总，与章节树口径一致。'
+        ] },
+      { num:'2', title:'层级数字口径',
+        tableHead:['层级','展示'],
+        table: [
+          ['一级章节','掌握率（已记住 ÷ 卡片数）+ 已记住/卡片数 + 顽固卡数'],
+          ['二级（子章节）','已记住 / 卡片数 + 掌握率%'],
+          ['三级（考点）','已记住 / 卡片数 + 掌握率%'],
+          ['四级（知识点）','✓已记住  ×未记住  顽固 计数'],
+          ['来源','CHAPTERS 演示数据；固执卡按 CARDS 题库 forgotCount≥3 实时统计'],
+          ['排序','章节/子章节均按 progress（已答比例）升序，最薄弱排最前']
+        ] },
+      { num:'3', title:'联动',
+        paras: [
+          '点击三级（考点）/四级（知识点）标题 → 进入单卡模式对应考点过滤队列刷题（goLevel4 传 chapter/sub/point）。',
+          '当前视图为首页，顶部按钮仍可切换单卡/列表等模式，数据共享同一份今日进度。'
+        ] }
+    ]
+  },
+  'view-settings': {
+    desc: '每日学习卡片设置：首页右上角设置入口 → 弹窗。学生可操作。',
+    sections: [
+      { num:'1', title:'职责',
+        paras: [
+          '每日学习卡片数量：滑杆 10-500、步进 10；快捷值 30/50/100/200/350 点击即选。',
+          '该数量是生成今日队列的数量基准；超过题库总量时自动收缩为实际可用卡数，顽固卡自动优先入队。'
+        ] },
+      { num:'2', title:'数据落库与生效',
+        labels:[
+          {k:'保存', v:'saveConfig → flashCardConfig_v1，仅更新每日数量（保留现有章节权重）'},
+          {k:'立即生效', v:'今天还没开始刷（无已答记录）→ 保存后立即生效'},
+          {k:'次日生效', v:'今天已开始背诵 → 新数量明日生效'},
+          {k:'去向', v:'保存后弹窗自动关闭，回到首页'}
+        ] },
+      { num:'3', title:'每日卡片构成（规则自动算，无用户可配比例）',
+        paras: [
+          '每日队列 = 复习卡 + 新卡。卡片类型（复习/新卡）比例由规则自动决定，不存在用户可配置的卡片类型比例。',
+          '复习卡 = 未记住卡（累计 forgotCount≥1，含顽固 ≥3），必现优先入队；复习卡占满配额 → 新卡为 0，警示「明日无新卡，新卡顺延到后天」。',
+          '每章新卡数 = max(0, 每日数量 × 该章比例 − 该章复习卡数)；实际每日数量 = min(配置 dailyCount, 卡池可用卡数)。',
+          '时间口径区分：今日队列的复习卡不含「已记住到期」；明日组成预估 = 今日已记住(+1天到期) + 未记住 + 顽固（分时态，已记住到期只计入明日预估）。'
+        ] },
+      { num:'4', title:'章节题型配置比例（weights）',
+        paras: [
+          'weights = { 章节名: 百分比 }，覆盖 10 个一级章节；合计恒 100%，调高某章 → 其余章节等比压缩。',
+          '每章今日张数 = 每日数量 × 该章比例；某章折算张数超过该章卡池时自动收缩到卡池上限；收缩后的缺口：该章有可用卡 → 先用该章可用卡补足，该章无可用卡 → 再由其余章节补齐。',
+          '缺省 / 未配置章节 → 各章均分；队列生成优先级：复习卡（未记住 + 顽固）必现 → 每章扣减该章复习卡后余量抽新卡 → 卡量不足兜底补齐。',
+          '口径示例：每日 100 张、章节1 比例 9% → 该章应得 9 张；该章复习卡 8 张 → 新卡 1 张（即 1%）。'
+        ] }
+    ]
+  }
+};
+
+var PANEL_VIEWS = [
+  { id: 'view-home',     title: '首页' },
+  { id: 'view-single',   title: '单卡模式' },
+  { id: 'view-list',     title: '列表模式' },
+  { id: 'view-stats',    title: '章节统计' },
+  { id: 'view-complete', title: '完成结算页' }
+];
+/* 面板视图切换胶囊：点胶囊 → 通知闪卡 iframe 跳转（联动） */
+PANEL_VIEWS.forEach(function(v) {
+  var b = document.createElement('button');
+  b.className = 'view-chip';
+  b.textContent = v.title;
+  b.setAttribute('data-view', v.id);
+  b.addEventListener('click', function() {
+    setActivePanel(v.id);
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: v.id }, '*');
+    }
+  });
+  viewSwitch.appendChild(b);
+});
+
+function setActivePanel(viewId) {
+  activePanel = viewId;
+  document.querySelectorAll('#viewSwitch .view-chip').forEach(function(chip) {
+    chip.classList.toggle('active', chip.getAttribute('data-view') === viewId);
+  });
+}
+
+function currentLogicData() {
+  /* 弹窗/浮层打开时 → 逻辑说明自动切到对应面板，关闭时恢复原视图说明：
+     - 完成页浮层 → 完成结算页
+     - 首页设置弹窗 → 背诵设置
+     优先级：完成页浮层 > 设置弹窗 （与闪卡原型一致） */
+  if (completionOpen && PANELS['view-complete']) return PANELS['view-complete'];
+  if (settingsOpen && PANELS['view-settings']) return PANELS['view-settings'];
+  return PANELS[activePanel] || { desc: '当前视图：' + activePanel, sections: [] };
+}
+
+function renderLogicPanel(data) {
+  logicBody.innerHTML = '';
+  var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc || ''; logicBody.appendChild(de);
+  (data.sections || []).forEach(function(sec) {
+    var card = document.createElement('div'); card.className = 'logic-sec';
+    var head = document.createElement('div'); head.className = 'logic-sec-head';
+    head.innerHTML = '<span class="num">' + sec.num + '</span><span class="sec-name">' + esc(sec.title) + '</span>';
+    card.appendChild(head);
+    var body = document.createElement('div'); body.className = 'logic-sec-body';
+    (sec.paras || []).forEach(function(t) { var p = document.createElement('div'); p.className = 'logic-para'; p.textContent = t; body.appendChild(p); });
+    (sec.labels || []).forEach(function(lb) { var d = document.createElement('div'); d.className = 'logic-label'; d.innerHTML = '<span class="k">' + esc(lb.k) + '</span><span class="v">' + esc(lb.v) + '</span>'; body.appendChild(d); });
+    if (sec.table && sec.table.length) {
+      var t = document.createElement('table'); t.className = 'logic-table';
+      var hr = '<tr>' + (sec.tableHead || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
+      var br = sec.table.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
+      t.innerHTML = hr + br; body.appendChild(t);
+    }
+    if (sec.table2 && sec.table2.length) {
+      var t2 = document.createElement('table'); t2.className = 'logic-table';
+      var hr2 = '<tr>' + (sec.tableHead2 || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
+      var br2 = sec.table2.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
+      t2.innerHTML = hr2 + br2; body.appendChild(t2);
+    }
+    card.appendChild(body);
+    logicBody.appendChild(card);
+  });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ---------- 逻辑面板开关 ---------- */
+var logicCol = document.getElementById('logicCol');
+function toggleLogic() {
+  logicCol.classList.toggle('open');
+}
+document.getElementById('logicClose').addEventListener('click', toggleLogic);
+
+/* 初始渲染：默认首页说明 */
+setActivePanel('view-home');
+renderLogicPanel(currentLogicData());
+
+/* 手机状态栏时钟 */
+setInterval(function() {
+  var d = new Date();
+  var t = document.getElementById('statusTime');
+  if (t) t.textContent = (d.getHours() < 10 ? '0' + d.getHours() : d.getHours()) + ':' + (d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes());
+}, 30000);
 </script>
 </body>
 </html>

@@ -171,6 +171,34 @@ try {
   const profileFromMine = await evalIn('study', `document.getElementById('profileMask').classList.contains('show')`);
   check('我的页完善资料转发 → 学习页弹画像', profileFromMine === true);
 
+  console.log('\n== 2. 逻辑面板 ↔ 闪卡 iframe 联动 ==');
+  // 切闪卡 tab（懒加载首次加载）
+  await evalJs(`document.querySelector('.tab-item[data-frame="flash"]').click()`);
+  await sleep(1200);
+  // 面板初始高亮「首页」
+  const chipHome = await evalJs(`document.querySelector('#viewSwitch .view-chip.active').textContent`);
+  check('面板初始高亮「首页」', chipHome === '首页', `得到: ${chipHome}`);
+
+  // 点面板「单卡模式」chip → REQUEST_NAV → 闪卡 iframe nav
+  await evalJs(`[...document.querySelectorAll('#viewSwitch .view-chip')].find(c => c.textContent === '单卡模式').click(); 'ok'`);
+  await sleep(500);
+  const activeViewInFlash = await evalIn('flash', `document.querySelector('.view.active') ? document.querySelector('.view.active').id : 'none'`);
+  const chipActive = await evalJs(`document.querySelector('#viewSwitch .view-chip.active').textContent`);
+  check('面板点「单卡模式」→ 闪卡跳单卡视图', activeViewInFlash === 'view-single', `得到: ${activeViewInFlash}`);
+  check('面板高亮同步「单卡模式」', chipActive === '单卡模式', `得到: ${chipActive}`);
+
+  // 闪卡内置 nav → 发 NAV → 面板跟随（切成列表视图测试反向链路）
+  await evalIn('flash', `nav('view-list'); 'ok'`);
+  await sleep(400);
+  const chipFromFlash = await evalJs(`document.querySelector('#viewSwitch .view-chip.active').textContent`);
+  check('闪卡 nav 列表 → 面板高亮跟随', chipFromFlash === '列表模式', `得到: ${chipFromFlash}`);
+
+  // 点面板「完成结算页」chip → 闪卡跳 view-complete
+  await evalJs(`[...document.querySelectorAll('#viewSwitch .view-chip')].find(c => c.textContent === '完成结算页').click(); 'ok'`);
+  await sleep(500);
+  const flashComplete = await evalIn('flash', `document.querySelector('.view.active') ? document.querySelector('.view.active').id : 'none'`);
+  check('面板点「完成结算页」→ 闪卡跳完成页', flashComplete === 'view-complete', `得到: ${flashComplete}`);
+
   console.log(`\n== 结果: ${FAILED === 0 ? '全部通过 ✅' : FAILED + ' 项失败 ❌'} ==`);
 } catch (e) {
   console.error('测试中断:', e.message);

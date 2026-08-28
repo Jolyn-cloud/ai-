@@ -3368,6 +3368,13 @@ function goToPractice() { var n = navInst(); if (n && n.goToPractice) n.goToPrac
 function goList() { var n = navInst(); if (n && n.goList) return n.goList(); nav('view-list', FILTER); }
 function goSingle() { var n = navInst(); if (n && n.goSingle) return n.goSingle(); nav('view-single', FILTER); }
 
+/* ---------- 接收总壳逻辑面板的跳转请求（联动：面板胶囊 → 闪卡视图） ---------- */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'REQUEST_NAV') return;
+  if (d.view && VIEW_IDS[d.view]) nav(d.view, null);
+});
+
 /* ---------- 启动（延迟到模块加载后，见文件底） ---------- */
 var READY = false;
 function initPrototype() {

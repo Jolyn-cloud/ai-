@@ -515,6 +515,7 @@ function showView(id) {
 }
 
 /* ---------- 新用户 VIP 福利（第一次点功能触发，可关；领取后不再弹） ---------- */
+var LOGGED = false;          /* 登录态：由总壳 STATE 广播同步 */
 var VIP_SHOWN = false;       /* 本次会话已弹过 */
 var VIP_CLAIMED = false;     /* 已领取 */
 var VIP_PENDING = null;      /* 暂不领取后要继续的动作 */
@@ -542,6 +543,7 @@ function skipVip() {
 
 /* 「立即领取」→ 跳 VIP 领取层（总壳）或独立打开 VIP 页 */
 function takeVip() {
+  VIP_SHOWN = true;          /* 领取过 → 本会话不再弹第二次 VIP 福利 */
   var claim = window.parent && window.parent.openVip;
   if (claim) {
     document.getElementById('vipMask').classList.remove('show');
@@ -553,9 +555,10 @@ function takeVip() {
   window.location.href = 'VIP领取页.html';
 }
 
-/* 手机状态栏时钟 */
+/* 手机状态栏时钟（去壳后状态栏在总壳，此处保留以防独立打开） */
 (function initStatusbar() {
   var t = document.getElementById('statusTime');
+  if (!t) return;
   function tick() {
     var d = new Date();
     var h = d.getHours(), m = d.getMinutes();
@@ -569,12 +572,17 @@ function takeVip() {
    在总壳 iframe 内（embedded）→ 跳过自身闪屏，直接进首页（闪屏由总壳统一控制） */
 var EMBEDDED = (function() {
   try {
-    return window.parent !== window.self &&
-      /小程序总壳\.html$/.test(window.parent.location.pathname);
+    if (window.parent === window.self) return false;
+    /* pathname 是 URL 编码的（%E5%B0%8F...），需 decode 后才能匹配中文文件名 */
+    var p;
+    try { p = decodeURIComponent(window.parent.location.pathname); } catch(e2) { p = window.parent.location.pathname; }
+    return /小程序总壳\.html$/.test(p);
   } catch(e) { return false; }
 })();
 if (EMBEDDED) {
   showView('view-home');
+  /* 嵌入总壳：主动订阅状态（总壳靠 SUBREADY 回发 STATE，错过广播会拿不到登录/VIP 状态） */
+  try { window.parent.postMessage({ type: 'SUBREADY' }, '*'); } catch(e) {}
 } else {
   setTimeout(function() { showView('view-home'); }, 2500);
 }
@@ -590,7 +598,7 @@ window.addEventListener('message', function(evt) {
   if (d.type === 'STATE') {
     var s = d.state || {};
     if (typeof s.logged === 'boolean') LOGGED = s.logged;
-    if (s.vipClaimed) VIP_CLAIMED = true;
+    if (s.vipClaimed) { VIP_CLAIMED = true; VIP_SHOWN = true; }
     return;
   }
   /* 其他 tab 转发过来的请求（我的页 → 总壳 → 本页） */
