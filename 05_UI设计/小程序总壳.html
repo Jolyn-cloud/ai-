@@ -387,6 +387,58 @@ body {
   opacity: 0; transition: opacity .2s ease;;
 }
 .vip-login-tip.show { opacity: 1; }
+
+/* ============ 登录成功轻量提示（Toast）：登录成功 → 短暂出现 → 自动消失 ============
+   视觉：半透明白 · 紫绿渐变光晕 · 轻阴影 · 圆角14-16px · 紧凑 · 无皇冠/关闭/大卡片 */
+.vip-success-toast {
+  position: absolute; left: 50%; bottom: calc(79px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  min-width: 264px; width: min(288px, calc(100% - 48px));
+  min-height: 48px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 15px;
+  z-index: 4000;
+  opacity: 0; pointer-events: none;
+  filter: drop-shadow(0 6px 18px rgba(38, 42, 58, 0.14));
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  transition: opacity .25s ease, transform .25s ease;
+}
+/* 柔和紫绿渐变光晕 */
+.vip-success-toast::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(130px 46px at 18% 50%, rgba(113,105,237,0.10) 0%, transparent 70%),
+    radial-gradient(120px 42px at 82% 50%, rgba(98,207,169,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.vip-success-icon {
+  flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: linear-gradient(135deg, #7169ED 0%, #62CFA9 100%);
+  color: #FFFFFF;
+  font-size: 13px; font-weight: 700; line-height: 20px;
+  text-align: center;
+}
+.vip-success-text {
+  font-size: 14px; font-weight: 600; color: #25283A;
+  letter-spacing: 0.2px; white-space: nowrap;
+}
+/* 出现：opacity 0→1 + translateY(8px)→0 */
+.vip-success-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* 隐藏态（非 show）：translateY(8px) */
+.vip-success-toast { transform: translateX(-50%) translateY(8px); }
+/* 消失：由 JS 移除 .show 触发 opacity 1→0 + Y 0→4px */
+.vip-success-toast.hiding {
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+}
 /* VIP 领取页全屏层：默认隐藏，仅「VIP 领取」触发时铺满手机屏幕 */
 .vip-layer {
   position: absolute; inset: 0;
@@ -603,6 +655,12 @@ body {
               <a href="javascript:void(0)">《隐私政策》</a>
             </label>
           </section>
+        </div>
+
+        <!-- 登录成功轻量提示（Toast）：登录后 1.5s 停留自动消失，不动弹窗结构 -->
+        <div class="vip-success-toast" id="successToast" role="status" aria-live="polite">
+          <span class="vip-success-icon">✓</span>
+          <span class="vip-success-text">登录成功，VIP权益已到账</span>
         </div>
       </div>
       <nav class="tabbar">
@@ -868,7 +926,28 @@ loginButton.addEventListener('click', function() {
   }
   broadcast();
   closeLoginSheet();
+  showSuccessToast();          /* 登录成功 → 轻量提示（自动消失，无额外点击） */
 });
+
+/* ---------- 登录成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
+var toastTimer = null;
+function showSuccessToast() {
+  var t = document.getElementById('successToast');
+  if (!t) return;
+  if (toastTimer) clearTimeout(toastTimer);
+  t.classList.remove('show', 'hiding');   /* 复位动画状态 */
+  requestAnimationFrame(function() {
+    t.classList.add('show');              /* 出现：opacity 0→1 + translateY(8px)→0 */
+  });
+  /* 停留 1.5s 后进入消失态，再 0.2s 完全隐藏 */
+  toastTimer = setTimeout(function() {
+    t.classList.remove('show');
+    t.classList.add('hiding');            /* 消失：opacity 1→0 + translateY(0)→4px */
+    toastTimer = setTimeout(function() {
+      t.classList.remove('hiding');
+    }, 200);
+  }, 1500);
+}
 
 /* ---------- 闪屏 2.5s 后隐藏（嵌入小程序总壳时跳过，避免双闪屏） ---------- */
 var EMBEDDED = (function() {

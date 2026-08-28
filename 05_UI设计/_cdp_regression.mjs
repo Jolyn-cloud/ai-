@@ -259,6 +259,58 @@ try {
   check('退出后登录态复位(logged/vip/profile=false)', ex3.logged === false && ex3.vip === false && ex3.profile === false, afterExit);
   check('退出后回学习 tab 且顶栏标题=学习', ex3.tab === 'study' && ex3.title === '学习', afterExit);
 
+  console.log('\n== 4. 登录成功轻量提示（Toast）==');
+
+  // 重新加载页面，重置会话状态，走一遍完整登录链路
+  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await sleep(3500);
+
+  // 首切功能 tab → 弹权益 → 领取 → 登录 sheet
+  await evalJs(`document.querySelector('.tab-item[data-frame="quiz"]').click()`);
+  await sleep(300);
+  await evalJs(`document.getElementById('benefitCta').click()`);
+  await sleep(260);
+  await evalJs(`loginAgree.checked=true`);
+
+  // 触发登录成功
+  await evalJs(`loginButton.click()`);
+  await sleep(120);  // 等 .show 加上（requestAnimationFrame 后）
+
+  // Toast 出现：.show + opacity=1 + 文案 + 位置
+  const toastOn = await evalJs(`(function(){
+    var t = document.getElementById('successToast');
+    var cs = getComputedStyle(t);
+    var box = t.getBoundingClientRect();
+    var screen = document.querySelector('.phone-screen').getBoundingClientRect();
+    return JSON.stringify({
+      show: t.classList.contains('show'),
+      op: cs.opacity,
+      text: t.textContent.trim(),
+      boxW: Math.round(box.width),
+      boxH: Math.round(box.height),
+      bottomGap: Math.round(screen.bottom - box.bottom),  // 距手机底部距离
+      whiteBg: cs.backgroundColor,
+      radius: cs.borderRadius
+    });
+  })()`);
+  const t4 = JSON.parse(toastOn);
+  check('Toast 出现(show且opacity>0)', t4.show === true && Number(t4.op) > 0, toastOn);
+  check('Toast 文案正确', t4.text.includes('登录成功') && t4.text.includes('VIP权益已到账'), t4.text);
+  check('Toast 紧凑(宽min260/高46-52)', t4.boxW >= 260 && t4.boxW <= 290 && t4.boxH >= 46 && t4.boxH <= 52, `W=${t4.boxW} H=${t4.boxH}`);
+  check('Toast 半透明白底+圆角14-16', /rgba\(255, 255, 255/.test(t4.whiteBg) && ['14px','15px','16px'].includes(t4.radius), toastOn);
+  check('Toast 位于页中下部且不贴底', t4.bottomGap >= 70 && t4.bottomGap <= 130, `bottomGap=${t4.bottomGap}`);
+
+  // 停留 1.5s + 消失 0.2s 过渡，等完全结束
+  await sleep(1700);
+  const tAfter = await evalJs(`(function(){
+    var t = document.getElementById('successToast');
+    var cs = getComputedStyle(t);
+    return JSON.stringify({ show: t.classList.contains('show'), hiding: t.classList.contains('hiding'), op: cs.opacity, pe: cs.pointerEvents, logged: STATE.logged });
+  })()`);
+  const ta4 = JSON.parse(tAfter);
+  check('Toast 停留后完全隐藏(无show/无交互)', ta4.show === false && ta4.hiding === false && Number(ta4.op) === 0 && ta4.pe === 'none', tAfter);
+  check('Toast 消失后登录态保持(继续原功能)', ta4.logged === true, tAfter);
+
   console.log(`\n== 结果: ${FAILED === 0 ? '全部通过 ✅' : FAILED + ' 项失败 ❌'} ==`);
 } catch (e) {
   console.error('测试中断:', e.message);
