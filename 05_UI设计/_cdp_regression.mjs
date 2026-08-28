@@ -243,7 +243,7 @@ try {
   const q3 = JSON.parse(appbarQuiz);
   check('题库 tab 顶栏显示且标题=题库', q3.hidden === false && q3.title === '题库', appbarQuiz);
   check('顶栏固定于状态栏下方(appbarRel=34)', q3.appbarRel === 34, appbarQuiz);
-  check('内容区从顶栏之下开始(contentRel=34)', q3.contentRel === 34, appbarQuiz);
+  check('内容区从顶栏之下开始(contentRel=78)', q3.contentRel === 78, appbarQuiz);
 
   // VIP 领取层默认隐藏且不可交互（不再遮罩内容）
   const vl3 = await evalJs(`(function(){ var v=document.getElementById('vipLayer'); var cs=getComputedStyle(v); return JSON.stringify({ vis: cs.visibility, op: cs.opacity, pe: cs.pointerEvents }); })()`);

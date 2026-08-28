@@ -112,8 +112,8 @@ body {
 .phone-notch .speaker { width: 42px; height: 5px; border-radius: 3px; background: rgba(30,33,48,0.2); }
 .phone-notch .cam { width: 9px; height: 9px; border-radius: 50%; background: rgba(30,33,48,0.35); }
 
-/* 内容区：4 tab 各自 iframe，切 tab 显隐；顶部让出状态栏+标题栏 */
-.content-frame { position: absolute; top: 34px; left: 0; right: 0; bottom: 0; }
+/* 内容区：4 tab 各自 iframe，切 tab 显隐；顶部让出状态栏(34)+标题栏(44)=78，底部 docs 流天然停在 tabbar 顶端 */
+.content-frame { position: absolute; top: 78px; left: 0; right: 0; bottom: 0; }
 .content-frame iframe {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
