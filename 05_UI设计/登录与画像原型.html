@@ -494,12 +494,13 @@ body {
 .onboard-caps.inline .onboard-cap .ob-cap-arrow { display: none; }
 .onboard-caps.inline .ob-cap-ic { font-size: 14px; }
 
-/* 通用 primary 按钮（完成画像，开始使用） */
+/* 通用 primary 按钮（无效：未登录「登录并保存我的画像」；已登录隐藏） */
 .ob-btn-primary {
-  width: 100%; height: 48px; border: none; border-radius: 16px;
+  width: 100%; height: 44px; border: none; border-radius: 14px;
   background: linear-gradient(135deg, var(--primary) 0%, #5A8BF5 100%);
-  color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 14px;
-  box-shadow: 0 10px 24px rgba(91,114,245,0.30);
+  color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+  margin: 10px 0 2px;
+  box-shadow: 0 8px 20px rgba(91,114,245,0.24);
   transition: transform .1s ease, opacity .15s ease;
 }
 .ob-btn-primary:active { transform: scale(0.98); }
@@ -509,17 +510,9 @@ body {
 .onboard-lock { max-height: 0; opacity: 0; overflow: hidden; transform: translateY(6px); }
 .onboard-lock.open { margin-top: 12px; max-height: 220px; opacity: 1; transform: translateY(0); transition: max-height .3s ease, opacity .3s ease, transform .3s ease; }
 
-/* 完成反馈区 */
+/* 完成反馈区：仅包含登录按钮（已登录时按钮隐藏，仅留 AI 文字反馈） */
 .onboard-done { display: none; }
 .onboard-done.show { display: block; }
-.ob-done-badge {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--success); font-weight: 600; margin-left: 4px;
-}
-.ob-done-badge::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success); box-shadow: 0 0 0 3px rgba(32,168,102,0.18);
-}
 
 /* 底部输入区（与正常 AI 首页保持一致） */
 .onboard-inputbar {
@@ -650,8 +643,7 @@ body {
 之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>
                     </div>
                     <div class="onboard-done" id="obDone">
-                      <div class="ob-done-badge">学习画像已完成</div>
-                      <button class="ob-btn-primary" id="obFinishBtn">完成画像，开始使用</button>
+                      <button class="ob-btn-primary" id="obFinishBtn">登录并保存我的画像</button>
                     </div>
                   </div>
 
@@ -872,11 +864,11 @@ function obNext(payload, lbl) {
   obDraft = Object.assign({}, obValues);
   postToShell('PROFILE', { user: { school: obValues.school, major: obValues.major, grade: obValues.grade, subject: '计算机基础', month: obValues.month } });
   if (obStep < 3) { obStep++; obRerender(); return; }
-  /* 第4项已完成 → 完成反馈原位展开 */
+  /* 第4项已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
   obStep = 4;
   obRerender();
   document.getElementById('obLock').classList.add('open');
-  document.getElementById('obDone').classList.add('show');
+  document.getElementById('obDone').classList.toggle('show', !LOGGED);
   obScroll.scrollTop = obScroll.scrollHeight;
 }
 
@@ -922,7 +914,7 @@ window.addEventListener('message', function(evt) {
   obRerender();
 });
 
-/* 完成画像，开始使用 → 未登录引导登录 / 已登录进正常首页 */
+/* 按钮（未登录可见）：「登录并保存我的画像」→ 引导登录；已登录无按钮 */
 function onObFinish() {
   if (!LOGGED) {
     /* 引导登录（强调保存画像）；不登录不清空已填（草稿保留） */
