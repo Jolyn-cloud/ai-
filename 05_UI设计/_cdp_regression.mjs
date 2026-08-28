@@ -25,7 +25,9 @@ const server = createServer((req, res) => {
 });
 await new Promise(r => server.listen(PORT, r));
 
-/* ---------- 启动 Chrome ---------- */
+/* ---------- 启动 Chrome（清掉上次 localStorage，避免持久化状态污染首次断言） ---------- */
+const rm = spawn('rm', ['-rf', `${ROOT}/.tmp-chrome`]);
+await new Promise(r => rm.on('exit', r));
 const chrome = spawn(CHROME, [
   `--remote-debugging-port=${DEVTOOLS_PORT}`,
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
@@ -320,9 +322,13 @@ try {
 
   console.log('\n== 5. 新规则：①已登录也弹权益/直接到账 + ②④未登录填画像草稿 ==');
 
-  // 重置会话
+  // 重置会话：清持久化 + reload → 冷启动的干净未登录+无画像态
+  //（阶段4 Toast 链路 persist 过，直接 reload 会恢复登录态，场景 A 需干净的「未登录」起点）
   await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
   await sleep(2000);
+  await evalJs(`localStorage.removeItem('zsb_state_v1'); 'ok'`);
+  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await sleep(3500); // 闪屏 2.5s + 总壳 ready
 
   // 场景 A：未登录填画像（规则②④ + C）→ 未登录 openProfile 可进（不再强制登录）
   await evalJs(`switchTab('study')`);  // 学习页，不触发权益

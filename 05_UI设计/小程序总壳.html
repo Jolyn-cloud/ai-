@@ -707,13 +707,24 @@ body {
 /* ============================================================
    总壳状态中枢：登录/画像/VIP 全局唯一状态源
    ============================================================ */
-var STATE = {
-  logged: false,
-  user: null,          /* {nick, grade, major, school} */
-  vipClaimed: false,
-  /* 画像三态：none(未填)/partial(部分)/done(齐全)；旧 profile=true 视为 done */
-  profileLevel: 'none'
-};
+var STATE = (function() {
+  /* 持久化恢复：localStorage 里存的登录/画像/VIP 状态，刷新/重开后保持（PM 拍板：全部持久化） */
+  var STORAGE_KEY = 'zsb_state_v1';
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {}
+  return {
+    logged: !!(saved && saved.logged),
+    user: (saved && saved.user) || null,          /* {nick, grade, major, school} */
+    vipClaimed: !!(saved && saved.vipClaimed),
+    /* 画像三态：none(未填)/partial(部分)/done(齐全)；旧 profile=true 视为 done */
+    profileLevel: (saved && saved.profileLevel) || 'none'
+  };
+})();
+
+/* 持久化：STATE 每次变更后写 localStorage（broadcast 统一出口触发） */
+function persist() {
+  try { localStorage.setItem('zsb_state_v1', JSON.stringify(STATE)); } catch(e) {}
+}
 
 /* 画像完整度：school+major+grade 齐全 → done；有任意一项 → partial；否则 none */
 function calcProfileLevel(user) {
@@ -731,8 +742,9 @@ function allFrames() {
     .filter(Boolean);
 }
 
-/* 广播最新状态到所有 iframe */
+/* 广播最新状态到所有 iframe（先持久化再广播：登录/画像/VIP 任何变更统一落盘） */
 function broadcast() {
+  persist();
   allFrames().forEach(function(f) {
     try { f.contentWindow.postMessage({ type: 'STATE', state: STATE }, '*'); } catch(e) {}
   });
