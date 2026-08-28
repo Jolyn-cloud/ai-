@@ -118,13 +118,17 @@ try {
   const benefitShown = await evalJs(`document.getElementById('benefitMask').classList.contains('show')`);
   check('首次切功能tab弹免费权益', benefitShown === true);
 
-  // 点「领取权益」→ 图缩小消失 + 遮罩隐藏 + 学习页弹登录
+  // 点「领取专属权益」→ 卡片缩起(leave) + 遮罩隐藏 + 学习页弹登录
   await evalJs(`document.getElementById('benefitCta').click(); 'ok'`);
-  await sleep(400);
-  const benefitHidden = await evalJs(`!document.getElementById('benefitMask').classList.contains('show')`);
-  const benefitLeave = await evalJs(`document.getElementById('benefitCard').classList.contains('leave')`);
-  check('点领取后遮罩隐藏', benefitHidden === true);
+  await sleep(120);   // 动画 230ms 内，leave 类尚未移除
+  const benefitLeave = await evalJs(`(function(){
+    const c = document.querySelector('.vip-card') || document.querySelector('.benefit-card');
+    return c ? c.classList.contains('leave') : false;
+  })()`);
   check('切换缩小动画', benefitLeave === true);
+  await sleep(300);
+  const benefitHidden = await evalJs(`!document.getElementById('benefitMask').classList.contains('show')`);
+  check('点领取后遮罩隐藏', benefitHidden === true);
   const loginShown = await evalIn('study', `document.getElementById('loginMask').classList.contains('show')`);
   check('登录弹窗浮现', loginShown === true);
 
