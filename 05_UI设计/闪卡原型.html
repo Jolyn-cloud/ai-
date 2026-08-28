@@ -2488,23 +2488,8 @@
 </head>
 <body>
 
-  <div class="main">
-    <div class="phone-col">
-      <div class="phone">
-        <div class="phone-notch"><span class="speaker"></span><span class="cam"></span></div>
-        <div class="phone-screen">
-          <!-- 手机状态栏（时间/信号/电量）+ 小程序退出按钮 -->
-          <div class="phone-statusbar">
-            <span class="status-time" id="statusTime">--:--</span>
-            <span class="status-icons">
-              <svg class="signal" viewBox="0 0 16 12" fill="currentColor"><path d="M0 9v3h4V9H0zM6 6v6h4V6H6zM12 3v9h4V3h-4z"/></svg>
-              <svg class="wifi" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4.5a9.5 9.5 0 0 1 12 0M4.5 7.2a6 6 0 0 1 7 0M7 9.8a2.5 2.5 0 0 1 2 0"/></svg>
-              <svg class="battery" viewBox="0 0 25 12" fill="currentColor"><rect x="0.5" y="0.5" width="21" height="11" rx="3"/><rect x="1.8" y="1.8" width="15" height="8.4" rx="1.6" fill="rgba(0,0,0,0.35)"/></svg>
-            </span>
-          </div>
-          <!-- 小程序退出胶囊：状态栏下方右侧（模拟微信右上角胶囊） -->
-          <button class="mini-exit" id="miniExit" title="退出小程序">✕</button>
-          <div class="views" id="views">
+  <!-- 手机壳交给总壳外层，本页只保留内容（.views 铺满 iframe） -->
+  <div class="views" id="views">
 
         <div class="view active" id="view-home">
 <div class="page">
@@ -3184,32 +3169,11 @@
     <button class="comp-btn comp-btn-primary" onclick="nav('view-single')">再背一轮</button>
   </div>
 
+  </div>
 </div>
         </div>
 
-          </div>
-          <!-- 退出小程序轻提示 -->
-          <div class="phone-exit-tip" id="exitTip">已退出演示环境</div>
-        </div>
-      </div>
-    </div>
-
-    <aside class="logic-col" id="logicCol">
-      <div class="logic-panel">
-        <div class="logic-head">
-          <div class="title">📋 逻辑说明</div>
-          <button class="close-x" id="logicClose" title="收起">×</button>
-        </div>
-        <div class="view-switch" id="viewSwitch"></div>
-        <div class="logic-global" id="logicGlobal">
-          <span class="g-tab g-ok">已记住 · 右滑</span>
-          <span class="g-tab g-no">未记住 · 左滑</span>
-          <span class="g-tab g-stub">顽固 · 未记住≥3，每日必现</span>
-        </div>
-        <div class="logic-body" id="logicBody"></div>
-      </div>
-    </aside>
-  </div>
+  <!-- 逻辑说明面板已上移至总壳右侧，本页（去壳后）只保留 .views 内容 -->
 
   <script src="闪卡题库.js"></script>
 <script>
@@ -3375,270 +3339,19 @@ function nav(viewId, filter) {
   var enterFn = window['__' + enterName.replace('view-', '') + '_enter'];
   if (typeof enterFn === 'function') enterFn(FILTER);
   syncVersionUI();
-  renderLogicPanel(currentLogicData());
+  /* 视图已切换 → 通知总壳右侧逻辑面板跟随（面板上移至总壳） */
+  try {
+    window.parent.postMessage({ type: 'NAV', view: viewId }, '*');
+  } catch(e) {}
 }
 
 /* 视图模块引用（由模块脚本自行登记） */
 var VIEW_GLOB = {};
 function regView(dir, glob) { VIEW_GLOB[dir] = glob; }
 
-/* ---------- 逻辑面板顶部视图胶囊 ---------- */
-var viewSwitch = document.getElementById('viewSwitch');
-function buildTabs() {
-  VIEWS.forEach(function(v) {
-    var b = document.createElement('button');
-    b.className = 'view-chip';
-    b.textContent = v.title;
-    b.setAttribute('data-view', v.id);
-    b.addEventListener('click', function() { nav(v.id); });
-    viewSwitch.appendChild(b);
-  });
-}
-
 /* ---------- 版本 UI ---------- */
 function syncVersionUI() {}
 
-/* ---------- 逻辑面板 ---------- */
-var logicCol = document.getElementById('logicCol');
-var logicBody = document.getElementById('logicBody');
-function openLogic() { logicCol.classList.add('open'); }
-function closeLogic() { logicCol.classList.remove('open'); }
-function toggleLogic() { if (logicCol.classList.contains('open')) closeLogic(); else openLogic(); }
-document.getElementById('logicClose').addEventListener('click', closeLogic);
-
-function currentLogicData() {
-  /* 单卡视图：完整逻辑说明（草稿 §0-§8）；其余视图：职责 + 联动精简版 */
-  var PANELS = {
-    'view-home': {
-      desc: '首页：考试倒计时 + 章节树 + 学习入口。仅已初始化用户进入（游客引导完成初始化后才可用），考试倒计时为全局统一口径。',
-      sections: [
-        { num:'1', title:'考试倒计时（Hero 顶部）',
-          paras: [
-            '锚点：距离最近一届统招专升本考试还有 N 天，N = 当年统考日 − 今日（自然日差）。',
-            '考试日期从山东招考院当年公布时间爬取/人工维护，每年更新 1 次，不写入用户画像。'
-          ],
-          labels: [
-            {k:'判断阈值', v:'考试日 ≤ 今日 → 视为过期/待更新'},
-            {k:'异常空态', v:'未爬取到或已过期 → 显示「考试日待更新」，不显示负数'}
-          ] },
-        { num:'2', title:'全部章节（掌握率一览）',
-          paras: [
-            '10 个一级章节，章节树按页面上下顺序排列；以章卡为一级，逐级展开二级 / 三级（子考点）、四级（知识点）。',
-            '一级至三级右侧展示「已记住 / 卡片数」+ 掌握率百分比；四级展示该知识点答题情况（已记住 ✓ / 未记住 × / 顽固）。',
-            '一级章节按掌握率升序（弱章节排最前），便于优先夯实薄弱；点击四级知识点直接进入单卡模式该考点过滤队列，刷该知识的全部题目。'
-          ] },
-        { num:'3', title:'背诵计划卡（Hero 下方）',
-          paras: [
-            '每日 N 张 = 用户设置值（卡池不足自动收缩）；连续 N 天 = 连续学习天数；总进度 = 已记/总量百分比，由章节实时汇总。'
-          ] },
-        { num:'4', title:'学习入口',
-          paras: [
-            '按钮文案：今日已开始学习（当日队列有已答卡）→「继续背诵」；今日未刷 →「开始学习」。',
-            '「继续背诵」进入单卡模式后，从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
-            '右上角设置入口 → 每日数量弹窗，保存落库 flashCardConfig_v1；今日未开始学习 → 立即生效，今日已开始 → 次日生效。'
-          ] }
-      ]
-    },
-    'view-single': {
-      desc: '单卡模式 v3.0：翻卡记忆 + 左右滑动标记「已记住/未记住」的学习模块；两种入口（今日队列 / 考点全题）都能进，卡片状态标签见全局通栏。',
-      sections: [
-        { num:'1', title:'进入单卡模式（入口与队列）',
-          paras: [
-            '首页「开始学习」/「继续背诵」进入：刷今日队列（每日 N 张）；「继续背诵」从今天下一张还没标记的卡接着刷。',
-            '首页章节树的考点进入：刷该考点全部题目（不受每日 N 张限制），刷完即完成该考点；两种入口的标记共用同一份今日进度。'
-          ] },
-        { num:'2', title:'翻卡与滑动（区块②③ 卡片交互）',
-          paras: [
-            '正面：clozeHtml(question) 填空题干（____ 渲染为视觉空位）。',
-            '背面：clozeHtml(question, answer) 空位填答案高亮 + 答案 + 解析。',
-            '轻触卡片 → flipCard() 翻转（正↔背）。翻转不计入答题、不改任何状态。'
-          ],
-          tableHead:['卡片动作','行为','标记？'],
-          table: [
-            ['轻触卡片','左右翻转（正↔背）','否，不改任何状态'],
-            ['背面拖拽','右滑=已记住 / 左滑=未记住','是'],
-            ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
-            ['边界回弹','无上一张/下一张 → 位移×0.25 回弹 + 摇晃提示','—'],
-            ['翻卡动画中','忽略一切交互（飞出/飞入 400ms）','—']
-          ],
-          tableHead2:['滑动判定','阈值口径','提交方式'],
-          table2: [
-            ['背面拖动','|dx|≥170（卡片区约50%，拖到侧边）','立即判定，无需松手'],
-            ['背面拖动','|dx|≥80','松手判定'],
-            ['背面拖动','|dx|<80','回弹归位，不标记'],
-            ['正面拖拽','左滑 dx<-80 / 右滑 dx>80','松手判定，不标记（左滑=上一张/右滑=下一张）'],
-            ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
-          ],
-          labels:[
-            {k:'强约束', v:'不翻卡不能滑动判定（防不看答案乱滑）'},
-            {k:'判定提交', v:'右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」（右绿）→「未记住」（左红）反馈标签，透明度随手指位移渐显：opacity = min(|dx|/80, 1) × 0.9，拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'},
-            {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删掉当天重刷的重复卡/未记住次数减回一次）→ markCard（未记住：未记住次数+1 + 队尾补同一张卡等会再刷一次）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
-          ] },
-        { num:'3', title:'上一张 / 下一张（区块④ 导航）',
-          paras: [
-            '上一张：返回「上一道题」的原卡——同一题若因为答未记住而补了重复卡，直接跳过，回到那张唯一的原卡；无论该卡是否已答都显示；标记不可逆，不触发重答。',
-            '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
-            '进度不因跳过改变（marked 未写）。',
-            '导航只发生在正面拖拽或底部按钮；边界（无上一张原卡 / 无下一张待答）回弹 + shakeWarn。'
-          ],
-          labels:[
-            {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
-          ] },
-        { num:'4', title:'进入/退出与会话',
-          paras: [
-            '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
-            '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
-            '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
-          ] }
-      ]
-    },
-    'view-complete': {
-      desc: '完成结算页 v1.0：单卡/列表刷完当日或考点后进入的学习成果页。多入口共用同一份统计口径。',
-      sections: [
-        { num:'1', title:'触发条件',
-          paras: [
-            'commitCard 标记后，stats.done ≥ stats.total 即进入（当日=配额全刷完；考点过滤=该考点范围内全刷完；未记住补的重复卡不再继续出现）。',
-            '单卡/列表刷完都会进入本页，共享同一统计口径；「再背一轮」可重新开始当日学习。'
-          ] },
-        { num:'2', title:'内容元素与口径',
-          tableHead:['元素','口径'],
-          table: [
-            ['Hero 文案','accuracy≥80「不错哦🎉」；≥60「继续加油💪」；否则「再加把劲📚」'],
-            ['环形图','圆心 accuracy=round(remembered/done×100)'],
-            ['薄弱 TOP5','getWeakPoints(state,5)：forgot 降序→同次 total 降序；无则「全部掌握🎉」'],
-            ['章节分布','按 chapter 聚合绿条=已记住 / 红条=未记住（顽固卡含在未记住内），单章 ok%=已记住/总数'],
-            ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次：本次成果 vs 上次成果（最近一条历史）'],
-            ['底部按钮','只留「再背一轮」：重新计入成绩，刷新所有章节分布']
-          ] },
-        { num:'3', title:'历史与再背',
-          paras: [
-            '成绩记历史：每完成一轮记一条（flashCardHistory_v1，保留最近 30 条，新纪录放最前）；同一天背 3 轮就是 3 条历史，完成页「较上次」= 和最近一条比。',
-            '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重新计时。'
-          ] }
-      ]
-    },
-    'view-list': {
-      desc: '列表模式：全部卡片铺开浏览 / 标记的刷题页。学生可操作。',
-      sections: [
-        { num:'1', title:'职责与队列',
-          paras: [
-            '与单卡模式共用同一份当日队列、过滤参数与 marked 进度（同一份数据，切换模式进度不丢）。',
-            '列表按「未答在上、已答置灰折叠在下」排布；无卡片时展示空态「暂无卡片 · 请返回首页重新开始背诵」。'
-          ] },
-        { num:'2', title:'标记操作',
-          paras: [
-            '点击题干行内遮罩 → 原位揭示答案 + 同步展开解析 + 启用该卡「已记住/未记住」按钮；未揭答前按钮禁用，防不看答案乱标。'
-          ],
-          tableHead:['动作','行为','标记？'],
-          table: [
-            ['点击行内遮罩','原位替换为答案，并展开该卡解析','否，仅揭示'],
-            ['点「已记住」','卡片折叠置灰到已答区','是，写入同一份 marked'],
-            ['点「未记住」','卡片折叠置灰 + 队尾补同一张副本（「今日重现」角标，当天会再刷一遍）','是'],
-            ['已答卡点击','只展开解析查看，不可重复标记','否']
-          ],
-          labels:[
-            {k:'顽固卡', v:'未记住 ≥3 次的卡：卡片右上角 ⚡ 角标 + 边框强化，底部统计条单独计数（不包含在「未记住」总数内）'}
-          ] },
-        { num:'3', title:'完成结算',
-          paras: [
-            '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。'
-          ] }
-      ]
-    },
-    'view-stats': {
-      desc: '章节统计：首页章节树的掌握度视图（四层章节树）。无需独立页面，展示在首页。',
-      sections: [
-        { num:'1', title:'章节树结构（首页）',
-          paras: [
-            '首页章节卡片即章节统计载体：一级章节 → 二级（子章节）→ 三级（考点）→ 四级（知识点），点击层层展开，章节卡片默认收起。',
-            '10 个一级章节按掌握率升序排列（最薄弱在前）；「背诵计划卡」「总进度」由各章节实时汇总，与章节树口径一致。'
-          ] },
-        { num:'2', title:'层级数字口径',
-          tableHead:['层级','展示'],
-          table: [
-            ['一级章节','掌握率（已记住 ÷ 卡片数）+ 已记住/卡片数 + 顽固卡数'],
-            ['二级（子章节）','已记住 / 卡片数 + 掌握率%'],
-            ['三级（考点）','已记住 / 卡片数 + 掌握率%'],
-            ['四级（知识点）','✓已记住  ×未记住  顽固 计数'],
-            ['来源','CHAPTERS 演示数据；固执卡按 CARDS 题库 forgotCount≥3 实时统计'],
-            ['排序','章节/子章节均按 progress（已答比例）升序，最薄弱排最前']
-          ] },
-        { num:'3', title:'联动',
-          paras: [
-            '点击三级（考点）/四级（知识点）标题 → 进入单卡模式对应考点过滤队列刷题（goLevel4 传 chapter/sub/point）。',
-            '当前视图为首页，顶部按钮仍可切换单卡/列表等模式，数据共享同一份今日进度。'
-          ] }
-      ]
-    },
-    'view-settings': {
-      desc: '每日学习卡片设置：首页右上角设置入口 → 弹窗。学生可操作。',
-      sections: [
-        { num:'1', title:'职责',
-          paras: [
-            '每日学习卡片数量：滑杆 10-500、步进 10；快捷值 30/50/100/200/350 点击即选。',
-            '该数量是生成今日队列的数量基准；超过题库总量时自动收缩为实际可用卡数，顽固卡自动优先入队。'
-          ] },
-        { num:'2', title:'数据落库与生效',
-          labels:[
-            {k:'保存', v:'saveConfig → flashCardConfig_v1，仅更新每日数量（保留现有章节权重）'},
-            {k:'立即生效', v:'今天还没开始刷（无已答记录）→ 保存后立即生效'},
-            {k:'次日生效', v:'今天已开始背诵 → 新数量明日生效'},
-            {k:'去向', v:'保存后弹窗自动关闭，回到首页'}
-          ] },
-        { num:'3', title:'每日卡片构成（规则自动算，无用户可配比例）',
-          paras: [
-            '每日队列 = 复习卡 + 新卡。卡片类型（复习/新卡）比例由规则自动决定，不存在用户可配置的卡片类型比例。',
-            '复习卡 = 未记住卡（累计 forgotCount≥1，含顽固 ≥3），必现优先入队；复习卡占满配额 → 新卡为 0，警示「明日无新卡，新卡顺延到后天」。',
-            '每章新卡数 = max(0, 每日数量 × 该章比例 − 该章复习卡数)；实际每日数量 = min(配置 dailyCount, 卡池可用卡数)。',
-            '时间口径区分：今日队列的复习卡不含「已记住到期」；明日组成预估 = 今日已记住(+1天到期) + 未记住 + 顽固（分时态，已记住到期只计入明日预估）。'
-          ] },
-        { num:'4', title:'章节题型配置比例（weights）',
-          paras: [
-            'weights = { 章节名: 百分比 }，覆盖 10 个一级章节；合计恒 100%，调高某章 → 其余章节等比压缩。',
-            '每章今日张数 = 每日数量 × 该章比例；某章折算张数超过该章卡池时自动收缩到卡池上限；收缩后的缺口：该章有可用卡 → 先用该章可用卡补足，该章无可用卡 → 再由其余章节补齐。',
-            '缺省 / 未配置章节 → 各章均分；队列生成优先级：复习卡（未记住 + 顽固）必现 → 每章扣减该章复习卡后余量抽新卡 → 卡量不足兜底补齐。',
-            '口径示例：每日 100 张、章节1 比例 9% → 该章应得 9 张；该章复习卡 8 张 → 新卡 1 张（即 1%）。'
-          ] }
-      ]
-    }
-  };
-  /* 弹窗/浮层打开时 → 逻辑说明自动切到对应面板，关闭时恢复原视图说明：
-     - 完成页浮层 `.completion.show` → 完成结算页
-     - 首页设置弹窗 `#settingsSheet.show` → 背诵设置
-     优先级：完成页浮层 > 设置弹窗 */
-  var sheet = document.getElementById('settingsSheet');
-  var settingSheetOpen = !!(sheet && sheet.classList.contains('show'));
-  var shown = !!(document.querySelector('.view.active .completion.show'));
-  return PANELS[shown ? 'view-complete' : (settingSheetOpen ? 'view-settings' : CURRENT)] || { desc: '当前视图：' + (VIEW_NAMES[CURRENT] || ''), sections: [] };
-}
-function renderLogicPanel(data) {
-  logicBody.innerHTML = '';
-  var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc || ''; logicBody.appendChild(de);
-  (data.sections || []).forEach(function(sec) {
-    var card = document.createElement('div'); card.className = 'logic-sec';
-    var head = document.createElement('div'); head.className = 'logic-sec-head';
-    head.innerHTML = '<span class="num">' + sec.num + '</span><span class="sec-name">' + esc(sec.title) + '</span>';
-    card.appendChild(head);
-    var body = document.createElement('div'); body.className = 'logic-sec-body';
-    (sec.paras || []).forEach(function(t) { var p = document.createElement('div'); p.className = 'logic-para'; p.textContent = t; body.appendChild(p); });
-    (sec.labels || []).forEach(function(lb) { var d = document.createElement('div'); d.className = 'logic-label'; d.innerHTML = '<span class="k">' + esc(lb.k) + '</span><span class="v">' + esc(lb.v) + '</span>'; body.appendChild(d); });
-    if (sec.table && sec.table.length) {
-      var t = document.createElement('table'); t.className = 'logic-table';
-      var hr = '<tr>' + (sec.tableHead || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
-      var br = sec.table.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
-      t.innerHTML = hr + br; body.appendChild(t);
-    }
-    if (sec.table2 && sec.table2.length) {
-      var t2 = document.createElement('table'); t2.className = 'logic-table';
-      var hr2 = '<tr>' + (sec.tableHead2 || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
-      var br2 = sec.table2.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
-      t2.innerHTML = hr2 + br2; body.appendChild(t2);
-    }
-    card.appendChild(body);
-    logicBody.appendChild(card);
-  });
-}
-function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 
 /* ---------- 视图感知统一导航（单卡/列表完成页等全局 onclick 调用） ---------- */
@@ -3660,10 +3373,8 @@ var READY = false;
 function initPrototype() {
   if (READY) return;
   READY = true;
-  buildTabs();
   initStatusbar();
   nav('view-home');
-  openLogic();
 }
 
 </script>
@@ -3944,13 +3655,15 @@ function toggleSettingsPop(e){
   syncPopUI();
   getById('settingsMask').classList.add('show');
   sheet.classList.add('show');
-  renderLogicPanel(currentLogicData());  /* 弹窗打开 → 逻辑说明切到「背诵设置」 */
+  /* 设置弹窗打开 → 通知总壳逻辑面板切到「背诵设置」 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'settings', open: true }, '*'); } catch(e) {}
 }
 
 function closeSettingsPop(){
   getById('settingsSheet').classList.remove('show');
   getById('settingsMask').classList.remove('show');
-  renderLogicPanel(currentLogicData());  /* 关闭弹窗 → 逻辑说明切回原视图 */
+  /* 关闭设置弹窗 → 通知总壳逻辑面板切回原视图 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'settings', open: false }, '*'); } catch(e) {}
 }
 
 function syncPopUI(){
@@ -4237,7 +3950,8 @@ function init() {
   currentCard = findNextPending();
 
   getById('completionScreen').classList.remove('show');
-  renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
+  /* 关闭完成页 → 通知总壳逻辑面板切回原视图 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: false }, '*'); } catch(e) {}
   renderCard();
   updateProgress();
   updateBottomStats();
@@ -4768,7 +4482,8 @@ function goPrev() {
     isFlipped = false;
     currentCard = prev;
     getById('completionScreen').classList.remove('show');
-    renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
+    /* 关闭完成页 → 通知总壳逻辑面板切回原视图 */
+    try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: false }, '*'); } catch(e) {}
     renderCard(prev);
     updateProgress();
     updateBottomStats();
@@ -4958,7 +4673,8 @@ function showCompletion() {
   clearSessionStart();
 
   getById('completionScreen').classList.add('show');
-  renderLogicPanel(currentLogicData());  /* 逻辑说明自动切到「完成结算页」 */
+  /* 完成页显示 → 通知总壳逻辑面板切到「完成结算页」 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: true }, '*'); } catch(e) {}
 }
 
 /* 获取当前过滤范围文本 */
@@ -5496,7 +5212,8 @@ function showCompletion() {
   clearSessionStart();
 
   getById('completionScreen').classList.add('show');
-  renderLogicPanel(currentLogicData());  /* 逻辑说明自动切到「完成结算页」 */
+  /* 完成页显示 → 通知总壳逻辑面板切到「完成结算页」 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: true }, '*'); } catch(e) {}
 }
 
 /* 获取当前过滤范围文本 */
@@ -5551,7 +5268,8 @@ function restart() {
   baseState = newState();                        // 生成全新当天状态（跨天 forgotCount 保留）
   saveState(baseState);
   getById('completionScreen').classList.remove('show');
-  renderLogicPanel(currentLogicData());  /* 关闭完成页 → 逻辑说明切回原视图 */
+  /* 关闭完成页 → 通知总壳逻辑面板切回原视图 */
+  try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: false }, '*'); } catch(e) {}
   renderList();
 }
 
