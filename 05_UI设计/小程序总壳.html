@@ -161,7 +161,7 @@ body {
 .splash-layer.hide { opacity: 0; pointer-events: none; }
 .splash-layer img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 
-/* ============ 专属福利弹层（首次切功能 tab 触发；领取→登录→VIP到账） ============
+/* ============ 专属福利弹层（切功能 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ============
    视觉：紫偏绿主题 · 不规则福利卡片 · 白鹭SVG占位 · 可交互纯HTML弹窗 */
 .vip-modal {
   position: absolute; inset: 0;
@@ -572,7 +572,7 @@ body {
           <iframe id="frame-vip" src="VIP领取页.html"></iframe>
         </div>
 
-        <!-- 专属福利弹层（首次切功能 tab 触发；领取 → 登录弹窗接管 → VIP 到账） -->
+        <!-- 专属福利弹层（切功能 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
         <div class="vip-modal" id="benefitMask">
           <div class="vip-card" id="benefitCard">
             <!-- 白鹭占位（SVG，后续可替换正式素材） -->
@@ -816,7 +816,7 @@ function updateAppbar(name) {
 }
 function switchTab(name) {
   updateAppbar(name);
-  /* 首次切到功能 tab（非学习）→ 弹免费权益（openBenefit 内部判重：已领取/关过/会话弹过不弹；登录与否都弹，规则①） */
+  /* 切到功能 tab（非学习）→ 触发 openBenefit（判据=未领取+会话展示/关闭过不弹，非“首次进入”；登录与否都弹，规则①） */
   if (name !== 'study') openBenefit();
   TAB_FRAMES.forEach(function(f) {
     var iframe = document.getElementById('frame-' + f);
@@ -861,7 +861,7 @@ function closeVip() {
   vipLayer.classList.remove('show');
 }
 
-/* ---------- 免费权益弹层（首次切功能 tab 触发；领取→登录→VIP到账） ---------- */
+/* ---------- 免费权益弹层（切功能 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ---------- */
 var benefitMask  = document.getElementById('benefitMask');
 var benefitCard  = document.getElementById('benefitCard');
 var benefitClosed = false;   /* 本次会话已关过（点X / 点图外）→ 不再弹 */
