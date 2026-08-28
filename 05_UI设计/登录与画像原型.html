@@ -1023,13 +1023,15 @@ function takeVip() {
 /* 流程：闪屏 → 2.5s → 首页
    在总壳 iframe 内（embedded）→ 跳过自身闪屏，直接进首页（闪屏由总壳统一控制） */
 var EMBEDDED = (function() {
-  try {
-    if (window.parent === window.self) return false;
-    /* pathname 是 URL 编码的（%E5%B0%8F...），需 decode 后才能匹配中文文件名 */
-    var p;
-    try { p = decodeURIComponent(window.parent.location.pathname); } catch(e2) { p = window.parent.location.pathname; }
-    return /小程序总壳\.html$/.test(p);
-  } catch(e) { return false; }
+  if (window.parent === window.self) return false;
+  var p;
+  try { p = decodeURIComponent(window.parent.location.pathname); } catch(e) { p = null; }
+  if (!p) {
+    /* 跨源 frame（file:// 下 iframe 与父页视为不同源）读不到 parent.location：
+       只要身处 iframe，即按嵌入总壳处理 —— postMessage 跨源可用，通信不受影响 */
+    return true;
+  }
+  return /小程序总壳\.html$/.test(p);
 })();
 if (EMBEDDED) {
   showView('view-home');
