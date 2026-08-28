@@ -271,16 +271,95 @@ body {
 }
 .vip-modal.leave { opacity: 0; transition: opacity .2s ease; }
 
-/* ============ VIP 弹层（覆盖内容区） ============ */
-.vip-layer {
+/* ============ 登录 Bottom Sheet（底部上浮，领取专属权益后触发） ============ */
+.vip-login-modal {
   position: absolute; inset: 0;
-  z-index: 3000;
-  background: #fff;
-  display: flex; flex-direction: column;
-  opacity: 0; pointer-events: none;
-  transition: opacity .22s ease;
+  z-index: 3600;               /* 高于 VIP 福利弹窗 */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
 }
-.vip-layer.show { opacity: 1; pointer-events: auto; }
+.vip-login-modal.show { opacity: 1; visibility: visible; }
+
+.vip-login-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.vip-login-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角 */
+  padding: 26px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.vip-login-modal.show .vip-login-sheet { transform: translateY(0); }
+
+.vip-login-close {
+  position: absolute; right: 14px; top: 12px;
+  width: 40px; height: 40px;             /* 热区满足 40px */
+  border: none; background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #9A9EAE; border-radius: 50%;
+}
+.vip-login-close:hover { color: #6E778B; background: #F0F1F7; }
+.vip-login-close svg { width: 16px; height: 16px; stroke-width: 2.2; }
+
+.vip-login-logo {
+  width: 44px; height: 44px;
+  margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px 12px 15px 11px;
+  background: linear-gradient(135deg, #5B72F5, #3FA98B);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(91,114,245,0.28);
+}
+.vip-login-logo svg { width: 26px; height: 26px; }
+
+.vip-login-title {
+  font-size: 21px; font-weight: 700; color: #25283A;
+  text-align: center; margin-bottom: 6px;
+}
+.vip-login-desc {
+  font-size: 13px; color: #8D92A6;
+  text-align: center; line-height: 1.6; margin-bottom: 22px;
+}
+
+.vip-login-button {
+  width: 100%; height: 48px;
+  border: none; border-radius: 15px;
+  background: linear-gradient(100deg, #7169ED 0%, #62CFA9 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  box-shadow: 0 10px 22px rgba(113,105,237,0.28);
+}
+.vip-login-button:active { transform: scale(.98); filter: brightness(.97); box-shadow: 0 5px 12px rgba(113,105,237,.24); }
+.vip-login-button svg { width: 20px; height: 20px; }
+
+.vip-login-privacy {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 12px; color: #9A9EAE;
+  margin-top: 16px; cursor: pointer;
+}
+.vip-login-privacy input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #5B72F5; cursor: pointer;
+  margin: 0;
+}
+.vip-login-privacy-text { color: #9A9EAE; }
+.vip-login-privacy-text a { color: #5B72F5; text-decoration: none; font-weight: 600; }
+
+.vip-login-tip {
+  min-height: 18px;
+  font-size: 12px; color: #E5573F;
+  text-align: center; margin-top: 8px;
+  opacity: 0; transition: opacity .2s ease;;
+}
+.vip-login-tip.show { opacity: 1; }
 .vip-mini-top {
   height: 50px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -473,6 +552,33 @@ body {
             <button class="vip-cta" id="benefitCta">领取专属权益</button>
           </div>
         </div>
+
+        <!-- 登录 Bottom Sheet（领取专属权益后底部上浮） -->
+        <div class="vip-login-modal" id="loginSheet">
+          <div class="vip-login-overlay" id="loginOverlay"></div>
+          <div class="vip-login-sheet">
+            <button class="vip-login-close" id="loginClose" title="关闭" aria-label="关闭">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <div class="vip-login-logo">
+              <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22 C5 16 10 11 16 8 C19 6 22 5 23 4 C21 9 18 13 13 17 C9 20 6 21 4 22 Z"/>
+                <path d="M4 22 C7 17 11 14 16 12"/>
+              </svg>
+            </div>
+            <h3 class="vip-login-title">登录鹭数教育</h3>
+            <p class="vip-login-desc">登录后即可领取新用户专属 VIP 学习权益</p>
+            <button class="vip-login-button" id="loginButton">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v5c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3z"/></svg>
+              微信一键登录
+            </button>
+            <div class="vip-login-tip" id="loginTip">请先同意用户协议和隐私政策</div>
+            <label class="vip-login-privacy">
+              <input type="checkbox" id="loginAgree" />
+              <span class="vip-login-privacy-text">我已阅读并同意<span><a href="javascript:void(0)">《用户协议》</a>和<a href="javascript:void(0)">《隐私政策》</a></span></span>
+            </label>
+          </div>
+        </div>
       </div>
       <nav class="tabbar">
         <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
@@ -651,20 +757,16 @@ function openBenefit() {
 function hideBenefit() {
   benefitMask.classList.remove('show');
 }
-/* 点领取权益：卡片缩小消失 → 切回学习 tab 让其可见 → 弹登录弹窗 */
+/* 点领取权益：VIP 卡片缩小消失 → 底部弹登录 Sheet（不切 tab、不走学习页登录） */
 function claimBenefit() {
-  benefitUsing = true;      /* 标记：本次登录来自权益图 → 登录成功后自动 VIP 到账 */
+  benefitUsing = true;      /* 标记：本次登录来自权益领取 → 登录成功自动 VIP 到账 */
   benefitCard.classList.add('leave');
   benefitMask.classList.add('leave');
-  var study = document.getElementById('frame-study');
   setTimeout(function() {
     benefitCard.classList.remove('leave');
     benefitMask.classList.remove('leave');
-    hideBenefit();
-    switchTab('study');                    /* 登录弹窗在学习页内，需先显示学习 tab */
-    if (study && study.contentWindow) {
-      study.contentWindow.postMessage({ type: 'REQ_LOGIN' }, '*');
-    }
+    hideBenefit();           /* VIP 福利弹窗隐藏 */
+    openLoginSheet();        /* 背景遮罩保持，底部上浮登录弹窗 */
   }, 230);
 }
 /* 事件绑定 */
@@ -679,6 +781,49 @@ benefitMask.addEventListener('click', function(e) {
   }
 });
 document.getElementById('benefitCta').addEventListener('click', claimBenefit);
+
+/* ---------- 登录 Bottom Sheet（领取专属权益后底部上浮） ---------- */
+var loginSheet   = document.getElementById('loginSheet');
+var loginClose   = document.getElementById('loginClose');
+var loginButton  = document.getElementById('loginButton');
+var loginAgree   = document.getElementById('loginAgree');
+var loginTip     = document.getElementById('loginTip');
+var loginOverlay = document.getElementById('loginOverlay');
+
+function openLoginSheet() {
+  loginTip.classList.remove('show');     /* 重置提示 */
+  loginSheet.classList.add('show');
+}
+function closeLoginSheet() {
+  loginSheet.classList.remove('show');
+}
+/* 点 ×：关闭登录弹窗，返回原页面，不登录不领 VIP */
+loginClose.addEventListener('click', function() {
+  closeLoginSheet();
+});
+/* 点遮罩：同样关闭（与 × 一致） */
+loginOverlay.addEventListener('click', function() {
+  closeLoginSheet();
+});
+/* 微信一键登录：先校验协议勾选 */
+loginButton.addEventListener('click', function() {
+  if (!loginAgree.checked) {
+    loginTip.classList.add('show');
+    return;
+  }
+  loginTip.classList.remove('show');
+  /* 模拟登录成功：来自权益领取 → 登录 + VIP 到账 */
+  STATE.logged = true;
+  STATE.profile = false;
+  STATE.user = { nick: '团团酱', grade: '大三', major: '计算机大类' };
+  if (benefitUsing) {
+    benefitUsing = false;
+    benefitClosed = true;       /* 本次会话不再弹权益 */
+    STATE.vipClaimed = true;
+  }
+  broadcast();
+  closeLoginSheet();
+});
 
 /* ---------- 闪屏 2.5s 后隐藏（嵌入小程序总壳时跳过，避免双闪屏） ---------- */
 var EMBEDDED = (function() {

@@ -118,7 +118,7 @@ try {
   const benefitShown = await evalJs(`document.getElementById('benefitMask').classList.contains('show')`);
   check('首次切功能tab弹免费权益', benefitShown === true);
 
-  // 点「领取专属权益」→ 卡片缩起(leave) + 遮罩隐藏 + 学习页弹登录
+  // 点「领取专属权益」→ 卡片缩起(leave) + 遮罩隐藏 + 登录 Bottom Sheet 上浮
   await evalJs(`document.getElementById('benefitCta').click(); 'ok'`);
   await sleep(120);   // 动画 230ms 内，leave 类尚未移除
   const benefitLeave = await evalJs(`(function(){
@@ -129,14 +129,24 @@ try {
   await sleep(300);
   const benefitHidden = await evalJs(`!document.getElementById('benefitMask').classList.contains('show')`);
   check('点领取后遮罩隐藏', benefitHidden === true);
-  const loginShown = await evalIn('study', `document.getElementById('loginMask').classList.contains('show')`);
-  check('登录弹窗浮现', loginShown === true);
+  const loginSheetShown = await evalJs(`document.getElementById('loginSheet').classList.contains('show')`);
+  check('登录Sheet底部弹出', loginSheetShown === true);
 
-  // 学习页微信登录 → 总壳 VIP 到账
-  await evalIn('study', `doLogin(); 'ok'`);
-  await sleep(500);
+  // 未勾选协议 → 提示 + 不登录
+  await evalJs(`loginAgree.checked=false; loginButton.click(); 'ok'`);
+  await sleep(200);
+  const tipShown = await evalJs(`document.getElementById('loginTip').classList.contains('show')`);
+  const notLogged = await evalJs(`STATE.logged === false`);
+  check('未勾选协议显示提示', tipShown === true);
+  check('未勾选协议不登录', notLogged === true);
+
+  // 勾选协议 → 微信一键登录 → VIP 到账 + Sheet 关闭
+  await evalJs(`loginAgree.checked=true; loginButton.click(); 'ok'`);
+  await sleep(400);
   const vipArrived = await evalJs(`STATE.vipClaimed === true`);
   check('登录后VIP直接到账', vipArrived === true);
+  const sheetClosed = await evalJs(`!document.getElementById('loginSheet').classList.contains('show')`);
+  check('登录后Sheet关闭', sheetClosed === true);
   const benefitClosed = await evalJs(`benefitClosed === true`);
   check('权益不再弹', benefitClosed === true);
 
