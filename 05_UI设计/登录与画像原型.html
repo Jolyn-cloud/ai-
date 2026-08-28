@@ -378,7 +378,7 @@ body {
             <div class="view active" id="view-splash">
               <div class="page splash">
                 <div class="splash-brand">
-                  <img src="闪屏.png" alt="升本智答品牌" />
+                  <img src="../ui切图/闪屏.png" alt="升本智答品牌" />
                 </div>
               </div>
             </div>
@@ -521,13 +521,7 @@ var VIP_CLAIMED = false;     /* 已领取 */
 var VIP_PENDING = null;      /* 暂不领取后要继续的动作 */
 
 function openProfile() {
-  /* 第一次点「补全资料」→ 先弹 VIP 福利；已弹/已领 → 走原登录/画像逻辑 */
-  if (!VIP_SHOWN && !VIP_CLAIMED) {
-    VIP_SHOWN = true;
-    VIP_PENDING = openProfile;
-    document.getElementById('vipMask').classList.add('show');
-    return;
-  }
+  /* 旧 VIP 福利弹窗已停用：VIP 领取统一由总壳「免费权益」层接管（归属唯一，避免双弹） */
   if (!LOGGED) { ensureLogin(openProfile); return; }
   document.getElementById('profileMask').classList.add('show');
 }
@@ -604,14 +598,7 @@ window.addEventListener('message', function(evt) {
   /* 其他 tab 转发过来的请求（我的页 → 总壳 → 本页） */
   if (d.type === 'REQ_LOGIN') { ensureLogin(); return; }
   if (d.type === 'OPEN_PROFILE') {
-    if (!VIP_SHOWN && !VIP_CLAIMED) {
-      /* 没领过 VIP → 先 VIP 福利弹窗（与 openProfile 一致） */
-      VIP_SHOWN = true;
-      VIP_PENDING = openProfile;
-      document.getElementById('vipMask').classList.add('show');
-    } else {
-      openProfile();
-    }
+    openProfile();
     return;
   }
 });

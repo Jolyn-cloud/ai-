@@ -137,6 +137,52 @@ body {
 .splash-layer.hide { opacity: 0; pointer-events: none; }
 .splash-layer img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 
+/* ============ 免费权益弹层（横图等比缩放居中 + 遮罩） ============ */
+.benefit-mask {
+  position: absolute; inset: 0;
+  z-index: 3500;
+  background: rgba(20, 25, 40, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s ease;
+}
+.benefit-mask.show { opacity: 1; pointer-events: auto; }
+.benefit-card {
+  position: relative;
+  width: 78%;
+  max-width: 320px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(10, 15, 35, 0.4);
+  transform: scale(0.9);
+  transition: transform .28s ease;
+  background: #fff;
+}
+.benefit-mask.show .benefit-card { transform: scale(1); }
+.benefit-card img { display: block; width: 100%; height: auto; }
+/* 领权热区：图偏下 1/3 正中间（约图中部 62%），透明可点，文字随图缩放 */
+.benefit-cta {
+  position: absolute; left: 0; right: 0;
+  top: 58%; bottom: 26%;
+  margin: 0 auto;
+  border: none; background: transparent; cursor: pointer;
+  color: transparent;
+}
+/* 关闭按钮 */
+.benefit-close {
+  position: absolute; right: 8px; top: 8px;
+  width: 26px; height: 26px;
+  border: none; border-radius: 50%;
+  background: rgba(12, 16, 30, 0.32); color: #fff;
+  font-size: 13px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+/* 缩小消失动画 */
+.benefit-card.leave { transform: scale(0.6); opacity: 0; transition: transform .22s cubic-bezier(.4,0,.7,1), opacity .22s ease; }
+
 /* ============ VIP 弹层（覆盖内容区） ============ */
 .vip-layer {
   position: absolute; inset: 0;
@@ -283,6 +329,15 @@ body {
           </div>
           <iframe id="frame-vip" src="VIP领取页.html"></iframe>
         </div>
+
+        <!-- 免费权益弹层（首次切功能 tab 触发；点「领取权益」→ 缩小消失 + 登录弹窗浮现） -->
+        <div class="benefit-mask" id="benefitMask">
+          <div class="benefit-card" id="benefitCard">
+            <button class="benefit-close" id="benefitClose" title="关闭">✕</button>
+            <img src="../ui切图/免费权益.png" alt="免费权益" />
+            <button class="benefit-cta" id="benefitCta">领取权益</button>
+          </div>
+        </div>
       </div>
       <nav class="tabbar">
         <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
@@ -370,6 +425,13 @@ window.addEventListener('message', function(evt) {
     STATE.logged = true;
     if (d.data && d.data.user) STATE.user = d.data.user;
     broadcast();
+    /* 从权益图点「领取权益」进入的登录 → 登录成功即 VIP 到账（本次会话不再弹权益） */
+    if (benefitUsing) {
+      benefitUsing = false;
+      benefitClosed = true;          /* 已经营过 → 不再弹 */
+      STATE.vipClaimed = true;
+      broadcast();
+    }
   } else if (d.type === 'PROFILE') {
     STATE.profile = true;
     if (d.data && d.data.user) STATE.user = Object.assign({}, STATE.user, d.data.user);
@@ -404,6 +466,8 @@ function syncChildState() {
 /* ---------- 底部 tab 切换 ---------- */
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 function switchTab(name) {
+  /* 首次切到功能 tab（非学习）→ 未登录时弹免费权益（openBenefit 内部判重） */
+  if (name !== 'study' && !STATE.logged) openBenefit();
   TAB_FRAMES.forEach(function(f) {
     var iframe = document.getElementById('frame-' + f);
     if (iframe) iframe.classList.toggle('hidden', f !== name);
@@ -437,6 +501,44 @@ function closeVip() {
 }
 document.getElementById('vipClose').addEventListener('click', closeVip);
 
+/* ---------- 免费权益弹层（首次切功能 tab 触发；领取→登录→VIP到账） ---------- */
+var benefitMask  = document.getElementById('benefitMask');
+var benefitCard  = document.getElementById('benefitCard');
+var benefitClosed = false;   /* 本次会话已关过（点X / 点图外）→ 不再弹 */
+var benefitUsing  = false;   /* 正在走「领取→登录」链路中 */
+var benefitShown  = false;   /* 本次会话已展示过（含领取中）→ 不再主动弹 */
+
+function openBenefit() {
+  if (STATE.logged || benefitClosed || benefitShown) return;
+  benefitShown = true;
+  benefitMask.classList.add('show');
+}
+function hideBenefit() {
+  benefitMask.classList.remove('show');
+}
+/* 点领取权益：图缩小消失 → 请求学习页弹登录弹窗 */
+function claimBenefit() {
+  benefitUsing = true;      /* 标记：本次登录来自权益图 → 登录成功后自动 VIP 到账 */
+  benefitCard.classList.add('leave');
+  setTimeout(hideBenefit, 230);          /* 缩小动画后遮罩隐藏 */
+  var study = document.getElementById('frame-study');
+  if (study && study.contentWindow) {
+    study.contentWindow.postMessage({ type: 'REQ_LOGIN' }, '*');
+  }
+}
+/* 事件绑定 */
+document.getElementById('benefitClose').addEventListener('click', function() {
+  benefitClosed = true;
+  hideBenefit();
+});
+benefitMask.addEventListener('click', function(e) {
+  if (e.target === benefitMask) {   /* 点图外遮罩 */
+    benefitClosed = true;
+    hideBenefit();
+  }
+});
+document.getElementById('benefitCta').addEventListener('click', claimBenefit);
+
 /* ---------- 闪屏 2.5s 后隐藏（嵌入小程序总壳时跳过，避免双闪屏） ---------- */
 var EMBEDDED = (function() {
   try {
@@ -447,7 +549,7 @@ var EMBEDDED = (function() {
 setTimeout(function() {
   var s = document.getElementById('splashLayer');
   if (s) s.classList.add('hide');
-}, EMBEDDED ? 0 : 2500);
+}, EMBEDDED ? 0 : 3000);
 
 /* 各 tab 懒加载完成后再广播一次（保证迟到 iframe 拿到状态） */
 window.addEventListener('load', function() { setTimeout(broadcast, 800); });

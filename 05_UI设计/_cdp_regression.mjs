@@ -112,34 +112,35 @@ try {
   let userName = await evalIn('mine', `document.getElementById('userName').textContent`);
   check('初始未登录', userName === '未登录', `得到: ${userName}`);
 
-  // 学习 tab 点补全资料 → 触发 VIP 福利弹窗（第一次）
-  await evalJs(`document.querySelector('.tab-item[data-frame="study"]').click()`);
-  await evalIn('study', `openProfile(); 'ok'`);
-  await sleep(200);
-  let vipMaskShown = await evalIn('study', `document.getElementById('vipMask').classList.contains('show')`);
-  check('第一次点功能弹 VIP 福利', vipMaskShown === true);
-
-  // 立即领取 → 总壳 VIP 层
-  await evalIn('study', `takeVip(); 'ok'`);
+  // 首次切到功能 tab（非学习）→ 弹免费权益层
+  await evalJs(`document.querySelector('.tab-item[data-frame="flash"]').click()`);
   await sleep(400);
-  let vipLayerShown = await evalJs(`document.getElementById('vipLayer').classList.contains('show')`);
-  check('VIP 领取层弹出', vipLayerShown === true);
+  const benefitShown = await evalJs(`document.getElementById('benefitMask').classList.contains('show')`);
+  check('首次切功能tab弹免费权益', benefitShown === true);
 
-  // VIP 页登录
-  await evalIn('vip', `(function(){ var box = document.getElementById('agreeBox'); if (!box.checked) box.click(); document.getElementById('loginBtn').click(); return 'ok'; })()`);
+  // 点「领取权益」→ 图缩小消失 + 遮罩隐藏 + 学习页弹登录
+  await evalJs(`document.getElementById('benefitCta').click(); 'ok'`);
+  await sleep(400);
+  const benefitHidden = await evalJs(`!document.getElementById('benefitMask').classList.contains('show')`);
+  const benefitLeave = await evalJs(`document.getElementById('benefitCard').classList.contains('leave')`);
+  check('点领取后遮罩隐藏', benefitHidden === true);
+  check('切换缩小动画', benefitLeave === true);
+  const loginShown = await evalIn('study', `document.getElementById('loginMask').classList.contains('show')`);
+  check('登录弹窗浮现', loginShown === true);
+
+  // 学习页微信登录 → 总壳 VIP 到账
+  await evalIn('study', `doLogin(); 'ok'`);
   await sleep(500);
-  let vipSuccess = await evalIn('vip', `!document.getElementById('boxSuccess').classList.contains('hidden')`);
-  check('VIP 页领取成功态', vipSuccess === true);
+  const vipArrived = await evalJs(`STATE.vipClaimed === true`);
+  check('登录后VIP直接到账', vipArrived === true);
+  const benefitClosed = await evalJs(`benefitClosed === true`);
+  check('权益不再弹', benefitClosed === true);
 
   // 总壳 STATE 更新
   await sleep(200);
   let shellState = await evalJs(`JSON.stringify({logged: STATE.logged, vipClaimed: STATE.vipClaimed})`);
   const st = JSON.parse(shellState);
   check('总壳 STATE 已更新(登录+VIP)', st.logged === true && st.vipClaimed === true, shellState);
-
-  // goExperience → 回学习 tab
-  await evalIn('vip', `document.querySelector('#boxSuccess .btn-primary').click(); 'ok'`);
-  await sleep(400);
 
   // 我的 tab：已登录 + VIP 副文案
   await evalJs(`document.querySelector('.tab-item[data-frame="mine"]').click()`);
