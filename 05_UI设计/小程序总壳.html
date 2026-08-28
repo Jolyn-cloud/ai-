@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>山东专升本小程序 · 总壳</title>
+<style>
+/* ============================================================
+   总壳样式：顶部品牌带 + iframe内容区 + 底部4tab
+   ============================================================ */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --text-primary: #202533;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background: #EDEFF7;
+  display: flex; flex-direction: column;
+}
+
+/* ============ 顶部品牌带 ============ */
+.topbar {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #ECEEF6;
+}
+.topbar .brand-logo {
+  width: 26px; height: 26px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 700;
+}
+.topbar .brand-name { font-size: 16px; font-weight: 700; letter-spacing: .3px; }
+.topbar .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+/* ============ iframe 内容区 ============ */
+.content-frame {
+  flex: 1; min-height: 0;
+  position: relative;
+  background: #EDEFF7;
+}
+.content-frame iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+.content-frame iframe.hidden { visibility: hidden; pointer-events: none; }
+
+/* ============ 底部 4 tab ============ */
+.tabbar {
+  height: 62px;
+  flex-shrink: 0;
+  display: flex;
+  background: #FFFFFF;
+  border-top: 1px solid #ECEEF6;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tab-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  border: none; background: none; cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  transition: color .15s ease;
+}
+.tab-item svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.tab-item.active { color: var(--primary-dark); font-weight: 600; }
+.tab-item.active svg { stroke-width: 2.2; }
+
+/* ============ 闪屏层（覆盖全屏） ============ */
+.splash-layer {
+  position: fixed; inset: 0;
+  z-index: 9999;
+  background: #F8F9FC;
+  display: flex; align-items: flex-end; justify-content: center;
+  transition: opacity .4s ease;
+}
+.splash-layer.hide { opacity: 0; pointer-events: none; }
+.splash-layer img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+  <!-- 顶部品牌带 -->
+  <div class="topbar">
+    <div class="brand-logo">升</div>
+    <div>
+      <div class="brand-name">升本智答</div>
+      <div class="brand-sub">山东统招专升本</div>
+    </div>
+  </div>
+
+  <!-- iframe 内容区：4个tab各一个iframe，切tab显隐 -->
+  <div class="content-frame">
+    <iframe id="frame-study"  src="登录与画像原型.html"></iframe>
+    <iframe id="frame-quiz"   src="题库.html" class="hidden"></iframe>
+    <iframe id="frame-flash"  src="闪卡原型.html" class="hidden"></iframe>
+    <iframe id="frame-mine"   src="我的.html" class="hidden"></iframe>
+  </div>
+
+  <!-- 底部 4 tab -->
+  <nav class="tabbar">
+    <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l10-9 10 9"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+      学习
+    </button>
+    <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      题库
+    </button>
+    <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
+      闪卡
+    </button>
+    <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+      我的
+    </button>
+  </nav>
+
+  <!-- 品牌闪屏层（2.5s后隐藏） -->
+  <div class="splash-layer" id="splashLayer">
+    <img src="闪屏.png" alt="升本智答" />
+  </div>
+
+<script>
+/* ---------- 底部 tab 切换 ---------- */
+var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
+function switchTab(name) {
+  TAB_FRAMES.forEach(function(f) {
+    var iframe = document.getElementById('frame-' + f);
+    if (iframe) iframe.classList.toggle('hidden', f !== name);
+    var tab = document.querySelector('.tab-item[data-frame="' + f + '"]');
+    if (tab) tab.classList.toggle('active', f === name);
+  });
+  /* 首次切入懒加载：切到才设 src，避免4个页面同载 */
+  var next = document.getElementById('frame-' + name);
+  if (!next.getAttribute('src')) next.setAttribute('src', PAGE_SRC[name]);
+}
+var PAGE_SRC = { /* src 已在 HTML 预置，占位 */ };
+
+/* ---------- 闪屏 2.5s 后隐藏 ---------- */
+setTimeout(function() {
+  var s = document.getElementById('splashLayer');
+  if (s) s.classList.add('hide');
+}, 2500);
+</script>
+</body>
+</html>
