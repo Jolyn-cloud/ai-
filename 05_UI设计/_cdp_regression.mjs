@@ -214,6 +214,51 @@ try {
   const flashComplete = await evalIn('flash', `document.querySelector('.view.active') ? document.querySelector('.view.active').id : 'none'`);
   check('面板点「完成结算页」→ 闪卡跳完成页', flashComplete === 'view-complete', `得到: ${flashComplete}`);
 
+  console.log('\n== 3. 固定顶栏 + 遮罩清除 + 退出复位 ==');
+
+  // 当前在闪卡 tab（自带顶部栏）→ 总壳 appbar 应收起，避免双条
+  const appbarHiddenFlash = await evalJs(`document.getElementById('appbar').classList.contains('hidden')`);
+  check('闪卡 tab 总壳顶栏收起(闪卡自带)', appbarHiddenFlash === true);
+
+  // 切到题库 → appbar 显示「题库」，且固定在状态栏之下（相对 phone-screen 偏离 34）
+  await evalJs(`document.querySelector('.tab-item[data-frame="quiz"]').click()`);
+  await sleep(400);
+  const appbarQuiz = await evalJs(`(function(){
+    var s = document.querySelector('.phone-screen').getBoundingClientRect();
+    var a = document.getElementById('appbar').getBoundingClientRect();
+    var c = document.querySelector('.content-frame').getBoundingClientRect();
+    return JSON.stringify({
+      hidden: document.getElementById('appbar').classList.contains('hidden'),
+      title: document.getElementById('appbarTitle').textContent,
+      appbarRel: Math.round(a.top - s.top),
+      contentRel: Math.round(c.top - s.top)
+    });
+  })()`);
+  const q3 = JSON.parse(appbarQuiz);
+  check('题库 tab 顶栏显示且标题=题库', q3.hidden === false && q3.title === '题库', appbarQuiz);
+  check('顶栏固定于状态栏下方(appbarRel=34)', q3.appbarRel === 34, appbarQuiz);
+  check('内容区从顶栏之下开始(contentRel=34)', q3.contentRel === 34, appbarQuiz);
+
+  // VIP 领取层默认隐藏且不可交互（不再遮罩内容）
+  const vl3 = await evalJs(`(function(){ var v=document.getElementById('vipLayer'); var cs=getComputedStyle(v); return JSON.stringify({ vis: cs.visibility, op: cs.opacity, pe: cs.pointerEvents }); })()`);
+  const vv3 = JSON.parse(vl3);
+  check('VIP领取层默认隐藏且不可交互', vv3.vis === 'hidden' && vv3.op === '0' && vv3.pe === 'none', vl3);
+
+  // 退出按钮：清登录态并回学习 tab
+  await evalJs(`document.getElementById('appbarExit').click()`);
+  await sleep(400);
+  const afterExit = await evalJs(`(function(){
+    var tab = document.querySelector('.tab-item.active');
+    return JSON.stringify({
+      logged: STATE.logged, vip: STATE.vipClaimed, profile: STATE.profile,
+      tab: tab ? tab.dataset.frame : '?',
+      title: document.getElementById('appbarTitle').textContent
+    });
+  })()`);
+  const ex3 = JSON.parse(afterExit);
+  check('退出后登录态复位(logged/vip/profile=false)', ex3.logged === false && ex3.vip === false && ex3.profile === false, afterExit);
+  check('退出后回学习 tab 且顶栏标题=学习', ex3.tab === 'study' && ex3.title === '学习', afterExit);
+
   console.log(`\n== 结果: ${FAILED === 0 ? '全部通过 ✅' : FAILED + ' 项失败 ❌'} ==`);
 } catch (e) {
   console.error('测试中断:', e.message);

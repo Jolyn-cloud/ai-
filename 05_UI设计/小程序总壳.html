@@ -76,6 +76,30 @@ body {
 .phone-statusbar .status-icons { display: flex; align-items: center; gap: 8px; }
 .phone-statusbar .status-icons svg { width: 16px; height: 12px; color: #1E2130; display: block; }
 .phone-statusbar .status-icons .wifi { transform: translateY(1px); }
+
+/* 小程序自带标题栏：状态栏下一行 · 固定不随内容滚动 · 显示当前 tab 标题 + 退出按钮 */
+.phone-appbar {
+  position: absolute; top: 34px; left: 0; right: 0;
+  height: 44px; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: #FFFFFF;
+}
+.phone-appbar .appbar-title {
+  font-size: 16px; font-weight: 600; color: #1E2130;
+  letter-spacing: 0.3px;
+}
+/* 退出按钮：清登录态回学习页 */
+.appbar-exit {
+  position: absolute; left: 14px;
+  display: flex; align-items: center; gap: 4px;
+  border: none; background: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: #6E778B;
+  padding: 6px 8px; border-radius: 8px;
+  transition: background .15s ease, color .15s ease;
+}
+.appbar-exit:hover { background: #F2F3F8; color: #1E2130; }
+.appbar-exit svg { width: 16px; height: 16px; }
+.phone-appbar.hidden { visibility: hidden; pointer-events: none; }
 /* 刘海 */
 .phone-notch {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -88,8 +112,8 @@ body {
 .phone-notch .speaker { width: 42px; height: 5px; border-radius: 3px; background: rgba(30,33,48,0.2); }
 .phone-notch .cam { width: 9px; height: 9px; border-radius: 50%; background: rgba(30,33,48,0.35); }
 
-/* 内容区：4 tab 各自 iframe，切 tab 显隐 */
-.content-frame { position: absolute; inset: 0; }
+/* 内容区：4 tab 各自 iframe，切 tab 显隐；顶部让出状态栏+标题栏 */
+.content-frame { position: absolute; top: 34px; left: 0; right: 0; bottom: 0; }
 .content-frame iframe {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -363,24 +387,16 @@ body {
   opacity: 0; transition: opacity .2s ease;;
 }
 .vip-login-tip.show { opacity: 1; }
-.vip-mini-top {
-  height: 50px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
-  background: #fff;
-  border-bottom: 1px solid #F0F1F7;
-  font-size: 15px; font-weight: 700;
+/* VIP 领取页全屏层：默认隐藏，仅「VIP 领取」触发时铺满手机屏幕 */
+.vip-layer {
+  position: absolute; inset: 0;
+  z-index: 3000;
+  background: #FFFFFF;
+  display: flex; flex-direction: column;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
 }
-.vip-close {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-  width: 28px; height: 28px;
-  border: none; border-radius: 8px;
-  background: #F2F3F8; color: #6E778B;
-  font-size: 14px; line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.vip-close:hover { background: #E8EAF3; }
+.vip-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
 .vip-layer iframe { flex: 1; min-height: 0; width: 100%; border: none; }
 
 /* ============ 右侧逻辑说明面板 ============ */
@@ -478,6 +494,14 @@ body {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="8" width="18" height="11" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h3"/><path d="M20 11h1"/></svg>
           </span>
         </div>
+        <!-- 小程序自带标题栏：当前 tab 标题 + 退出按钮（固定，不随内容滚动） -->
+        <div class="phone-appbar" id="appbar">
+          <button class="appbar-exit" id="appbarExit" aria-label="退出小程序">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            退出
+          </button>
+          <span class="appbar-title" id="appbarTitle">学习</span>
+        </div>
         <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
         <div class="content-frame">
           <iframe id="frame-study" src="登录与画像原型.html"></iframe>
@@ -493,10 +517,6 @@ body {
 
         <!-- VIP 弹层（领取VIP时覆盖内容区，绝对定位于手机屏幕内） -->
         <div class="vip-layer" id="vipLayer">
-          <div class="vip-mini-top">
-            <span>VIP 领取</span>
-            <button class="vip-close" id="vipClose" title="关闭">✕</button>
-          </div>
           <iframe id="frame-vip" src="VIP领取页.html"></iframe>
         </div>
 
@@ -710,8 +730,17 @@ function syncChildState() {
 }
 
 /* ---------- 底部 tab 切换 ---------- */
+var TAB_NAMES = { study: '学习', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
+function updateAppbar(name) {
+  var title = document.getElementById('appbarTitle');
+  if (title) title.textContent = (TAB_NAMES[name] || '');
+  var bar = document.getElementById('appbar');
+  /* 闪卡自带顶部标题栏（退出+进度+模式）→ 总壳标题栏收起，避免双条 */
+  if (bar) bar.classList.toggle('hidden', name === 'flash');
+}
 function switchTab(name) {
+  updateAppbar(name);
   /* 首次切到功能 tab（非学习）→ 未登录时弹免费权益（openBenefit 内部判重） */
   if (name !== 'study' && !STATE.logged) openBenefit();
   TAB_FRAMES.forEach(function(f) {
@@ -736,6 +765,18 @@ function switchTab(name) {
   }
 }
 
+/* ---------- 小程序退出按钮（顶栏）：清登录态回学习页，权益会话锁复位 ---------- */
+document.getElementById('appbarExit').addEventListener('click', function() {
+  STATE.logged = false;
+  STATE.profile = false;
+  STATE.user = null;
+  STATE.vipClaimed = false;
+  benefitShown = false;
+  benefitClosed = false;
+  broadcast();
+  switchTab('study');
+});
+
 /* ---------- VIP 弹层 ---------- */
 var vipLayer = document.getElementById('vipLayer');
 function openVip() {
@@ -745,7 +786,6 @@ function openVip() {
 function closeVip() {
   vipLayer.classList.remove('show');
 }
-document.getElementById('vipClose').addEventListener('click', closeVip);
 
 /* ---------- 免费权益弹层（首次切功能 tab 触发；领取→登录→VIP到账） ---------- */
 var benefitMask  = document.getElementById('benefitMask');
