@@ -360,12 +360,196 @@ body {
 }
 .vip-btn-primary:active, .vip-btn-secondary:active { transform: scale(0.98); }
 
+/* ============================================================
+   首次进入 · AI 学习画像建立对话页
+   定位：对话式表单（非传统表单）。AI 主动了解 → 4 项画像逐项问答。
+   视觉：青蓝白体系 + AI气泡浅蓝渐变 + 卡片白色大圆角柔阴影。
+   层级：AI 对话 > 当前问题 > 轻量进度 + 选择卡片。
+   要求：完成画像后不跳页，原地给完成反馈 + 主按钮；未登录点完成 → 引导登录、拒绝不清空。
+   ============================================================ */
+.onboard {
+  display: flex; flex-direction: column; height: 100%;
+  background:
+    radial-gradient(1200px 520px at 50% -12%, rgba(91,114,245,0.10) 0%, rgba(91,114,245,0) 62%),
+    linear-gradient(180deg, #F5F7FD 0%, #F8F9FC 100%);
+}
+.onboard-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 18px 12px; }
+.onboard-msg { display: flex; gap: 10px; align-items: flex-start; max-width: 96%; }
+.onboard-msg.assistant { align-self: flex-start; }
+.onboard-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.onboard-av {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.onboard-msg.assistant .onboard-av {
+  background: linear-gradient(135deg, var(--primary-light), #E6F2FF);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(91,114,245,0.10);
+}
+.onboard-msg.user .onboard-av { background: #DDE2F5; color: var(--primary-dark); }
+.onboard-bubble {
+  padding: 11px 14px; border-radius: 16px;
+  font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.onboard-msg.assistant .onboard-bubble {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,249,255,0.96));
+  color: var(--text-primary);
+  border: 1px solid #ECEEF7;
+  border-top-left-radius: 5px;
+  box-shadow: 0 3px 10px rgba(91,114,245,0.05);
+}
+.onboard-msg.user .onboard-bubble {
+  background: linear-gradient(135deg, var(--primary), #5A8BF5);
+  color: #fff; border-top-right-radius: 5px;
+  box-shadow: 0 4px 12px rgba(91,114,245,0.22);
+}
+.onboard-bubble strong { color: var(--primary-dark); font-weight: 600; }
+.onboard-msg.user .onboard-bubble strong { color: #EAF0FF; }
+
+/* AI 身份区 */
+.onboard-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px 2px; flex-shrink: 0; }
+.onboard-id {
+  width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--primary), #6AA0F5);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  box-shadow: 0 5px 14px rgba(91,114,245,0.28);
+}
+.onboard-id svg { width: 21px; height: 21px; }
+.onboard-id-name { font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+.onboard-id-sub {
+  font-size: 11px; color: var(--text-tertiary);
+  margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* 轻量进度提示（非传统进度条：○ ○ ○ ○ + 文本） */
+.ob-progress {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 4px 0; padding: 6px 2px;
+}
+.ob-progress-label { font-size: 12px; color: var(--text-tertiary); }
+.onboard-dots { display: flex; align-items: center; gap: 5px; }
+.onboard-dots i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #DDE2F0; transition: all .25s ease;
+}
+.onboard-dots i.on { background: var(--primary); box-shadow: 0 0 0 2px rgba(91,114,245,0.16); }
+
+/* 两步式选择器：展开的候选列表 */
+.ob-list { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .28s ease, opacity .25s ease; }
+.ob-list.open { max-height: 240px; opacity: 1; overflow-y: auto; }
+.ob-list-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 11px 12px;
+  border: none; border-bottom: 1px solid #F0F2F8;
+  background: #FAFBFE; font-size: 14px; color: var(--text-primary);
+  cursor: pointer; text-align: left; font: inherit;
+}
+.ob-list-item:last-child { border-bottom: none; }
+.ob-list-item:active { background: var(--primary-light); }
+.ob-list-item .ob-cap-ic { font-size: 15px; }
+.ob-open { margin-bottom: 4px; }
+.ob-open .ob-cap-name { color: var(--text-primary); }
+
+/* 选择卡片区（轻量、圆角、动态 appear） */
+.onboard-chip { display: flex; flex-direction: column; margin-top: 12px; }
+.onboard-chip-prompt {
+  font-size: 12px; color: var(--text-tertiary); margin: 0 4px 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.onboard-chip-prompt b { color: var(--text-primary); }
+.onboard-picker {
+  background: #fff; border-radius: var(--card-radius);
+  border: 1px solid #ECEEF7;
+  box-shadow: 0 6px 18px rgba(91,114,245,0.07);
+  padding: 12px;
+}
+.onboard-picker-title {
+  font-size: 15px; font-weight: 700; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 7px; color: var(--text-primary);
+}
+.onboard-picker-hint { font-size: 12px; color: var(--text-tertiary); margin-bottom: 11px; }
+.onboard-caps { display: flex; flex-direction: column; gap: 9px; }
+.onboard-cap {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 13px; border-radius: 14px;
+  background: #F7F8FC; border: 1px solid #ECEEF7;
+  cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .1s ease;
+  text-align: left; font: inherit; color: inherit; width: 100%;
+}
+.onboard-cap:active { transform: scale(0.99); }
+.onboard-cap .ob-cap-ic { font-size: 18px; flex-shrink: 0; }
+.onboard-cap .ob-cap-name {
+  flex: 1; font-size: 14px; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.onboard-cap .ob-cap-val {
+  font-size: 12px; color: var(--text-tertiary);
+  max-width: 56%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.onboard-cap .ob-cap-arrow { color: #C3C9D8; flex-shrink: 0; display: flex; }
+.onboard-cap.on { border-color: var(--primary); background: var(--primary-light); }
+.onboard-cap.on .ob-cap-val { color: var(--primary-dark); font-weight: 600; }
+.onboard-caps.inline { flex-direction: row; flex-wrap: wrap; gap: 9px; }
+.onboard-caps.inline .onboard-cap { width: auto; padding: 10px 16px; }
+.onboard-caps.inline .onboard-cap .ob-cap-arrow { display: none; }
+.onboard-caps.inline .ob-cap-ic { font-size: 15px; }
+
+/* 通用 primary 按钮（完成画像，开始使用） */
+.ob-btn-primary {
+  width: 100%; height: 48px; border: none; border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary) 0%, #5A8BF5 100%);
+  color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 14px;
+  box-shadow: 0 10px 24px rgba(91,114,245,0.30);
+  transition: transform .1s ease, opacity .15s ease;
+}
+.ob-btn-primary:active { transform: scale(0.98); }
+.ob-btn-primary.disable { opacity: .45; pointer-events: none; }
+
+/* 卡片轮播位移动画（选择4 → 完成反馈） */
+.onboard-lock { max-height: 0; opacity: 0; overflow: hidden; transform: translateY(6px); }
+.onboard-lock.open { margin-top: 12px; max-height: 220px; opacity: 1; transform: translateY(0); transition: max-height .3s ease, opacity .3s ease, transform .3s ease; }
+
+/* 完成反馈区 */
+.onboard-done { display: none; }
+.onboard-done.show { display: block; }
+.ob-done-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--success); font-weight: 600; margin-left: 4px;
+}
+.ob-done-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success); box-shadow: 0 0 0 3px rgba(32,168,102,0.18);
+}
+
+/* 底部输入区（与正常 AI 首页保持一致） */
+.onboard-inputbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px 16px;
+  background: linear-gradient(180deg, rgba(248,249,252,0) 0%, #F8F9FC 34%);
+}
+.onboard-input {
+  flex: 1; height: 40px; border: 1px solid #E7EAF3; border-radius: 20px;
+  background: #fff; padding: 0 16px; font-size: 14px; outline: none; color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(91,114,245,0.04);
+}
+.onboard-input::placeholder { color: var(--text-tertiary); }
+.onboard-send {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: linear-gradient(135deg, var(--primary), #5A8BF5); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.onboard-send:active { transform: scale(0.94); }
+.onboard-send svg { width: 19px; height: 19px; }
+
 /* 小屏适配 */
 @media (max-width: 360px) {
   .ai-top { padding: 30px 14px 0; }
   .chat-scroll { padding-left: 14px; padding-right: 14px; }
   .chat-input-bar { padding-left: 14px; padding-right: 14px; }
   .sheet { padding-left: 18px; padding-right: 18px; }
+  .onboard-head { padding-left: 14px; padding-right: 14px; }
+  .onboard-scroll { padding-left: 14px; padding-right: 14px; }
+  .onboard-inputbar { padding-left: 14px; padding-right: 14px; }
 }
 </style>
 </head>
@@ -379,6 +563,105 @@ body {
               <div class="page splash">
                 <div class="splash-brand">
                   <img src="../ui切图/闪屏.png" alt="升本智答品牌" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 视图：首次进入 · AI 学习画像建立（对话式表单，非传统表单） -->
+            <div class="view" id="view-onboard">
+                <div class="onboard">
+                <div class="onboard-head">
+                  <div class="onboard-id">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15z"/></svg>
+                  </div>
+                  <div>
+                    <div class="onboard-id-name">👋 嗨，我是你的专升本 AI 助手</div>
+                    <div class="onboard-id-sub">第一次见面，让我先了解一下你～</div>
+                  </div>
+                </div>
+
+                <div class="onboard-scroll" id="obScroll">
+                  <div class="onboard-msg assistant">
+                    <div class="onboard-av">AI</div>
+                    <div class="onboard-bubble">嗨～👋 我是你的专升本 AI 助手。
+我已经知道你准备参加
+<strong>山东省 · 统考专升本 · 计算机考试</strong>
+
+再告诉我一些你的情况，我就能更懂你的备考需求。</div>
+                  </div>
+
+                  <!-- 轻量进度提示：○ ○ ○ ○（非传统进度条，仅告知需完成少量信息） -->
+                  <div class="ob-progress">
+                    <span class="ob-progress-label">学习画像 · 0/4</span>
+                    <span class="onboard-dots" id="obDots"><i class="on"></i><i></i><i></i><i></i></span>
+                  </div>
+
+                  <!-- 画像选择区（对话式卡片轮播：4 项依次回答，每步显示一张卡片） -->
+                  <div class="onboard-chip" id="obChip0">
+                    <div class="onboard-chip-prompt"><b>第 1 项 / 4 · 所在院校</b>　告诉我你在哪所学校</div>
+                    <div class="onboard-picker" id="obPickerSchool">
+                      <div class="onboard-picker-title">🎓 所在院校</div>
+                      <div class="onboard-picker-hint">选择院校，AI 可以帮你查本校的招录政策</div>
+                      <button class="onboard-cap ob-open" id="obSchoolOpen" onclick="obToggleList('obSchoolList', this, '选择一个院校')">
+                        <span class="ob-cap-ic">🎓</span><span class="ob-cap-name">选择院校 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obSchoolList"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip1" style="display:none">
+                    <div class="onboard-chip-prompt"><b>第 2 项 / 4 · 所在专业</b>　告诉我你的在读专业</div>
+                    <div class="onboard-picker" id="obPickerMajor">
+                      <div class="onboard-picker-title">📚 所在专业</div>
+                      <div class="onboard-picker-hint">选择专业，AI 可以帮你推荐对口可报本科专业</div>
+                      <button class="onboard-cap ob-open" id="obMajorOpen" onclick="obToggleList('obMajorList', this, '选择一个专业')">
+                        <span class="ob-cap-ic">📚</span><span class="ob-cap-name">选择专业 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obMajorList"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip2" style="display:none">
+                    <div class="onboard-chip-prompt"><b>第 3 项 / 4 · 所在年级</b>　让我知道你的备考阶段</div>
+                    <div class="onboard-picker" id="obPickerGrade">
+                      <div class="onboard-picker-title">🎒 所在年级</div>
+                      <div class="onboard-picker-hint">大一打基础，大二提效率，大三冲上岸（直接点选）</div>
+                      <div class="onboard-caps inline" id="obGradeCaps"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip3" style="display:none">
+                    <div class="onboard-chip-prompt"><b>第 4 项 / 4 · 考试时间</b>　为你倒计时，备考更有节奏</div>
+                    <div class="onboard-picker" id="obPickerMonth">
+                      <div class="onboard-picker-title">📅 考试时间</div>
+                      <div class="onboard-picker-hint">选择你的目标考试年月（月份选择器）</div>
+                      <button class="onboard-cap ob-open" onclick="obToggleList('obMonthList', this, '选择考试年月')">
+                        <span class="ob-cap-ic">📅</span><span class="ob-cap-name">选择考试时间 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obMonthList"></div>
+                    </div>
+                  </div>
+
+                  <!-- 完成反馈（不跳页，原位由 AI 轻反馈 + 主按钮） -->
+                  <div class="onboard-lock" id="obLock">
+                    <div class="onboard-msg assistant">
+                      <div class="onboard-av">AI</div>
+                      <div class="onboard-bubble">好的，记住啦～ 你的学习画像已经完成。
+之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>
+                    </div>
+                    <div class="onboard-done" id="obDone">
+                      <div class="ob-done-badge">学习画像已完成</div>
+                      <button class="ob-btn-primary" id="obFinishBtn">完成画像，开始使用</button>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="onboard-inputbar">
+                  <input class="onboard-input" id="obInput" placeholder="输入你的问题…" onkeydown="onObKey(event)" />
+                  <button class="onboard-send" id="obSend" onclick="obSendQuote()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -514,6 +797,182 @@ function showView(id) {
   });
 }
 
+/* ============================================================
+   （新）首次进入 · AI 学习画像建立（对话式表单）
+   ============================================================ */
+/* 预置数据 */
+var OB_SCHOOLS = ['日照职业技术学院', '山东商业职业技术学院', '青岛职业技术学院', '济南职业学院', '山东科技职业学院', '威海职业学院', '淄博职业学院', '烟台职业学院', '潍坊职业学院', '临沂职业学院'];
+var OB_MAJORS  = ['计算机应用技术', '软件技术', '计算机网络技术', '大数据技术', '人工智能技术应用', '数字媒体技术', '云计算技术应用'];
+var OB_GRADES  = ['大一', '大二', '大三'];
+var OB_MONTHS  = ['2027-03', '2027-04', '2027-05', '2027-06', '2027-12', '2028-03', '2028-06'];
+
+var obStep = 0;               /* 已填项数 0..4（点 4 项完成） */
+var obDraft = {};             /* {school, major, grade, month} 完成稿/草稿（未登录也保留） */
+var obValues = {};            /* 当前已选 */
+var obListOpen = {};          /* 某 picker 是否展开其列表 */
+var obPendingLogin = false;   /* 完成画像后待登录：登录成功（STATE.logged=true）→ 收尾进首页 */
+
+var obScroll = document.getElementById('obScroll');
+function obProgressLabel() {
+  return '学习画像 · ' + obStep + '/4';
+}
+function obRerender() {
+  /* 4 个圆点：已填项点亮（i < obStep） */
+  var dots = document.querySelectorAll('.onboard-dots i');
+  dots.forEach(function(d, i) { d.classList.toggle('on', i < obStep); });
+  var label = document.querySelector('.ob-progress-label');
+  if (label) label.textContent = obProgressLabel();
+  /* 轮播：只显示当前执行项卡片 */
+  ['obChip0','obChip1','obChip2','obChip3'].forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = (i === obStep) ? '' : 'none';
+  });
+  obScroll.scrollTop = obScroll.scrollHeight;
+}
+
+/* 两步式选择器：点击「选择 XX ＞」→ 展开/收起该项候选列表 */
+function obToggleList(listId, btn, emptyLabel) {
+  var list = document.getElementById(listId);
+  var open = !obListOpen[listId];
+  obListOpen[listId] = open;
+  /* 收起其他列表 */
+  Object.keys(obListOpen).forEach(function(k) {
+    if (k !== listId && obListOpen[k]) {
+      obListOpen[k] = false;
+      var el = document.getElementById(k);
+      if (el) el.classList.remove('open');
+    }
+  });
+  if (open) {
+    list.classList.add('open');
+  } else {
+    list.classList.remove('open');
+  }
+}
+
+function obFillList(listId, items, onPick) {
+  /* 渲染候选列表（纵向）。items 元素可为字符串或 {v,lbl} */
+  var list = document.getElementById(listId);
+  list.innerHTML = '';
+  items.forEach(function(it) {
+    var v = (typeof it === 'object' && it) ? it.v : it;
+    var lbl = (typeof it === 'object' && it) ? it.lbl : it;
+    var b = document.createElement('button');
+    b.className = 'ob-list-item';
+    b.innerHTML = '<span class="ob-cap-ic">' + (typeof it === 'object' && it._ic || '') + '</span><span>' + escapeHtml(lbl) + '</span>';
+    b.addEventListener('click', function() { onPick(v, lbl); });
+    list.appendChild(b);
+  });
+}
+
+function obNext(payload, lbl) {
+  /* 记录答案 + 前进一步 */
+  Object.assign(obValues, payload);
+  if (lbl) obValues[Object.keys(payload)[0] + '_lbl'] = lbl;
+  obDraft = Object.assign({}, obValues);
+  postToShell('PROFILE', { user: { school: obValues.school, major: obValues.major, grade: obValues.grade, subject: '计算机基础', month: obValues.month } });
+  if (obStep < 3) { obStep++; obRerender(); return; }
+  /* 第4项已完成 → 完成反馈原位展开 */
+  obStep = 4;
+  obRerender();
+  document.getElementById('obLock').classList.add('open');
+  document.getElementById('obDone').classList.add('show');
+  obScroll.scrollTop = obScroll.scrollHeight;
+}
+
+function obInit() {
+  var schools = OB_SCHOOLS.map(function(s) { return { v: s, lbl: s, _ic: '🎓' }; });
+  obFillList('obSchoolList', schools, function(v) { obNext({ school: v }); });
+  var majors = OB_MAJORS.map(function(m) { return { v: m, lbl: m, _ic: '📚' }; });
+  obFillList('obMajorList', majors, function(v) { obNext({ major: v }); });
+  /* 年级：直接点选 inline 胶囊列表 */
+  var gradeCaps = document.getElementById('obGradeCaps');
+  gradeCaps.innerHTML = '';
+  OB_GRADES.forEach(function(g) {
+    var b = document.createElement('button');
+    b.className = 'onboard-cap inline';
+    b.setAttribute('data-v', g);
+    b.innerHTML = '<span class="ob-cap-name">' + escapeHtml(g) + '</span>';
+    b.addEventListener('click', function() { obNext({ grade: g }); });
+    gradeCaps.appendChild(b);
+  });
+  /* 考试时间：月份胶囊直接点选 */
+  obFillList('obMonthList', OB_MONTHS, function(v) { obNext({ month: v }); });
+}
+function obStart() {
+  showView('view-onboard');
+  obInit();
+  obRerender();
+}
+
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'ONBOARDING_RESTART') return;
+  /* 完成画像后重进首页 → 重置为新对话但保留草稿 */
+  obDraft = Object.assign({}, SHELL_STATE.user || {});
+  obValues = {};
+  obStep = 0;
+  var lock = document.getElementById('obLock');
+  lock.classList.remove('open');
+  document.getElementById('obDone').classList.remove('show');
+  obRerender();
+  obScroll.scrollTop = 0;
+  showView('view-onboard');
+  obInit();
+  obRerender();
+});
+
+/* 完成画像，开始使用 → 未登录引导登录 / 已登录进正常首页 */
+function onObFinish() {
+  if (!LOGGED) {
+    /* 引导登录（强调保存画像）；不登录不清空已填（草稿保留） */
+    postToShell('PROFILE', { user: { school: obValues.school, major: obValues.major, grade: obValues.grade, month: obValues.month } });
+    pendingLoginFinish = function() {
+      var homeScroll = document.getElementById('chatScroll');
+      var tip = document.createElement('div');
+      tip.className = 'msg assistant';
+      tip.innerHTML = '<div class="msg-avatar">AI</div><div class="msg-bubble">✓ 登录成功\n好的，记住啦～你的学习画像已经保存。</div>';
+      /* 放到首条之前，保持 AI 对话语义连贯 */
+      homeScroll.insertBefore(tip, homeScroll.firstChild);
+      showView('view-home');
+    };
+    ensureLogin(pendingLoginFinish);
+    return;
+  }
+  /* 已登录：直接进入正常 AI 首页 */
+  showView('view-home');
+}
+document.getElementById('obFinishBtn').addEventListener('click', onObFinish);
+
+/* 底部 AI 输入框（与正常首页一致，发消息后模拟 AI 回复） */
+function obSendQuote() {
+  var input = document.getElementById('obInput');
+  var btn = document.getElementById('obSend');
+  var txt = input.value.trim();
+  if (!txt) return;
+  appendAiMsg('user', txt);
+  input.value = '';
+  btn.classList.add('gray');
+  setTimeout(function() {
+    appendAiMsg('assistant', getObAnswer(txt));
+    btn.classList.remove('gray');
+  }, 650);
+}
+function onObKey(e) { if (e.key === 'Enter') obSendQuote(); }
+function appendAiMsg(role, text) {
+  var box = document.getElementById('obScroll');
+  var div = document.createElement('div');
+  div.className = 'onboard-msg ' + role;
+  var av = role === 'assistant' ? 'AI' : '我';
+  div.innerHTML = '<div class="onboard-av">' + av + '</div><div class="onboard-bubble">' + escapeHtml(text) + '</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+function getObAnswer(q) {
+  if (/年级/.test(q) || /第一|刚|刚开始/.test(q)) return '你填的年级我记下啦～结合「所在年级」，我会给你更贴合阶段的备考建议。继续点下面的卡片，把画像补完吧～';
+  return '收到～你可以边填写下面的「学习画像」卡片，边问我问题，我会认真记住你的情况。';
+}
+
 /* ---------- 新用户 VIP 福利（第一次点功能触发，可关；领取后不再弹） ---------- */
 var LOGGED = false;          /* 登录态：由总壳 STATE 广播同步 */
 var VIP_SHOWN = false;       /* 本次会话已弹过 */
@@ -576,6 +1035,19 @@ if (EMBEDDED) {
   showView('view-home');
   /* 嵌入总壳：主动订阅状态（总壳靠 SUBREADY 回发 STATE，错过广播会拿不到登录/VIP 状态） */
   try { window.parent.postMessage({ type: 'SUBREADY' }, '*'); } catch(e) {}
+  /* 首次进入（未登录 + 无画像）→「AI 学习画像建立」对话页；已画像 → 正常首页。
+     总壳 STATE 首个广播到达后判定（s.logged=false 即首次进入） */
+  window.addEventListener('message', function obFirstState(evt) {
+    var d = evt.data;
+    if (!d || d.type !== 'STATE') return;
+    window.removeEventListener('message', obFirstState);
+    var s = d.state || {};
+    /* 首次进入 = 画像未完成（profileLevel !== 'done'）→ 进入「学习画像建立」对话页
+       含：未登录+无画像 / 已登录+无画像 / 部分完成（补完剩余项），完成/登录后回正常首页 */
+    if (s.profileLevel !== 'done') {
+      obStart();
+    }
+  });
 } else {
   setTimeout(function() { showView('view-home'); }, 2500);
 }
@@ -585,13 +1057,22 @@ function postToShell(type, data) {
   try { window.parent.postMessage({ type: type, data: data || {} }, '*'); } catch(e) {}
 }
 /* 接收总壳广播的最新状态 */
+var SHELL_STATE = {};        /* 总壳 STATE 快照（onboarding 重进时取画像草稿） */
+var pendingLoginFinish = null;  /* 登录成功后要执行的收尾（onboarding → 首页） */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d || !d.type) return;
   if (d.type === 'STATE') {
     var s = d.state || {};
+    SHELL_STATE = s;
     if (typeof s.logged === 'boolean') LOGGED = s.logged;
     if (s.vipClaimed) { VIP_CLAIMED = true; VIP_SHOWN = true; }
+    /* 完成画像后引导登录：登录成功广播 → 收尾进首页（嵌入总壳时 ensureLogin 的 next 不执行） */
+    if (pendingLoginFinish && LOGGED) {
+      var fin = pendingLoginFinish;
+      pendingLoginFinish = null;
+      fin();
+    }
     return;
   }
   /* 其他 tab 转发过来的请求（我的页 → 总壳 → 本页） */
