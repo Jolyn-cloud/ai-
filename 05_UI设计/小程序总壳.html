@@ -748,8 +748,9 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REQ_LOGIN') {
-    /* 登录归属唯一：总壳登录 Sheet（A）；任何页请求登录 → 由总壳弹登录，不转发学习页 */
-    openLoginSheet();
+    /* 登录归属唯一：总壳登录 Sheet（A）；任何页请求登录 → 由总壳弹登录，不转发学习页
+       来源随请求透传，决定登录成功后 toast 文案与 VIP 是否到账 */
+    openLoginSheet(d.data && d.data.from);
     return;
   }
   if (d.type === 'OPEN_PROFILE') {
@@ -892,7 +893,7 @@ function claimBenefit() {
       broadcast();
       showToastText('领取成功，VIP权益已到账');
     } else {
-      openLoginSheet();             /* 未登录：底部上浮登录弹窗（登录成功自动到账） */
+      openLoginSheet('benefit');    /* 权益线：底部上浮登录弹窗（登录成功自动到账） */
     }
   }, 230);
 }
@@ -917,7 +918,10 @@ var loginAgree   = document.getElementById('loginAgree');
 var loginTip     = document.getElementById('loginTip');
 var loginOverlay = document.getElementById('loginOverlay');
 
-function openLoginSheet() {
+/* 登录来源：benefit=权益线（领取→登录→VIP到账） / onboarding=画像线（登录→跳问答） / 其他=我的等普通登录 */
+var loginFrom = 'general';
+function openLoginSheet(from) {
+  loginFrom = from || 'general';          /* 记录本次登录来源（决定 toast 文案 & 是否 VIP 到账） */
   loginTip.classList.remove('show');     /* 重置提示 */
   loginSheet.classList.add('show');
 }
@@ -939,20 +943,28 @@ loginButton.addEventListener('click', function() {
     return;
   }
   loginTip.classList.remove('show');
-  /* 模拟登录成功：来自权益领取 → 登录 + VIP 到账 */
+  /* 模拟登录成功（三条线共用总壳登录 Sheet，来源区分文案 & VIP 到账） */
   STATE.logged = true;
   /* 登录不覆盖已填的画像草稿（C）：合并昵称等身份字段，保留 school/major/grade 画像 */
   STATE.user = Object.assign({}, STATE.user || {},
     { nick: '团团酱', grade: STATE.user && STATE.user.grade || '大三', major: STATE.user && STATE.user.major || '计算机大类' });
   STATE.profileLevel = calcProfileLevel(STATE.user);
+  var from = loginFrom;
+  var toastText = '登录成功';
   if (benefitUsing) {
+    /* 权益线：领取专属权益触发的登录 → 登录 + VIP 到账，toast 提示到账 */
     benefitUsing = false;
     benefitClosed = true;       /* 本次会话不再弹权益 */
     STATE.vipClaimed = true;
+    toastText = '登录成功，VIP权益已到账';
+  } else if (from === 'onboarding') {
+    /* 画像线：完成画像后登录 → 仅登录+跳问答，不涉及权益，toast 提示画像已保存 */
+    toastText = '登录成功，学习画像已保存';
   }
+  /* 我的页等普通登录 → 默认「登录成功」，与权益/画像无关 */
   broadcast();
   closeLoginSheet();
-  showSuccessToast();          /* 登录成功 → 轻量提示（自动消失，无额外点击） */
+  showToastText(toastText);    /* 登录成功 → 按来源提示（自动消失，无额外点击） */
 });
 
 /* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
