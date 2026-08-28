@@ -172,13 +172,19 @@ try {
   const profileShown = await evalIn('study', `document.getElementById('profileMask').classList.contains('show')`);
   check('已领取后不再弹 VIP，直达画像', profileShown === true);
 
-  // 保存画像 → 我的页已完善
-  await evalIn('study', `doSaveProfile(); 'ok'`);
-  await sleep(300);
+  // 保存画像（先填完表单 → 个人资料完整）→ 我的页「已完善」
+  await evalIn('study', `
+    document.getElementById('schoolInput').value = '山东大学';
+    document.getElementById('majorInput').value = '计算机科学与技术';
+    var g = document.querySelector('#gradeGroup .field-chip[data-v="大三"]');
+    if (g) { g.classList.add('on'); }
+    doSaveProfile(); 'ok'
+  `);
+  await sleep(400);
   await evalJs(`document.querySelector('.tab-item[data-frame="mine"]').click()`);
   await sleep(300);
   const profileTag = await evalIn('mine', `document.getElementById('profileTag').textContent`);
-  check('我的页画像已完善', profileTag === '已完善', `得到: ${profileTag}`);
+  check('我的页画像已完善(三态done)', profileTag === '已完善', `得到: ${profileTag}`);
 
   // 我的页点「完善资料」→ 转发总壳 → 学习页直达画像（登录态下不再弹 VIP）
   await evalIn('mine', `document.querySelector('.list-row[onclick="navProfile()"]').click(); 'ok'`);
@@ -244,19 +250,20 @@ try {
   const vv3 = JSON.parse(vl3);
   check('VIP领取层默认隐藏且不可交互', vv3.vis === 'hidden' && vv3.op === '0' && vv3.pe === 'none', vl3);
 
-  // 退出按钮：清登录态并回学习 tab
+  // 退出按钮：清登录态回学习 tab（退出保留画像草稿，PM 决策）
   await evalJs(`document.getElementById('appbarExit').click()`);
   await sleep(400);
   const afterExit = await evalJs(`(function(){
     var tab = document.querySelector('.tab-item.active');
     return JSON.stringify({
-      logged: STATE.logged, vip: STATE.vipClaimed, profile: STATE.profile,
+      logged: STATE.logged, vip: STATE.vipClaimed,
+      profileLevel: STATE.profileLevel,
       tab: tab ? tab.dataset.frame : '?',
       title: document.getElementById('appbarTitle').textContent
     });
   })()`);
   const ex3 = JSON.parse(afterExit);
-  check('退出后登录态复位(logged/vip/profile=false)', ex3.logged === false && ex3.vip === false && ex3.profile === false, afterExit);
+  check('退出后登录态复位(logged/vip=false)', ex3.logged === false && ex3.vip === false, afterExit);
   check('退出后回学习 tab 且顶栏标题=学习', ex3.tab === 'study' && ex3.title === '学习', afterExit);
 
   console.log('\n== 4. 登录成功轻量提示（Toast）==');
@@ -310,6 +317,104 @@ try {
   const ta4 = JSON.parse(tAfter);
   check('Toast 停留后完全隐藏(无show/无交互)', ta4.show === false && ta4.hiding === false && Number(ta4.op) === 0 && ta4.pe === 'none', tAfter);
   check('Toast 消失后登录态保持(继续原功能)', ta4.logged === true, tAfter);
+
+  console.log('\n== 5. 新规则：①已登录也弹权益/直接到账 + ②④未登录填画像草稿 ==');
+
+  // 重置会话
+  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await sleep(2000);
+
+  // 场景 A：未登录填画像（规则②④ + C）→ 未登录 openProfile 可进（不再强制登录）
+  await evalJs(`switchTab('study')`);  // 学习页，不触发权益
+  await sleep(200);
+  await evalIn('study', `openProfile(); 'ok'`);
+  await sleep(200);
+  const profileOpenedNoLogin = await evalIn('study', `document.getElementById('profileMask').classList.contains('show')`);
+  check('未登录可打开画像(规则②④)', profileOpenedNoLogin === true);
+
+  // 填画像（部分：只填学校）→ 保存 → 不登录，引流
+  await evalIn('study', `
+    document.getElementById('schoolInput').value = '青岛科技大学';
+    document.getElementById('majorInput').value = '';
+    document.querySelector('#gradeGroup .field-chip[data-v="大二"]').classList.add('on');
+    doSaveProfile(); 'ok'
+  `);
+  await sleep(400);
+
+  // 未登录填完 → 草稿已上报总壳 -> profileLevel 应非 none
+  const draftLevel = await evalJs(`STATE.profileLevel`);
+  check('未登录保存画像后 profileLevel 非none', draftLevel === 'partial' || draftLevel === 'done', `level=${draftLevel}`);
+
+  // 引导登录 → 用户拒绝（点×关闭登录sheet）→ 草稿保留
+  const reqLoginShown = await evalJs(`document.getElementById('loginSheet').classList.contains('show')`);
+  check('保存画像后引导登录(弹Sheet)', reqLoginShown === true);
+  await evalJs(`document.getElementById('loginClose').click()`);  // 拒绝登录
+  await sleep(200);
+  const draftAfterReject = await evalJs(`STATE.profileLevel`);
+  check('拒绝登录后草稿保留(profileLevel不变)', draftAfterReject === draftLevel, `after=${draftAfterReject}`);
+
+  // 场景 B：已登录未领 → 切功能tab仍弹权益(规则①)
+  // 先登录（走系统登录，不领权益）
+  await evalJs(`switchTab('quiz')`);      // 会触发权益（未登录未领）
+  await sleep(300);
+  await evalJs(`document.getElementById('benefitCta').click()`);  // 领取→弹登录
+  await sleep(260);
+  await evalJs(`loginAgree.checked=true; loginButton.click()`);  // 登录（benefitUsing→到账）
+  await sleep(300);
+  const loggedState = await evalJs(`JSON.stringify({ logged: STATE.logged, vip: STATE.vipClaimed })`);
+  check('已登录且已领取(登录链路)', JSON.parse(loggedState).logged === true && JSON.parse(loggedState).vip === true, loggedState);
+
+  // 关键：已登录+已领 → 再切tab 不再弹权益（benefitShown/Claimed 已置）
+  await evalJs(`switchTab('flash')`);
+  await sleep(300);
+  const benefitAfterClaim = await evalJs(`document.getElementById('benefitMask').classList.contains('show')`);
+  check('已领取后切tab不再弹权益', benefitAfterClaim === false);
+
+  // 新建一个"已登录未领"会话：退出（保留草稿）→ 再登录（不领权益）→ 切功能tab 应弹权益
+  await evalJs(`document.getElementById('appbarExit').click()`);  // 退出→清登录态但保留草稿
+  await sleep(300);
+  const afterExit2 = await evalJs(`JSON.stringify({ logged: STATE.logged, level: STATE.profileLevel })`);
+  check('退出保留草稿+清登录态', JSON.parse(afterExit2).logged === false && ['partial','done'].includes(JSON.parse(afterExit2).level), afterExit2);
+
+  // 重新登录但不领权益：切学习页 → 发 REQ_LOGIN → 总壳弹Sheet → 登录
+  await evalJs(`switchTab('study')`);
+  await sleep(200);
+  await evalJs(`(function(){ window.parent.postMessage; })()`);  // no-op
+  // 我的页发 REQ_LOGIN（或直接调总壳 openLoginSheet）
+  await evalJs(`openLoginSheet(); 'ok'`);
+  await sleep(200);
+  await evalJs(`loginAgree.checked=true; loginButton.click()`);
+  await sleep(300);
+  const relogged = await evalJs(`JSON.stringify({ logged: STATE.logged, vip: STATE.vipClaimed })`);
+  check('重新登录未领VIP(登录不上VIP)', JSON.parse(relogged).logged === true && JSON.parse(relogged).vip === false, relogged);
+
+  // 已登录未领 → 切功能tab应弹权益(规则①)
+  await evalJs(`switchTab('quiz')`);
+  await sleep(300);
+  const benefitLoggedUnclaimed = await evalJs(`(function(){
+    return JSON.stringify({
+      shown: document.getElementById('benefitMask').classList.contains('show'),
+      vip: STATE.vipClaimed,
+      benefitShown: benefitShown,
+      benefitClosed: benefitClosed
+    });
+  })()`);
+  const blu4 = JSON.parse(benefitLoggedUnclaimed);
+  check('已登录未领→弹权益(规则①)', blu4.shown === true, benefitLoggedUnclaimed);
+
+  // 已登录点领取 → 直跳到账 + toast「领取成功」(不弹登录)
+  await evalJs(`document.getElementById('benefitCta').click()`);
+  await sleep(400);
+  const directClaim = await evalJs(`(function(){
+    return JSON.stringify({
+      vip: STATE.vipClaimed,
+      sheetShown: document.getElementById('loginSheet').classList.contains('show'),
+      toastText: document.querySelector('.vip-success-text').textContent
+    });
+  })()`);
+  const dc4 = JSON.parse(directClaim);
+  check('已登录领取→直接到账(不弹登录)', dc4.vip === true && dc4.sheetShown === false, directClaim);
+  check('已登录领取→toast「领取成功」', dc4.toastText.includes('领取成功') && dc4.toastText.includes('VIP权益已到账'), dc4.toastText);
 
   console.log(`\n== 结果: ${FAILED === 0 ? '全部通过 ✅' : FAILED + ' 项失败 ❌'} ==`);
 } catch (e) {

@@ -710,9 +710,20 @@ body {
 var STATE = {
   logged: false,
   user: null,          /* {nick, grade, major, school} */
-  profile: false,      /* 画像已完善 */
-  vipClaimed: false
+  vipClaimed: false,
+  /* 画像三态：none(未填)/partial(部分)/done(齐全)；旧 profile=true 视为 done */
+  profileLevel: 'none'
 };
+
+/* 画像完整度：school+major+grade 齐全 → done；有任意一项 → partial；否则 none */
+function calcProfileLevel(user) {
+  var u = user || {};
+  var hasAny = u.school || u.major || u.grade;
+  var hasAll = u.school && u.major && u.grade;
+  if (hasAll) return 'done';
+  if (hasAny) return 'partial';
+  return 'none';
+}
 
 var FRAMES = ['study', 'quiz', 'flash', 'mine', 'vip'];
 function allFrames() {
@@ -736,11 +747,16 @@ window.addEventListener('message', function(evt) {
     broadcast();
     return;
   }
-  if (d.type === 'REQ_LOGIN' || d.type === 'OPEN_PROFILE') {
-    /* 我的页请求登录/完善资料 → 转发给学习页（登录/画像归属唯一：学习页） */
+  if (d.type === 'REQ_LOGIN') {
+    /* 登录归属唯一：总壳登录 Sheet（A）；任何页请求登录 → 由总壳弹登录，不转发学习页 */
+    openLoginSheet();
+    return;
+  }
+  if (d.type === 'OPEN_PROFILE') {
+    /* 画像采集归属唯一：学习页 */
     var study = document.getElementById('frame-study');
     if (study && study.contentWindow) {
-      study.contentWindow.postMessage({ type: d.type }, '*');
+      study.contentWindow.postMessage({ type: 'OPEN_PROFILE' }, '*');
     }
     switchTab('study');
     return;
@@ -757,8 +773,8 @@ window.addEventListener('message', function(evt) {
       broadcast();
     }
   } else if (d.type === 'PROFILE') {
-    STATE.profile = true;
     if (d.data && d.data.user) STATE.user = Object.assign({}, STATE.user, d.data.user);
+    STATE.profileLevel = calcProfileLevel(STATE.user);
     broadcast();
   } else if (d.type === 'VIP') {
     STATE.vipClaimed = true;
@@ -799,8 +815,8 @@ function updateAppbar(name) {
 }
 function switchTab(name) {
   updateAppbar(name);
-  /* 首次切到功能 tab（非学习）→ 未登录时弹免费权益（openBenefit 内部判重） */
-  if (name !== 'study' && !STATE.logged) openBenefit();
+  /* 首次切到功能 tab（非学习）→ 弹免费权益（openBenefit 内部判重：已领取/关过/会话弹过不弹；登录与否都弹，规则①） */
+  if (name !== 'study') openBenefit();
   TAB_FRAMES.forEach(function(f) {
     var iframe = document.getElementById('frame-' + f);
     if (iframe) iframe.classList.toggle('hidden', f !== name);
@@ -823,11 +839,10 @@ function switchTab(name) {
   }
 }
 
-/* ---------- 小程序退出按钮（顶栏）：清登录态回学习页，权益会话锁复位 ---------- */
+/* ---------- 小程序退出按钮（顶栏）：清登录态回学习页，权益会话锁复位 ----------
+   退出保留画像草稿（PM 决策）：只清登录态，profileLevel 和 user 里的画像字段不清 */
 document.getElementById('appbarExit').addEventListener('click', function() {
   STATE.logged = false;
-  STATE.profile = false;
-  STATE.user = null;
   STATE.vipClaimed = false;
   benefitShown = false;
   benefitClosed = false;
@@ -853,23 +868,32 @@ var benefitUsing  = false;   /* 正在走「领取→登录」链路中 */
 var benefitShown  = false;   /* 本次会话已展示过（含领取中）→ 不再主动弹 */
 
 function openBenefit() {
-  if (STATE.logged || benefitClosed || benefitShown) return;
+  if (STATE.vipClaimed || benefitClosed || benefitShown) return;
   benefitShown = true;
   benefitMask.classList.add('show');
 }
 function hideBenefit() {
   benefitMask.classList.remove('show');
 }
-/* 点领取权益：VIP 卡片缩小消失 → 底部弹登录 Sheet（不切 tab、不走学习页登录） */
+/* 点领取权益：卡片缩小消失 → 已登录直接到账 / 未登录弹登录 Sheet */
 function claimBenefit() {
-  benefitUsing = true;      /* 标记：本次登录来自权益领取 → 登录成功自动 VIP 到账 */
+  benefitUsing = true;      /* 标记：本次领取（登录后到账 / 已登录直接到账） */
   benefitCard.classList.add('leave');
   benefitMask.classList.add('leave');
   setTimeout(function() {
     benefitCard.classList.remove('leave');
     benefitMask.classList.remove('leave');
     hideBenefit();           /* VIP 福利弹窗隐藏 */
-    openLoginSheet();        /* 背景遮罩保持，底部上浮登录弹窗 */
+    if (STATE.logged) {
+      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 */
+      benefitUsing = false;
+      benefitClosed = true;         /* 已到账 → 本次会话不再弹权益 */
+      STATE.vipClaimed = true;
+      broadcast();
+      showToastText('领取成功，VIP权益已到账');
+    } else {
+      openLoginSheet();             /* 未登录：底部上浮登录弹窗（登录成功自动到账） */
+    }
   }, 230);
 }
 /* 事件绑定 */
@@ -917,8 +941,10 @@ loginButton.addEventListener('click', function() {
   loginTip.classList.remove('show');
   /* 模拟登录成功：来自权益领取 → 登录 + VIP 到账 */
   STATE.logged = true;
-  STATE.profile = false;
-  STATE.user = { nick: '团团酱', grade: '大三', major: '计算机大类' };
+  /* 登录不覆盖已填的画像草稿（C）：合并昵称等身份字段，保留 school/major/grade 画像 */
+  STATE.user = Object.assign({}, STATE.user || {},
+    { nick: '团团酱', grade: STATE.user && STATE.user.grade || '大三', major: STATE.user && STATE.user.major || '计算机大类' });
+  STATE.profileLevel = calcProfileLevel(STATE.user);
   if (benefitUsing) {
     benefitUsing = false;
     benefitClosed = true;       /* 本次会话不再弹权益 */
@@ -929,11 +955,14 @@ loginButton.addEventListener('click', function() {
   showSuccessToast();          /* 登录成功 → 轻量提示（自动消失，无额外点击） */
 });
 
-/* ---------- 登录成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
+/* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
 var toastTimer = null;
-function showSuccessToast() {
+function showSuccessToast() { showToastText('登录成功，VIP权益已到账'); }
+function showToastText(text) {
   var t = document.getElementById('successToast');
   if (!t) return;
+  var txt = t.querySelector('.vip-success-text');
+  if (txt) txt.textContent = text;
   if (toastTimer) clearTimeout(toastTimer);
   t.classList.remove('show', 'hiding');   /* 复位动画状态 */
   requestAnimationFrame(function() {

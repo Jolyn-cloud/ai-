@@ -521,8 +521,7 @@ var VIP_CLAIMED = false;     /* 已领取 */
 var VIP_PENDING = null;      /* 暂不领取后要继续的动作 */
 
 function openProfile() {
-  /* 旧 VIP 福利弹窗已停用：VIP 领取统一由总壳「免费权益」层接管（归属唯一，避免双弹） */
-  if (!LOGGED) { ensureLogin(openProfile); return; }
+  /* 规则②④：登录不是画像的前置条件，未登录也可填画像；登录统一走总壳 Sheet（A） */
   document.getElementById('profileMask').classList.add('show');
 }
 
@@ -604,7 +603,17 @@ window.addEventListener('message', function(evt) {
 });
 
 function ensureLogin(next) {
+  /* 登录归属唯一：总壳登录 Sheet（规则A）。未登录 → 向总壳发 REQ_LOGIN，由总壳弹登录
+     已登录 → 直接执行 next（登录态：由总壳 STATE 广播同步到 LOGGED） */
   if (LOGGED) { if (next) next(); return; }
+  /* 嵌入总壳：向父壳请求弹登录 Sheet */
+  try {
+    if (EMBEDDED) {
+      window.parent.postMessage({ type: 'REQ_LOGIN' }, '*');
+      return;
+    }
+  } catch(e) {}
+  /* 独立运行时兜底：本地弹登录弹窗 */
   openAfterLogin = next || null;
   document.getElementById('loginMask').classList.add('show');
 }
@@ -646,7 +655,8 @@ document.querySelectorAll('.field-chip').forEach(function(chip) {
   });
 });
 
-/* 保存画像 */
+/* 保存画像：登录/未登录都可保存（规则②④）
+   已登录 → 直接上报落库；未登录 → 存本地草稿 + 引导登录，登录成功自动用草稿 */
 function doSaveProfile() {
   var school = document.getElementById('schoolInput').value.trim();
   var major  = document.getElementById('majorInput').value.trim();
@@ -655,8 +665,24 @@ function doSaveProfile() {
   var subj   = document.querySelector('#subjectGroup .field-chip.on')
     ? document.querySelector('#subjectGroup .field-chip.on').getAttribute('data-v') : '计算机基础';
   closeProfile();
+
+  if (!LOGGED) {
+    /* 未登录：画像草稿直接上报总壳（总壳存草稿，登录成功自动合并落库）；
+       引导登录（总壳登录 Sheet）；用户拒绝登录 → 草稿保留，不再弹（规则C + 补充） */
+    postToShell('PROFILE', { user: { school: school, major: major, grade: grade, subject: subj } });
+    showDoneTip('画像已暂存，登录后自动保存 ✅');
+    try {
+      if (EMBEDDED) {
+        window.parent.postMessage({ type: 'REQ_LOGIN' }, '*');
+        return;
+      }
+    } catch(e) {}
+    /* 独立运行时兜底 */
+    ensureLogin(null);
+    return;
+  }
+  /* 已登录：直接保存 + 上报总壳 */
   showDoneTip('画像已保存 ✅');
-  /* 上报总壳 → 广播到我的/VIP等所有 tab（画像同步） */
   postToShell('PROFILE', { user: { school: school, major: major, grade: grade, subject: subj } });
 }
 function showDoneTip(txt) {

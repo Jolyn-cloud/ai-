@@ -196,9 +196,14 @@ function renderState() {
     btn.disabled = false;
   }
 
-  if (STATE.profile) {
+  /* 画像三态（规则B）：none 去完善 / partial 继续完善 / done 已完善 */
+  var level = STATE.profileLevel || (STATE.profile ? 'done' : 'none');  /* 兼容旧字段 */
+  if (level === 'done') {
     tag.textContent = '已完善';
     tag.classList.add('success');
+  } else if (level === 'partial') {
+    tag.textContent = '继续完善';
+    tag.classList.remove('success');
   } else {
     tag.textContent = '去完善';
     tag.classList.remove('success');
@@ -221,10 +226,11 @@ window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d || d.type !== 'STATE') return;
   STATE = {
-    logged:      !!d.state.logged,
-    user:        d.state.user || null,
-    profile:     !!d.state.profile,
-    vipClaimed:  !!d.state.vipClaimed
+    logged:       !!d.state.logged,
+    user:         d.state.user || null,
+    profile:      !!d.state.profile,
+    profileLevel: d.state.profileLevel || (d.state.profile ? 'done' : 'none'),  /* 兼容旧字段 */
+    vipClaimed:   !!d.state.vipClaimed
   };
   renderState();
 });
