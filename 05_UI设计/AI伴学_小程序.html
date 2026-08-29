@@ -712,7 +712,7 @@ body {
   <aside class="logic-col open" id="logicCol">
     <div class="logic-panel">
       <div class="logic-head">
-        <div class="title">📋 闪卡逻辑说明</div>
+        <div class="title">📋 逻辑说明（学习页 · 闪卡）</div>
         <button class="close-x" id="logicClose" title="收起/展开">×</button>
       </div>
       <div class="view-switch" id="viewSwitch"></div>
@@ -1033,11 +1033,50 @@ window.addEventListener('load', function() { setTimeout(broadcast, 800); });
    ============================================================ */
 var logicBody = document.getElementById('logicBody');
 var viewSwitch = document.getElementById('viewSwitch');
-var activePanel = 'view-home';       /* 当前高亮胶囊的视图 */
+var activePanel = 'view-study';      /* 当前高亮胶囊的视图（默认学习页） */
 var settingsOpen = false;            /* 首页设置弹窗开关 */
 var completionOpen = false;          /* 完成结算浮层开关 */
 
 var PANELS = {
+  'view-study': {
+    desc: '学习页（tab1）：品牌闪屏 → AI 对话首页。游客（未登录）可自由试用 AI 问答，不强制登录；登录与画像状态互相独立。',
+    sections: [
+      { num:'1', title:'品牌闪屏',
+        paras: [
+          '品牌图整屏展示，等待 2.5s 后自动进入首页。'
+        ],
+        labels: [
+          {k:'时长', v:'2.5s；嵌入总壳时 0ms 跳过（避免双闪屏，闪屏由总壳统一控制）'},
+          {k:'联动去向', v:'闪屏结束 → 进入 AI 对话首页；未完成画像（profileLevel≠done）→ 先进 AI 学习画像建立对话页，完成后再进首页'}
+        ] },
+      { num:'2', title:'AI 对话首页（进入判定）',
+        paras: [
+          '已画像（profileLevel=done）→ 直接展示首页欢迎语；未画像 → 首次进入先进画像对话页，不重复弹。'
+        ],
+        labels: [
+          {k:'判断阈值', v:'profileLevel=done 为已画像；partial 时补完剩余项再进首页，不重头弹'},
+          {k:'异常空态', v:'画像草稿保留在总壳 STATE.user，登录/退出均不清空'}
+        ] },
+      { num:'3', title:'对话交互',
+        paras: [
+          '顶部品牌栏（icon 方块 + 问候标题 + 副标题）固定展示；欢迎语固定（计算机大类专属：考点/政策/分数线/讲题）。',
+          '输入框回车/点发送 → 追加用户气泡 → 模拟 AI 回复（关键词规则）；真实场景 AI 按画像（院校/专业/年级/科目）个性化回答。'
+        ],
+        labels: [
+          {k:'关键词回复', v:'含「专业/跨考」→ 跨考专业口径；含「分数线/多少分」→ 投档线口径；默认 → 引导补充画像'},
+          {k:'空白态', v:'输入框空 → 不发送；消息历史仅会话内展示，不持久化'}
+        ] },
+      { num:'4', title:'登录与权益引导（游客态）',
+        paras: [
+          '游客（未登录）可直接提问试用，不强制登录；点需登录功能 → 弹总壳登录 Sheet。',
+          '首页「补全资料」弱引导 → 学习页画像 Sheet；已画像不显示引导。'
+        ],
+        labels: [
+          {k:'判据', v:'未登录点需登录功能 → REQ_LOGIN → 总壳弹登录 Sheet（登录归属唯一）'},
+          {k:'空异常态', v:'拒绝登录 → 画像草稿保留，不再强弹；登录成功后草稿自动合并入库'}
+        ] }
+    ]
+  },
   'view-home': {
     desc: '首页：考试倒计时 + 章节树 + 学习入口。仅已初始化用户进入（游客引导完成初始化后才可用），考试倒计时为全局统一口径。',
     sections: [
@@ -1233,6 +1272,7 @@ var PANELS = {
 };
 
 var PANEL_VIEWS = [
+  { id: 'view-study',    title: '学习页' },
   { id: 'view-home',     title: '首页' },
   { id: 'view-single',   title: '单卡模式' },
   { id: 'view-list',     title: '列表模式' },
@@ -1247,6 +1287,11 @@ PANEL_VIEWS.forEach(function(v) {
   b.setAttribute('data-view', v.id);
   b.addEventListener('click', function() {
     setActivePanel(v.id);
+    if (v.id === 'view-study') {
+      /* 学习页胶囊：切到学习 tab，不发送闪卡跳转（学习页是独立 iframe，无闪卡视图） */
+      switchTab('study');
+      return;
+    }
     var flash = document.getElementById('frame-flash');
     if (flash && flash.contentWindow) {
       flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: v.id }, '*');
@@ -1308,8 +1353,8 @@ function toggleLogic() {
 }
 document.getElementById('logicClose').addEventListener('click', toggleLogic);
 
-/* 初始渲染：默认首页说明 */
-setActivePanel('view-home');
+/* 初始渲染：默认学习页说明（学习页是启动默认 tab） */
+setActivePanel('view-study');
 renderLogicPanel(currentLogicData());
 
 /* 手机状态栏时钟 */
