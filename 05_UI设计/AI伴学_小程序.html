@@ -165,7 +165,7 @@ body {
 .splash-layer.hide { opacity: 0; pointer-events: none; }
 .splash-layer img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 
-/* ============ 专属福利弹层（切功能 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ============
+/* ============ 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ============
    视觉：紫偏绿主题 · 不规则福利卡片 · 白鹭SVG占位 · 可交互纯HTML弹窗 */
 .vip-modal {
   position: absolute; inset: 0;
@@ -612,7 +612,7 @@ body {
           <iframe id="frame-vip" src="VIP领取页.html"></iframe>
         </div>
 
-        <!-- 专属福利弹层（切功能 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
+        <!-- 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
         <div class="vip-modal" id="benefitMask">
           <div class="vip-card" id="benefitCard">
             <!-- 白鹭占位（SVG，后续可替换正式素材） -->
@@ -732,16 +732,15 @@ body {
    总壳状态中枢：登录/画像/VIP 全局唯一状态源
    ============================================================ */
 var STATE = (function() {
-  /* 持久化恢复：localStorage 里存的登录/画像/VIP 状态，刷新/重开后保持（PM 拍板：全部持久化） */
-  var STORAGE_KEY = 'zsb_state_v1';
-  var saved = null;
-  try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {}
+  /* 完全冷启动：每次刷新/重开重置登录·画像·VIP，从头走【填画像→领VIP→登录】流程。
+     （2026-08-29 PM 拍板：放弃此前"全部持久化"决策，刷新即重来）
+     不清残留 key：真机上会话级状态由后端掌控，原型演示无持久化依赖 */
+  try { localStorage.removeItem('zsb_state_v1'); } catch(e) {}
   return {
-    logged: !!(saved && saved.logged),
-    user: (saved && saved.user) || null,          /* {nick, grade, major, school} */
-    vipClaimed: !!(saved && saved.vipClaimed),
-    /* 画像三态：none(未填)/partial(部分)/done(齐全)；旧 profile=true 视为 done */
-    profileLevel: (saved && saved.profileLevel) || 'none'
+    logged: false,
+    user: null,
+    vipClaimed: false,
+    profileLevel: 'none'
   };
 })();
 
@@ -850,8 +849,9 @@ function updateAppbar(name) {
 function switchTab(name) {
   updateAppbar(name);
   updateLogicForTab(name);
-  /* 切到功能 tab（非学习）→ 触发 openBenefit（判据=未领取+会话展示/关闭过不弹，非“首次进入”；登录与否都弹，规则①） */
-  if (name !== 'study') openBenefit();
+  /* 免费 VIP 触发：首次进题库 tab 自动弹（判据=未领取+会话未关；触发时机=切到题库页，登录与否都弹）。
+     2026-08-29 PM 拍板：由「切任一功能tab弹」改为「仅首次进题库页弹」，刷新重置后重新可弹 */
+  if (name === 'quiz') openBenefit();
   TAB_FRAMES.forEach(function(f) {
     var iframe = document.getElementById('frame-' + f);
     if (iframe) iframe.classList.toggle('hidden', f !== name);
@@ -886,7 +886,7 @@ function closeVip() {
   vipLayer.classList.remove('show');
 }
 
-/* ---------- 免费权益弹层（切功能 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ---------- */
+/* ---------- 免费权益弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ---------- */
 var benefitMask  = document.getElementById('benefitMask');
 var benefitCard  = document.getElementById('benefitCard');
 var benefitClosed = false;   /* 本次会话已关过（点X / 点图外）→ 不再弹 */
@@ -1068,7 +1068,7 @@ var PANELS = {
       },
       { num:'5', title:'领取 VIP 权益判定',
         paras: [
-          '切到功能 tab（题库/闪卡/我的）→ 未领取（vipClaimed=false）弹 VIP 福利；已领取 → 不再弹。',
+          '首次进题库 tab → 未领取（vipClaimed=false）自动弹 VIP 福利；已领取 → 不再弹。',
           '点「领取专属权益」：已登录 → 直接到账；未登录 → 弹登录 Sheet → 登录成功 → VIP 到账 + Toast。'
         ],
         labels: [
