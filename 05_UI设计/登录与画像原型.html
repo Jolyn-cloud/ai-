@@ -589,7 +589,7 @@ body {
                   <!-- 轻量进度提示：○ ○ ○ ○（非传统进度条，仅告知需完成少量信息） -->
                   <div class="ob-progress">
                     <span class="ob-progress-label" id="obProgressLabel">学习画像 · 0/4</span>
-                    <span class="onboard-dots" id="obDots"><i class="on"></i><i></i><i></i><i></i></span>
+                    <span class="onboard-dots" id="obDots"></span>
                   </div>
 
                   <!-- 画像选择区（对话式卡片轮播：4 项依次回答，每步显示一张卡片） -->
@@ -861,8 +861,18 @@ function obProgressLabel() {
 }
 function obRerender() {
   obUpdatePromptTexts();
+  /* 进度圆点数量 = 动态总项数（其他=4，大一/二/三=3），与「已有 N/总数」对应，不写死 4 个 */
+  var count = obVisibleNum();
+  var dotsWrap = document.getElementById('obDots');
+  if (dotsWrap) {
+    while (dotsWrap.children.length > count) dotsWrap.removeChild(dotsWrap.lastChild);
+    while (dotsWrap.children.length < count) {
+      var dotEl = document.createElement('i');
+      dotsWrap.appendChild(dotEl);
+    }
+  }
   var visibleIdx = obVisibleIndex(obStep);
-  /* 4 个圆点：已填项点亮（i < obStep） */
+  /* 已填项点亮（i < obStep） */
   var dots = document.querySelectorAll('.onboard-dots i');
   dots.forEach(function(d, i) { d.classList.toggle('on', i < obStep); });
   var label = document.getElementById('obProgressLabel');

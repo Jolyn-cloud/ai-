@@ -121,6 +121,23 @@ await study(`obStart(); obValues = {}; obStep = 0;
 await sleep(300);
 assert(await study(`/^\\d{4}-\\d{2}-\\d{2}$/.test(obValues.month || '')`), 'E11 选其他→手动选日期=YYYY-MM-DD格式');
 
+/* E12 进度圆点数 = 动态项数：大一/二/三=3点，其他=4点，且已填项点亮 */
+await study(`obStart(); obValues = {}; obStep = 0; obRerender();
+  /* 大三：3 项流程 → 3 个圆点 */
+  obNext({ year: '大三' });
+  obRerender();`);
+assert(await study(`document.querySelectorAll('#obDots i').length`).then(x => x === 3), 'E12a 大三 → 圆点3个');
+assert(await study(`document.querySelectorAll('#obDots i.on').length`).then(x => x === 1), 'E12b 第1步已填 → 点亮1个');
+await study(`obNext({ school: '日照职业技术学院' }); obRerender();`);
+assert(await study(`document.querySelectorAll('#obDots i.on').length`).then(x => x === 2), 'E12c 第2步已填 → 点亮2个');
+await study(`obNext({ major: '计算机应用技术' }); obRerender();`);
+assert(await study(`document.querySelectorAll('#obDots i.on').length`).then(x => x === 3), 'E12d 完成 → 点亮3个（3/3）');
+/* 其他：4 项流程 → 4 个圆点 */
+await study(`obStart(); obValues = {}; obStep = 0; obRerender();
+  obNext({ year: '其他' }); obRerender();`);
+assert(await study(`document.querySelectorAll('#obDots i').length`).then(x => x === 4), 'E12e 其他 → 圆点4个');
+assert(await study(`document.querySelectorAll('#obDots i.on').length`).then(x => x === 1), 'E12f 第1步已填 → 点亮1个');
+
 console.log(`\n通过 ${passed} 项，失败 ${failed} 项`);
 server.close();
 process.exit(failed ? 1 : 0);
