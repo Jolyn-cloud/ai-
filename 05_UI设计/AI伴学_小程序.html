@@ -848,6 +848,7 @@ function updateAppbar(name) {
 }
 function switchTab(name) {
   updateAppbar(name);
+  updateLogicForTab(name);
   /* 切到功能 tab（非学习）→ 触发 openBenefit（判据=未领取+会话展示/关闭过不弹，非“首次进入”；登录与否都弹，规则①） */
   if (name !== 'study') openBenefit();
   TAB_FRAMES.forEach(function(f) {
@@ -1033,6 +1034,7 @@ window.addEventListener('load', function() { setTimeout(broadcast, 800); });
    ============================================================ */
 var logicBody = document.getElementById('logicBody');
 var viewSwitch = document.getElementById('viewSwitch');
+var logicGlobal = document.getElementById('logicGlobal');
 var activePanel = 'view-study';      /* 当前高亮胶囊的视图（默认学习页） */
 var settingsOpen = false;            /* 首页设置弹窗开关 */
 var completionOpen = false;          /* 完成结算浮层开关 */
@@ -1268,18 +1270,37 @@ var PANELS = {
           '口径示例：每日 100 张、章节1 比例 9% → 该章应得 9 张；该章复习卡 8 张 → 新卡 1 张（即 1%）。'
         ] }
     ]
+  },
+  'view-quiz-placeholder': {
+    desc: '题库 tab（当前为占位说明，逻辑面板待补全）：题库模块结构见 [04_功能清单](04_功能清单.md) §3.2/§3.3，功能逻辑待校准后补齐。',
+    sections: [
+      { num:'1', title:'当前状态',
+        paras: [
+          '题库 tab（题库.html）独立嵌入，本功能逻辑说明待补。'
+        ] }
+    ]
+  },
+  'view-mine-placeholder': {
+    desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §3，权益规则见 §3.4。',
+    sections: [
+      { num:'1', title:'当前状态',
+        paras: [
+          '我的页（我的.html）独立嵌入，状态全部来自总壳 STATE，本地不做二次维护。'
+        ] }
+    ]
   }
 };
 
 var PANEL_VIEWS = [
-  { id: 'view-study',    title: '学习页' },
   { id: 'view-home',     title: '首页' },
   { id: 'view-single',   title: '单卡模式' },
   { id: 'view-list',     title: '列表模式' },
   { id: 'view-stats',    title: '章节统计' },
   { id: 'view-complete', title: '完成结算页' }
 ];
-/* 面板视图切换胶囊：点胶囊 → 通知闪卡 iframe 跳转（联动） */
+/* 闪卡视图 ID 集合（供 tab 联动判断 activePanel 是否落在闪卡内） */
+var FLASH_VIEWS = PANEL_VIEWS.map(function(v) { return v.id; });
+/* 面板视图切换胶囊：点胶囊 → 通知闪卡 iframe 跳转（联动）。仅闪卡 tab 显示 */
 PANEL_VIEWS.forEach(function(v) {
   var b = document.createElement('button');
   b.className = 'view-chip';
@@ -1287,11 +1308,6 @@ PANEL_VIEWS.forEach(function(v) {
   b.setAttribute('data-view', v.id);
   b.addEventListener('click', function() {
     setActivePanel(v.id);
-    if (v.id === 'view-study') {
-      /* 学习页胶囊：切到学习 tab，不发送闪卡跳转（学习页是独立 iframe，无闪卡视图） */
-      switchTab('study');
-      return;
-    }
     var flash = document.getElementById('frame-flash');
     if (flash && flash.contentWindow) {
       flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: v.id }, '*');
@@ -1305,6 +1321,35 @@ function setActivePanel(viewId) {
   document.querySelectorAll('#viewSwitch .view-chip').forEach(function(chip) {
     chip.classList.toggle('active', chip.getAttribute('data-view') === viewId);
   });
+}
+
+/* 逻辑面板随功能 tab 联动：
+   - 学习 tab → 只显示学习页说明（隐藏闪卡胶囊区 + 闪卡状态通栏）
+   - 闪卡 tab → 显示闪卡胶囊 + 闪卡状态通栏 + 当前闪卡视图说明
+   - 题库/我的 tab → 占位说明（胶囊/通栏隐藏） */
+var LOGIC_TABS = {
+  study: { title: '📋 逻辑说明 · 学习页',           panel: 'view-study' },
+  flash: { title: '📋 逻辑说明 · 闪卡',             panel: null },
+  quiz:  { title: '📋 逻辑说明 · 题库',             panel: 'view-quiz-placeholder' },
+  mine:  { title: '📋 逻辑说明 · 我的',             panel: 'view-mine-placeholder' }
+};
+function updateLogicForTab(name) {
+  var cfg = LOGIC_TABS[name] || LOGIC_TABS.study;
+  var titleEl = document.querySelector('.logic-head .title');
+  if (titleEl) titleEl.textContent = cfg.title;
+  /* 胶囊区仅闪卡 tab 显示 */
+  viewSwitch.style.display = (name === 'flash') ? '' : 'none';
+  /* 闪卡状态通栏（已记住/未记住/顽固）仅闪卡 tab 显示 */
+  if (logicGlobal) logicGlobal.style.display = (name === 'flash') ? '' : 'none';
+  if (cfg.panel) {
+    /* 固定面板：学习页 / 题库占位 / 我的占位 */
+    activePanel = cfg.panel;   /* 学习页特殊：不复位到闪卡胶囊高亮 */
+    renderLogicPanel(PANELS[cfg.panel] || { desc: '当前 tab：' + name + ' 逻辑说明待补', sections: [] });
+  } else if (name === 'flash') {
+    /* 闪卡 tab：保持当前闪卡视图面板（进入时默认首页说明） */
+    if (!activePanel || FLASH_VIEWS.indexOf(activePanel) === -1) activePanel = 'view-home';
+    renderLogicPanel(currentLogicData());
+  }
 }
 
 function currentLogicData() {
@@ -1353,9 +1398,8 @@ function toggleLogic() {
 }
 document.getElementById('logicClose').addEventListener('click', toggleLogic);
 
-/* 初始渲染：默认学习页说明（学习页是启动默认 tab） */
-setActivePanel('view-study');
-renderLogicPanel(currentLogicData());
+/* 初始渲染：默认学习 tab → 学习页说明（胶囊/闪卡通栏隐藏） */
+updateLogicForTab('study');
 
 /* 手机状态栏时钟 */
 setInterval(function() {
