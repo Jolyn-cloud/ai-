@@ -183,7 +183,7 @@ function doLogin() {
   document.getElementById('boxSuccess').classList.remove('hidden');
   /* 上报总壳：登录 + VIP 已领取（总壳广播到所有 tab） */
   try {
-    window.parent.postMessage({ type: 'LOGGED', data: { user: { nick: '团团酱', grade: '大三', major: '计算机大类' } } }, '*');
+    window.parent.postMessage({ type: 'LOGGED', data: { user: { nick: '团团酱', year: '大三', major: '计算机大类' } } }, '*');
     window.parent.postMessage({ type: 'VIP' }, '*');
   } catch(e) {}
 }

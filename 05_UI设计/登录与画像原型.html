@@ -606,7 +606,7 @@ body {
                     <div class="onboard-chip-prompt" id="obPrompt1"><b>第 2 项 / 4 · 考试时间</b>　选择你的考试时间</div>
                     <div class="onboard-picker" id="obPickerMonth">
                       <div class="onboard-picker-title">📅 考试时间</div>
-                      <div class="onboard-picker-hint">山东统招专升本考试时间固定为三年中每年 3 月最后一个周日</div>
+                      <div class="onboard-picker-hint">考试时间 = 每年 3 月最后一个周日，系统按入学年份判断。<b>大三 2027-03-28 / 大二 2028-03-26 / 大一 2029-03-25</b></div>
                       <button class="onboard-cap ob-open" onclick="obToggleList('obMonthList', this, '选择考试时间')">
                         <span class="ob-cap-ic">📅</span><span class="ob-cap-name">选择考试时间 ＞</span>
                       </button>
@@ -747,9 +747,9 @@ body {
                 <label class="form-label">考试时间<span class="req">*</span></label>
                 <select class="field-input field-select" id="examTimeSelect">
                   <option value="">请选择考试时间</option>
-                  <option value="2027年3月最后一个周日">2027年3月最后一个周日</option>
-                  <option value="2028年3月最后一个周日">2028年3月最后一个周日</option>
-                  <option value="2029年3月最后一个周日">2029年3月最后一个周日</option>
+                  <option value="2027-03-28">2027-03-28</option>
+                  <option value="2028-03-26">2028-03-26</option>
+                  <option value="2029-03-25">2029-03-25</option>
                 </select>
               </div>
 
@@ -808,8 +808,9 @@ function showView(id) {
 var OB_SCHOOLS = ['日照职业技术学院', '山东商业职业技术学院', '青岛职业技术学院', '济南职业学院', '山东科技职业学院', '威海职业学院', '淄博职业学院', '烟台职业学院', '潍坊职业学院', '临沂职业学院'];
 var OB_MAJORS  = ['计算机应用技术', '软件技术', '计算机网络技术', '大数据技术', '人工智能技术应用', '数字媒体技术', '云计算技术应用'];
 var OB_YEARS   = ['大一', '大二', '大三', '其他'];
-var OB_MONTHS  = ['2027年3月最后一个周日', '2028年3月最后一个周日', '2029年3月最后一个周日'];
-var OB_MONTH_AUTO = { '大一': '2027年3月最后一个周日', '大二': '2028年3月最后一个周日', '大三': '2029年3月最后一个周日' };
+var OB_MONTHS  = ['2027-03-28', '2028-03-26', '2029-03-25'];
+/* 考试时间=每年3月最后一个周日（系统判断）：大三→毕业当年2027，大二→2028，大一→2029（修正映射：学位毕业当年3月考） */
+var OB_MONTH_AUTO = { '大一': '2029-03-25', '大二': '2028-03-26', '大三': '2027-03-28' };
 
 var obStep = 0;               /* 已填项序号 0..3 */
 var obDraft = {};             /* {year, month, school, major} 完成稿/草稿（未登录也保留） */
@@ -820,12 +821,13 @@ var obPendingLogin = false;   /* 完成画像后待登录：登录成功（STATE
 var obScroll = document.getElementById('obScroll');
 function obVisibleIndex(progress) {
   /* 根据已完成步数返回当前应展示的卡片下标（0-3）。
-     0=入学年份，1=考试时间(仅其他)，2=所在院校，3=所属专业 */
-  if (progress === 4) return 4;
-  if (progress === 0) return 0;
-  if (progress === 1) return obValues.year === '其他' ? 1 : 2;
-  if (progress === 2) return 2;
-  if (progress === 3) return 3;
+     0=入学年份，1=考试时间(仅其他)，2=所在院校，3=所属专业
+     项数动态：其他=4项，大一/二/三=3项（跳过考试时间，因自动判断）。obStep 以「已答项数」计 */
+  if (progress >= obVisibleNum()) return 4;       /* 完成态：不再显示卡片 */
+  if (progress === 0) return 0;                   /* 第1步：入学年份 */
+  if (progress === 1) return obValues.year === '其他' ? 1 : 2;  /* 第2步：其他→考试时间，否则院校 */
+  if (progress === 2) return obValues.year === '其他' ? 2 : 3;  /* 第3步：其他→院校，否则专业 */
+  return 3;                                       /* 第4步(其他)：专业 */
 }
 function obVisibleNum() {
   /* 实际展示给用户的总项数：选其他=4 项，选大一/大二/大三=3 项；未确定前按 4 展示 */
@@ -919,12 +921,14 @@ function obNext(payload, lbl) {
   }
   obDraft = Object.assign({}, obValues);
   postToShell('PROFILE', { user: { year: obValues.year, month: obValues.month, school: obValues.school, major: obValues.major, subject: '计算机基础' } });
-  if (obStep < 3) {
+  /* 步进按动态总项数：其他=4 项，大一/二/三=3 项（自动判考试时间跳过该步） */
+  var total = obVisibleNum();
+  if (obStep < total) {
     obStep++;
   } else {
-    obStep = 4;
+    obStep = total;
   }
-  if (obStep === 4) {
+  if (obStep >= total) {
     /* 画像已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
     obRerender();
     document.getElementById('obLock').classList.add('open');
@@ -1168,7 +1172,7 @@ function doLogin() {
   LOGGED = true;
   document.getElementById('loginMask').classList.remove('show');
   /* 上报总壳 → 广播到我的/VIP等所有 tab */
-  postToShell('LOGGED', { user: { nick: '团团酱', year: '大三', month: '2029年3月最后一个周日', major: '计算机大类' } });
+  postToShell('LOGGED', { user: { nick: '团团酱', year: '大三', month: '2027-03-28', major: '计算机大类' } });
   var next = openAfterLogin;
   openAfterLogin = null;
   if (next) next();

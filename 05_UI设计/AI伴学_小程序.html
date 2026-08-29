@@ -751,9 +751,10 @@ function persist() {
 
 /* 画像完整度：year+month+school+major 齐全 → done；有任意一项 → partial；否则 none */
 function calcProfileLevel(user) {
+  /* 完整度=院校+专业+入学年份（考试时间 month 由系统按入学年份派生，不计入门槛，防 month 缺失导致画像永不完成） */
   var u = user || {};
-  var hasAny = u.school || u.major || u.year || u.month;
-  var hasAll = u.school && u.major && u.year && u.month;
+  var hasAny = u.school || u.major || u.year;
+  var hasAll = u.school && u.major && u.year;
   if (hasAll) return 'done';
   if (hasAny) return 'partial';
   return 'none';
