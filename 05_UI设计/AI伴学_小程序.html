@@ -716,6 +716,7 @@ body {
         <button class="close-x" id="logicClose" title="收起/展开">×</button>
       </div>
       <div class="view-switch" id="viewSwitch"></div>
+      <div class="view-switch" id="studySwitch" style="display:none"></div>
       <div class="logic-global" id="logicGlobal">
         <span class="g-tab g-ok">已记住 · 右滑</span>
         <span class="g-tab g-no">未记住 · 左滑</span>
@@ -1035,13 +1036,14 @@ window.addEventListener('load', function() { setTimeout(broadcast, 800); });
 var logicBody = document.getElementById('logicBody');
 var viewSwitch = document.getElementById('viewSwitch');
 var logicGlobal = document.getElementById('logicGlobal');
-var activePanel = 'view-study';      /* 当前高亮胶囊的视图（默认学习页） */
+var activePanel = 'view-study-login'; /* 当前面板（默认学习页·登录子tab） */
 var settingsOpen = false;            /* 首页设置弹窗开关 */
 var completionOpen = false;          /* 完成结算浮层开关 */
 
 var PANELS = {
-  'view-study': {
-    desc: '学习页（tab1）：品牌闪屏 → AI 对话首页。游客（未登录）可自由试用 AI 问答，不强制登录；登录与画像状态互相独立。',
+  /* 学习页 · 登录子 tab：登录流程 / 游客模式 / 品牌闪屏 / AI对话首页 / 领取VIP权益判定 */
+  'view-study-login': {
+    desc: '登录子页：独立登录入口 + 游客模式 + 品牌闪屏 + AI 对话首页 + VIP 权益领取判定。',
     sections: [
       { num:'1', title:'品牌闪屏',
         paras: [
@@ -1054,22 +1056,47 @@ var PANELS = {
         labels: [
           {k:'异常空态', v:'画像草稿保留在总壳 STATE.user，登录/退出均不清空'}
         ] },
-      { num:'3', title:'对话交互',
+      { num:'3', title:'登录流程（独立全屏 / 需登录触发）',
         paras: [
-          '首次对话：进入首页，AI 自动发送固定欢迎语。',
-          'AI 问答：输入提问 → AI 回复；按画像（院校/专业/年级/科目）个性化，关键词命中走固定口径，输入框为空不发送。'
+          '游客可自由试用 AI 问答，不强制登录；点需登录功能 → 弹登录 Sheet，登录归属唯一（总壳）。',
+          '登录成功 → 合并画像草稿（保留不覆盖）+ 状态广播全局同步；拒绝登录 → 草稿保留，不再强弹。'
         ],
         labels: [
-          {k:'关键词回复', v:'含「专业/跨考」→ 跨考专业口径；含「分数线/多少分」→ 投档线口径；默认 → 引导补充画像'}
+          {k:'入口', v:'独立全屏登录页 / 游客点需登录功能 → 登录 Sheet'},
+          {k:'收尾', v:'logged=true → broadcast() 全局同步；来源分文案（权益→到账 / 画像→已保存 / 其他→普通）'}
         ] },
-      { num:'4', title:'登录与权益引导（游客态）',
+      { num:'4', title:'游客模式',
         paras: [
-          '游客（未登录）可直接提问试用，不强制登录；点需登录功能 → 弹总壳登录 Sheet。',
-          '首页「补全资料」弱引导 → 学习页画像 Sheet；已画像不显示引导。'
+          '游客（未登录）可自由试用 AI 问答，不强制登录；点需登录功能 → 弹总壳登录 Sheet。',
+          '「补全资料」弱引导 → 学习页画像 Sheet；已画像不显示引导。'
+        ]
+      },
+      { num:'5', title:'领取 VIP 权益判定',
+        paras: [
+          '切到功能 tab（题库/闪卡/我的）→ 未领取（vipClaimed=false）弹 VIP 福利；已领取 → 不再弹。',
+          '点「领取专属权益」：已登录 → 直接到账；未登录 → 弹登录 Sheet → 登录成功 → VIP 到账 + Toast。'
         ],
         labels: [
-          {k:'判据', v:'未登录点需登录功能 → REQ_LOGIN → 总壳弹登录 Sheet（登录归属唯一）'},
-          {k:'空异常态', v:'拒绝登录 → 画像草稿保留，不再强弹；登录成功后草稿自动合并入库'}
+          {k:'判据', v:'未领取 + 会话未关（会话内只弹一次）；已领取凡事常驻走「我的 → VIP」'},
+          {k:'空异常态', v:'关掉（×/点图外）→ 本会话不再弹，权益不回退'}
+        ] }
+    ]
+  },
+  /* 学习页 · 学习页子 tab：对话交互（首次对话 / AI问答 + 关键词回复判定） */
+  'view-study-page': {
+    desc: '学习页子页：AI 对话交互。原型未全部设计完成，本 tab 仅覆盖已确认的对话逻辑。',
+    sections: [
+      { num:'1', title:'首次对话',
+        paras: [
+          '进入首页，AI 自动发送固定欢迎语。'
+        ] },
+      { num:'2', title:'AI 问答',
+        paras: [
+          '输入提问 → AI 回复；按键词命中走固定回复，输入框为空不发送。'
+        ],
+        labels: [
+          {k:'关键词回复', v:'含「专业/跨考」→ 跨考专业口径；含「分数线/多少分」→ 投档线口径；默认 → 引导补充画像'},
+          {k:'判定条件', v:'接入知识库+大模型后，按关键词自动回复（关键词命中口径之上）'}
         ] }
     ]
   },
@@ -1318,26 +1345,63 @@ function setActivePanel(viewId) {
 }
 
 /* 逻辑面板随功能 tab 联动：
-   - 学习 tab → 只显示学习页说明（隐藏闪卡胶囊区 + 闪卡状态通栏）
-   - 闪卡 tab → 显示闪卡胶囊 + 闪卡状态通栏 + 当前闪卡视图说明
+   - 学习 tab → 学习页子 tab（登录 / 学习页 两枚胶囊）+ 对应面板
+   - 闪卡 tab → 闪卡胶囊 + 闪卡状态通栏 + 当前闪卡视图说明
    - 题库/我的 tab → 占位说明（胶囊/通栏隐藏） */
 var LOGIC_TABS = {
-  study: { title: '📋 逻辑说明 · 学习页',           panel: 'view-study' },
+  study: { title: '📋 逻辑说明 · 学习页',           panel: null, studyTab: true },
   flash: { title: '📋 逻辑说明 · 闪卡',             panel: null },
   quiz:  { title: '📋 逻辑说明 · 题库',             panel: 'view-quiz-placeholder' },
   mine:  { title: '📋 逻辑说明 · 我的',             panel: 'view-mine-placeholder' }
 };
+var studySwitch = document.getElementById('studySwitch');
+
+/* 学习页子 tab 数据：登录 / 学习页 */
+var STUDY_SUBTABS = [
+  { id: 'login', title: '登录',       panel: 'view-study-login' },
+  { id: 'page',  title: '学习页',     panel: 'view-study-page' }
+];
+var studySubActive = 'login';   /* 学习页子 tab 当前激活 */
+
+function buildStudySwitch() {
+  studySwitch.innerHTML = '';
+  STUDY_SUBTABS.forEach(function(st) {
+    var b = document.createElement('button');
+    b.className = 'view-chip';
+    b.textContent = st.title;
+    b.setAttribute('data-sub', st.id);
+    b.addEventListener('click', function() {
+      studySubActive = st.id;
+      renderLogicPanel(PANELS[st.panel] || { desc: '', sections: [] });
+      document.querySelectorAll('#studySwitch .view-chip').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-sub') === st.id);
+      });
+    });
+    studySwitch.appendChild(b);
+  });
+  /* 初始激活「登录」 */
+  document.querySelectorAll('#studySwitch .view-chip').forEach(function(c) {
+    c.classList.toggle('active', c.getAttribute('data-sub') === studySubActive);
+  });
+}
+
 function updateLogicForTab(name) {
   var cfg = LOGIC_TABS[name] || LOGIC_TABS.study;
   var titleEl = document.querySelector('.logic-head .title');
   if (titleEl) titleEl.textContent = cfg.title;
-  /* 胶囊区仅闪卡 tab 显示 */
+  /* 学习页子 tab 胶囊（登录/学习页），仅学习 tab 显示 */
+  if (studySwitch) studySwitch.style.display = (name === 'study') ? '' : 'none';
+  /* 闪卡胶囊区仅闪卡 tab 显示 */
   viewSwitch.style.display = (name === 'flash') ? '' : 'none';
   /* 闪卡状态通栏（已记住/未记住/顽固）仅闪卡 tab 显示 */
   if (logicGlobal) logicGlobal.style.display = (name === 'flash') ? '' : 'none';
-  if (cfg.panel) {
-    /* 固定面板：学习页 / 题库占位 / 我的占位 */
-    activePanel = cfg.panel;   /* 学习页特殊：不复位到闪卡胶囊高亮 */
+  if (name === 'study') {
+    /* 学习 tab → 学习页子 tab（登录/学习页），默认激活「登录」 */
+    activePanel = PANELS['view-study-' + studySubActive] ? 'view-study-' + studySubActive : 'view-study-login';
+    renderLogicPanel(PANELS[activePanel] || { desc: '', sections: [] });
+  } else if (cfg.panel) {
+    /* 固定面板：题库占位 / 我的占位 */
+    activePanel = cfg.panel;
     renderLogicPanel(PANELS[cfg.panel] || { desc: '当前 tab：' + name + ' 逻辑说明待补', sections: [] });
   } else if (name === 'flash') {
     /* 闪卡 tab：保持当前闪卡视图面板（进入时默认首页说明） */
@@ -1345,6 +1409,7 @@ function updateLogicForTab(name) {
     renderLogicPanel(currentLogicData());
   }
 }
+buildStudySwitch();
 
 function currentLogicData() {
   /* 弹窗/浮层打开时 → 逻辑说明自动切到对应面板，关闭时恢复原视图说明：
