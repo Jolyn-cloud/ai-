@@ -556,7 +556,7 @@ body {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             退出
           </button>
-          <span class="appbar-title" id="appbarTitle">学习</span>
+          <span class="appbar-title" id="appbarTitle">AI</span>
         </div>
         <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
         <div class="content-frame">
@@ -565,7 +565,7 @@ body {
           <iframe id="frame-flash" data-src="闪卡原型.html" class="hidden"></iframe>
           <iframe id="frame-mine" data-src="我的.html" class="hidden"></iframe>
         </div>
-        <!-- 小程序 tabBar：学习 / 题库 / 闪卡 / 我的（Lucide 线性，选中主色） -->
+        <!-- 小程序 tabBar：AI / 题库 / 闪卡 / 我的（Lucide 线性，选中主色） -->
         <nav class="tabbar">
           <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
             <!-- Lucide house -->
@@ -573,7 +573,7 @@ body {
               <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
               <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             </svg>
-            学习
+            AI
           </button>
           <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
             <!-- Lucide book-open -->
@@ -841,7 +841,7 @@ function syncChildState() {
 }
 
 /* ---------- 底部 tab 切换 ---------- */
-var TAB_NAMES = { study: '学习', quiz: '题库', flash: '闪卡', mine: '我的' };
+var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 function updateAppbar(name) {
   var title = document.getElementById('appbarTitle');
