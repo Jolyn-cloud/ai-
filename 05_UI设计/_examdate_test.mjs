@@ -54,6 +54,10 @@ await cdp('Page.enable');
 await cdp('Page.navigate', { url: `http://127.0.0.1:${PORT}/AI伴学_小程序.html` });
 await sleep(1800);
 
+/* 冷启动默认落题库 tab；学习页懒加载，切 study 触发加载后再操作 iframe */
+await js(`switchTab('study')`);
+await sleep(1200);
+
 /* 进学习页 iframe 上下文操作 */
 const study = async expr => await js(`(function(){
   var f = document.getElementById('frame-study');

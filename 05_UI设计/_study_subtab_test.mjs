@@ -52,7 +52,11 @@ await cdp('Page.enable');
 await cdp('Page.navigate', { url: `http://127.0.0.1:${PORT}/AI伴学_小程序.html` });
 await sleep(1800);
 
-/* U1 初始学习 tab */
+/* 冷启动默认落题库 tab；学习页子 tab 断言前先切到学习 tab */
+await js(`switchTab('study')`);
+await sleep(300);
+
+/* U1 学习 tab */
 assert(await js(`studySwitch.style.display !== 'none'`), 'U1a 学习tab显示子tab条');
 assert(await js(`document.querySelector('#studySwitch .view-chip.active[data-sub="login"]') !== null`), 'U1b 默认激活「登录」子tab');
 assert(await js(`document.querySelector('.logic-head .title').textContent.includes('学习页')`), 'U1c 面板标题含学习页');

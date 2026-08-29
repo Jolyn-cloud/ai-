@@ -560,14 +560,14 @@ body {
         </div>
         <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
         <div class="content-frame">
-          <iframe id="frame-study" src="登录与画像原型.html"></iframe>
-          <iframe id="frame-quiz" data-src="题库.html" class="hidden"></iframe>
+          <iframe id="frame-study" data-src="登录与画像原型.html" class="hidden"></iframe>
+          <iframe id="frame-quiz" src="题库.html"></iframe>
           <iframe id="frame-flash" data-src="闪卡原型.html" class="hidden"></iframe>
           <iframe id="frame-mine" data-src="我的.html" class="hidden"></iframe>
         </div>
         <!-- 小程序 tabBar：AI / 题库 / 闪卡 / 我的（Lucide 线性，选中主色） -->
         <nav class="tabbar">
-          <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
+          <button class="tab-item" data-frame="study" onclick="switchTab('study')">
             <!-- Lucide house -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
@@ -575,7 +575,7 @@ body {
             </svg>
             AI
           </button>
-          <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
+          <button class="tab-item active" data-frame="quiz" onclick="switchTab('quiz')">
             <!-- Lucide book-open -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 7v14"/>
@@ -732,21 +732,26 @@ body {
    总壳状态中枢：登录/画像/VIP 全局唯一状态源
    ============================================================ */
 var STATE = (function() {
-  /* 完全冷启动：每次刷新/重开重置登录·画像·VIP，从头走【填画像→领VIP→登录】流程。
-     （2026-08-29 PM 拍板：放弃此前"全部持久化"决策，刷新即重来）
-     不清残留 key：真机上会话级状态由后端掌控，原型演示无持久化依赖 */
+  /* 冷启动：登录/画像每次刷新重置，走【填画像→领VIP→登录】流程演示。
+     （2026-08-29 PM 拍板：刷新即重来；2026-08-30 补充：仅 VIP 领取状态持久化——
+       未领取(vipClaimed=false) → 每次登录/重开仍显示领取；首次领取完成后(vipClaimed=true) → 不再弹）
+     vipClaimed 独立持久于 zsb_vip_claimed_v1，不随刷新/退出清除；真实产品中该状态由后端存储 */
   try { localStorage.removeItem('zsb_state_v1'); } catch(e) {}
+  var vipClaimed = false;
+  try { vipClaimed = localStorage.getItem('zsb_vip_claimed_v1') === '1'; } catch(e) {}
   return {
     logged: false,
     user: null,
-    vipClaimed: false,
+    vipClaimed: vipClaimed,
     profileLevel: 'none'
   };
 })();
 
-/* 持久化：STATE 每次变更后写 localStorage（broadcast 统一出口触发） */
+/* 持久化：STATE 每次变更后写 localStorage（broadcast 统一出口触发）；
+   vipClaimed 单独写持久 key（跨会话保留，未领取→下次登录仍弹，首次领取后不再弹） */
 function persist() {
   try { localStorage.setItem('zsb_state_v1', JSON.stringify(STATE)); } catch(e) {}
+  try { localStorage.setItem('zsb_vip_claimed_v1', STATE.vipClaimed ? '1' : '0'); } catch(e) {}
 }
 
 /* 画像完整度：year+month+school+major 齐全 → done；有任意一项 → partial；否则 none */
@@ -912,14 +917,15 @@ function claimBenefit() {
     benefitMask.classList.remove('leave');
     hideBenefit();           /* VIP 福利弹窗隐藏 */
     if (STATE.logged) {
-      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 */
+      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 → 跳学习页（未画像填画像 / 已画像进首页） */
       benefitUsing = false;
       benefitClosed = true;         /* 已到账 → 本次会话不再弹权益 */
       STATE.vipClaimed = true;
       broadcast();
       showToastText('领取成功，VIP权益已到账');
+      switchTab('study');
     } else {
-      openLoginSheet('benefit');    /* 权益线：底部上浮登录弹窗（登录成功自动到账） */
+      openLoginSheet('benefit');    /* 权益线：底部上浮登录弹窗（登录成功自动到账 + 跳学习页） */
     }
   }, 230);
 }
@@ -927,11 +933,13 @@ function claimBenefit() {
 document.getElementById('benefitClose').addEventListener('click', function() {
   benefitClosed = true;
   hideBenefit();
+  switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像；未领取下次登录仍弹 */
 });
 benefitMask.addEventListener('click', function(e) {
   if (e.target === benefitMask) {   /* 点图外遮罩 */
     benefitClosed = true;
     hideBenefit();
+    switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像 */
   }
 });
 document.getElementById('benefitCta').addEventListener('click', claimBenefit);
@@ -954,14 +962,15 @@ function openLoginSheet(from) {
 function closeLoginSheet() {
   loginSheet.classList.remove('show');
 }
+/* 关闭登录弹窗：领取路径（from=benefit）放弃登录 → 跳学习页填画像（benefitUsing 保留：点过领取，后续登录成功 VIP 仍到账） */
+function closeLoginSheetThen() {
+  closeLoginSheet();
+  if (loginFrom === 'benefit') switchTab('study');
+}
 /* 点 ×：关闭登录弹窗，返回原页面，不登录不领 VIP */
-loginClose.addEventListener('click', function() {
-  closeLoginSheet();
-});
+loginClose.addEventListener('click', closeLoginSheetThen);
 /* 点遮罩：同样关闭（与 × 一致） */
-loginOverlay.addEventListener('click', function() {
-  closeLoginSheet();
-});
+loginOverlay.addEventListener('click', closeLoginSheetThen);
 /* 微信一键登录：先校验协议勾选 */
 loginButton.addEventListener('click', function() {
   if (!loginAgree.checked) {
@@ -991,6 +1000,8 @@ loginButton.addEventListener('click', function() {
   broadcast();
   closeLoginSheet();
   showToastText(toastText);    /* 登录成功 → 按来源提示（自动消失，无额外点击） */
+  /* 领取路径（权益线）登录成功 → VIP 已到账，跳学习页填画像/进首页 */
+  if (from === 'benefit') switchTab('study');
 });
 
 /* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
@@ -1069,11 +1080,13 @@ var PANELS = {
       },
       { num:'5', title:'领取 VIP 权益判定',
         paras: [
-          '首次进题库 tab → 未领取（vipClaimed=false）自动弹 VIP 福利；已领取 → 不再弹。',
-          '点「领取专属权益」：已登录 → 直接到账；未登录 → 弹登录 Sheet → 登录成功 → VIP 到账 + Toast。'
+          '冷启动默认落题库 tab → 未领取（vipClaimed=false）自动弹 VIP 福利；已领取 → 不再弹。',
+          '领取状态持久化：未领取 → 每次登录/重开仍弹；首次领取完成（vipClaimed=true）→ 不再弹。',
+          '点「领取专属权益」：已登录 → 直接到账 + Toast → 跳学习页；未登录 → 弹登录 Sheet → 登录成功 → VIP 到账 + Toast → 跳学习页填画像。',
+          '点 X / 图外关闭 → 本会话不再弹，跳学习页填画像（未领取，下次登录仍弹）。'
         ],
         labels: [
-          {k:'空异常态', v:'点 X / 图外关一次，本会话不再弹'}
+          {k:'空异常态', v:'会话内点 X / 图外关一次不再主动弹；未领取则下次登录/重开仍弹'}
         ] }
     ]
   },
@@ -1288,11 +1301,16 @@ var PANELS = {
     ]
   },
   'view-quiz-placeholder': {
-    desc: '题库 tab（当前为占位说明，逻辑面板待补全）：题库模块结构见 [04_功能清单](04_功能清单.md) §3.2/§3.3，功能逻辑待校准后补齐。',
+    desc: '题库 tab：冷启动默认落地页（闪屏后进入），首次进入自动弹 VIP 领取弹窗；题库模块结构见 [04_功能清单](04_功能清单.md) §3.2/§3.3。',
     sections: [
-      { num:'1', title:'当前状态',
+      { num:'1', title:'冷启动落地（登录引导入口）',
         paras: [
-          '题库 tab（题库.html）独立嵌入，本功能逻辑说明待补。'
+          '闪屏后默认落在题库 tab，未领取 VIP 自动弹领取弹窗。',
+          '领取 → 登录 → VIP 到账 → 跳学习页填画像；关闭 → 直接跳学习页填画像。'
+        ] },
+      { num:'2', title:'题库功能',
+        paras: [
+          '题库 tab（题库.html）独立嵌入，刷题功能逻辑待校准后补齐。'
         ] }
     ]
   },
@@ -1452,8 +1470,8 @@ function toggleLogic() {
 }
 document.getElementById('logicClose').addEventListener('click', toggleLogic);
 
-/* 初始渲染：默认学习 tab → 学习页说明（胶囊/闪卡通栏隐藏） */
-updateLogicForTab('study');
+/* 初始渲染：冷启动默认落题库 tab（闪屏后 → 题库页自动弹 VIP → 领取/关闭 → 跳学习页填画像 → 登录） */
+switchTab('quiz');
 
 /* 手机状态栏时钟 */
 setInterval(function() {

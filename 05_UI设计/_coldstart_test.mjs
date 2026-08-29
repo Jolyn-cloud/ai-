@@ -1,14 +1,20 @@
 /**
- * 冷启动重置 + 首次进题库自动弹 VIP 自测（AI伴学_小程序.html）
+ * 冷启动登录流程自测（AI伴学_小程序.html）
  * 运行：node _coldstart_test.mjs
- * 覆盖（2026-08-29 PM 拍板：刷新全重置 + VIP 仅首次进题库弹）：
- *   C1 冷启动 STATE 全默认：logged=false / user=null / vipClaimed=false / profileLevel=none
- *   C2 localStorage 残留 'zsb_state_v1' 被清除
- *   C3 冷启动后刷新，仍是全默认（彻底重置）
- *   C4 切到题库 tab → 自动弹 VIP 福利（benefitMask.show）
- *   C5 弹后刷新 → 冷启动重置，切题库再次可弹（会话锁不持久）
- *   C6 领取后（vipClaimed=true）→ 切题库不再弹
- *   C7 闪卡/我的 tab → 不再弹 VIP（改为仅题库）
+ * 覆盖（2026-08-30 登录流程优化：闪屏→题库页→领VIP→领取/关闭→跳AI页填画像→登录 + vipClaimed 持久化）：
+ *   C1 冷启动 STATE：logged=false / user=null / profileLevel=none；vipClaimed 首次冷启动=false
+ *   C2 localStorage 残留 zsb_state_v1（含旧 vipClaimed:true）不生效（vipClaimed 只认独立 key）
+ *   C3 冷启动默认落题库 tab（frame-quiz 可见 / frame-study 懒加载隐藏 / quiz active）
+ *   C4 初始进入题库 → 自动弹 VIP（无需手动切 tab）
+ *   C5 点 X 关闭 → 本会话不再弹 + 跳学习页
+ *   C6 未领取刷新 → 仍弹（未领取 → 每次登录/重开仍显示领取）
+ *   C7 未登录点领取 → 弹登录 Sheet
+ *   C8 领取路径关登录 → 跳学习页（benefitUsing 保留）
+ *   C9 权益线登录成功 → VIP 到账 + 持久化 + 跳学习页
+ *   C10 学习页 onboarding（填画像）视图可见
+ *   C11 已领取刷新 → 不再弹（首次领取完成后不显示弹窗）
+ *   C12 闪卡/我的 tab → 不再弹
+ *   C13 已登录点领取 → 直接到账（不弹登录）+ 跳学习页
  */
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -54,82 +60,103 @@ await cdp('Page.enable');
 await cdp('Page.navigate', { url: `http://127.0.0.1:${PORT}/AI伴学_小程序.html` });
 await sleep(1500);
 
-/* C1 冷启动 STATE 全默认 */
+/* C1 冷启动 STATE：登录/画像全默认，vipClaimed 首次冷启动=false */
 assert(await js(`STATE.logged === false`), 'C1a logged=false');
 assert(await js(`STATE.user === null`), 'C1b user=null');
-assert(await js(`STATE.vipClaimed === false`), 'C1c vipClaimed=false');
-assert(await js(`STATE.profileLevel === 'none'`), 'C1d profileLevel=none');
+assert(await js(`STATE.profileLevel === 'none'`), 'C1c profileLevel=none');
+assert(await js(`STATE.vipClaimed === false`), 'C1d vipClaimed=false（首次冷启动无持久记录）');
 
-/* C2 预置污染旧值 → 刷新后不恢复，仍全默认（验证非读取、彻底冷启动） */
+/* C2 预置污染旧 zsb_state_v1（含 vipClaimed:true）→ 刷新后不恢复（vipClaimed 只认独立 key） */
 await js(`localStorage.setItem('zsb_state_v1', JSON.stringify({logged:true, user:{nick:'旧值',school:'旧校'}, vipClaimed:true, profileLevel:'done'}))`);
 await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-assert(await js(`STATE.logged === false`), 'C2a 预置logged=true → 刷新后仍false（不恢复旧值）');
-assert(await js(`STATE.vipClaimed === false`), 'C2b 预置vipClaimed=true → 刷新后仍false');
-assert(await js(`STATE.profileLevel === 'none'`), 'C2c 预置profileLevel=done → 刷新后仍none');
-assert(await js(`STATE.user === null`), 'C2d 预置user → 刷新后仍null');
-assert(await js(`JSON.stringify(JSON.parse(localStorage.getItem('zsb_state_v1') || '{}').logged) === 'false'`), 'C2e 预置后刷新 → 旧logged=true未残留，覆盖为新默认false');
+await sleep(1800);
+assert(await js(`STATE.logged === false`), 'C2a 预置logged=true → 刷新后仍false');
+assert(await js(`STATE.profileLevel === 'none'`), 'C2b 预置profileLevel=done → 刷新后仍none');
+assert(await js(`STATE.user === null`), 'C2c 预置user → 刷新后仍null');
+assert(await js(`STATE.vipClaimed === false`), 'C2d zsb_state_v1 内 vipClaimed=true 不生效（独立 key 为准）');
 
-/* C3 刷新重载后仍全默认（彻底冷启动） */
-await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-assert(await js(`STATE.logged === false`), 'C3a 刷新后 logged 仍 false');
-assert(await js(`STATE.vipClaimed === false`), 'C3b 刷新后 vipClaimed 仍 false');
-assert(await js(`STATE.profileLevel === 'none'`), 'C3c 刷新后 profileLevel 仍 none');
+/* C3 冷启动默认落题库 tab（闪屏后 → 题库页，学习页懒加载） */
+assert(await js(`!document.getElementById('frame-quiz').classList.contains('hidden')`), 'C3a frame-quiz 可见（默认落题库）');
+assert(await js(`document.getElementById('frame-study').classList.contains('hidden')`), 'C3b frame-study 隐藏（懒加载）');
+assert(await js(`document.querySelector('.tab-item[data-frame="quiz"]').classList.contains('active')`), 'C3c quiz tab active');
+assert(await js(`document.getElementById('appbarTitle').textContent === '题库'`), 'C3d 顶栏标题=题库');
 
-/* C4 首次进题库 tab → 自动弹 VIP */
-await js(`switchTab('quiz')`);
-await sleep(450);
-assert(await js(`document.getElementById('benefitMask').classList.contains('show')`), 'C4a 切题库 → benefitMask.show');
-assert(await js(`STATE.vipClaimed === false`), 'C4b 未领取（未到时账）');
+/* C4 初始进入题库 → 自动弹 VIP（无需手动切 tab） */
+assert(await js(`document.getElementById('benefitMask').classList.contains('show')`), 'C4 冷启动进入题库 → 自动弹 VIP');
 
-/* C5 弹后刷新 → 会话锁不持久，切题库再次可弹 */
-await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-await js(`switchTab('quiz')`);
-await sleep(450);
-assert(await js(`document.getElementById('benefitMask').classList.contains('show')`), 'C5a 刷新后切题库 → 再次弹 VIP');
-
-/* 关掉弹窗（模拟点X）→ 本会话不再弹 */
+/* C5 点 X 关闭 → 本会话不再弹 + 跳转学习页 */
 await js(`document.getElementById('benefitClose').click()`);
-await sleep(250);
-await js(`switchTab('study')`);
-await sleep(300);
+await sleep(400);
+assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C5a 点X → 弹窗隐藏');
+assert(await js(`!document.getElementById('frame-study').classList.contains('hidden')`), 'C5b 关闭 → 跳学习页（frame-study 可见）');
+assert(await js(`document.getElementById('frame-quiz').classList.contains('hidden')`), 'C5c 已切走 → frame-quiz 隐藏');
 await js(`switchTab('quiz')`);
 await sleep(400);
-assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C5b 关过 → 本会话切题库不再弹');
+assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C5d 关闭过 → 本会话切回题库不再弹');
 
-/* C6 领取后 vipClaimed=true → 不再弹（刷新后冷启动先恢复否则会污染） */
+/* C6 未领取刷新 → 仍弹（未领取 → 每次登录/重开仍显示领取） */
 await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-await js(`STATE.vipClaimed = true`);       /* 模拟已领取（真实流程走 claimBenefit 链） */
-await js(`switchTab('quiz')`);
+await sleep(1800);
+assert(await js(`STATE.vipClaimed === false`), 'C6a 刷新后未领取状态保持');
+assert(await js(`document.getElementById('benefitMask').classList.contains('show')`), 'C6b 未领取刷新 → 再次弹 VIP');
+
+/* C7 未登录点领取 → 弹登录 Sheet（不立即到账） */
+await js(`document.getElementById('benefitCta').click()`);
 await sleep(450);
-assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C6 已领取 → 不再弹');
+assert(await js(`document.getElementById('loginSheet').classList.contains('show')`), 'C7a 点领取（未登录）→ 弹登录 Sheet');
+assert(await js(`STATE.vipClaimed === false`), 'C7b 未登录未到账');
 
-/* C7 闪卡/我的 → 不再弹 */
-await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-await js(`switchTab('flash')`);
-await sleep(350);
-assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C7a 切闪卡 → 不弹');
-await js(`switchTab('mine')`);
+/* C8 领取路径关登录 → 跳学习页（benefitUsing 保留：点过领取，后续登录仍到账） */
+await js(`document.getElementById('loginClose').click()`);
 await sleep(400);
-assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C7b 切我的 → 不弹');
+assert(await js(`!document.getElementById('loginSheet').classList.contains('show')`), 'C8a 登录 Sheet 关闭');
+assert(await js(`!document.getElementById('frame-study').classList.contains('hidden')`), 'C8b 领取路径关登录 → 跳学习页');
 
-/* C8 刷新后学习页显示「填画像」视图（冷启动 → profileLevel=none → obStart → view-onboard） */
-await cdp('Page.reload', { ignoreCache: true });
-await sleep(1600);
-await js(`switchTab('study')`);
-await sleep(600);
-const onboardVisible = await js(`(function(){
+/* C9 权益线登录成功 → VIP 到账 + 持久化 + 跳学习页 */
+await js(`openLoginSheet('benefit')`);
+await js(`document.getElementById('loginAgree').checked = true`);
+await js(`document.getElementById('loginButton').click()`);
+await sleep(500);
+assert(await js(`STATE.logged === true`), 'C9a 登录成功 logged=true');
+assert(await js(`STATE.vipClaimed === true`), 'C9b 权益线登录 → VIP 到账');
+assert(await js(`localStorage.getItem('zsb_vip_claimed_v1') === '1'`), 'C9c vipClaimed 持久化写入 zsb_vip_claimed_v1');
+assert(await js(`!document.getElementById('loginSheet').classList.contains('show')`), 'C9d 登录 Sheet 关闭');
+assert(await js(`!document.getElementById('frame-study').classList.contains('hidden')`), 'C9e 登录成功 → 跳学习页');
+
+/* C10 学习页 onboarding（填画像）视图可见（未画像 → 填画像） */
+await sleep(1500);
+const onboardActive = await js(`(function(){
   var f = document.getElementById('frame-study');
   if (!f || !f.contentDocument) return 'no-frame';
   var v = f.contentDocument.getElementById('view-onboard');
   return v ? (v.className.indexOf('active') !== -1 || v.style.display !== 'none') : 'no-view';
 })()`);
-assert(onboardVisible === true, 'C8 刷新后学习页进入填画像视图 (view-onboard 可见)');
-assert(await js(`document.getElementById('frame-study').contentDocument.getElementById('view-onboard') !== null`), 'C8b 学习页存在 view-onboard');
+assert(onboardActive === true, 'C10 跳学习页 → 填画像视图可见（view-onboard active）');
+
+/* C11 已领取刷新 → 不再弹（首次领取完成后不显示弹窗） */
+await cdp('Page.reload', { ignoreCache: true });
+await sleep(1800);
+assert(await js(`STATE.vipClaimed === true`), 'C11a 刷新后 vipClaimed 持久为 true');
+assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C11b 已领取刷新 → 不再弹');
+
+/* C12 闪卡/我的 → 不再弹（仅题库触发） */
+await js(`switchTab('flash')`);
+await sleep(400);
+assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C12a 切闪卡 → 不弹');
+await js(`switchTab('mine')`);
+await sleep(400);
+assert(await js(`!document.getElementById('benefitMask').classList.contains('show')`), 'C12b 切我的 → 不弹');
+
+/* C13 已登录点领取 → 直接到账（不弹登录）+ 跳学习页 */
+await js(`STATE.vipClaimed = false; STATE.logged = true; benefitClosed = false; benefitShown = false;`);
+await js(`switchTab('quiz')`);
+await sleep(400);
+assert(await js(`document.getElementById('benefitMask').classList.contains('show')`), 'C13a 重置会话锁后切题库 → 弹 VIP');
+await js(`document.getElementById('benefitCta').click()`);
+await sleep(450);
+assert(await js(`STATE.vipClaimed === true`), 'C13b 已登录点领取 → 直接到账');
+assert(await js(`!document.getElementById('loginSheet').classList.contains('show')`), 'C13c 已登录点领取 → 不弹登录');
+assert(await js(`!document.getElementById('frame-study').classList.contains('hidden')`), 'C13d 已登录点领取 → 跳学习页');
 
 console.log(`\n通过 ${passed} 项，失败 ${failed} 项`);
 server.close();
