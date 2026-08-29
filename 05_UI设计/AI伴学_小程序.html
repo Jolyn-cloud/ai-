@@ -749,11 +749,11 @@ function persist() {
   try { localStorage.setItem('zsb_state_v1', JSON.stringify(STATE)); } catch(e) {}
 }
 
-/* 画像完整度：school+major+grade 齐全 → done；有任意一项 → partial；否则 none */
+/* 画像完整度：year+month+school+major 齐全 → done；有任意一项 → partial；否则 none */
 function calcProfileLevel(user) {
   var u = user || {};
-  var hasAny = u.school || u.major || u.grade;
-  var hasAll = u.school && u.major && u.grade;
+  var hasAny = u.school || u.major || u.year || u.month;
+  var hasAll = u.school && u.major && u.year && u.month;
   if (hasAll) return 'done';
   if (hasAny) return 'partial';
   return 'none';
@@ -970,9 +970,9 @@ loginButton.addEventListener('click', function() {
   loginTip.classList.remove('show');
   /* 模拟登录成功（三条线共用总壳登录 Sheet，来源区分文案 & VIP 到账） */
   STATE.logged = true;
-  /* 登录不覆盖已填的画像草稿（C）：合并昵称等身份字段，保留 school/major/grade 画像 */
+  /* 登录不覆盖已填的画像草稿（C）：合并昵称等身份字段，保留 school/major/year/month 画像 */
   STATE.user = Object.assign({}, STATE.user || {},
-    { nick: '团团酱', grade: STATE.user && STATE.user.grade || '大三', major: STATE.user && STATE.user.major || '计算机大类' });
+    { nick: '团团酱', year: STATE.user && STATE.user.year || '大三', major: STATE.user && STATE.user.major || '计算机大类' });
   STATE.profileLevel = calcProfileLevel(STATE.user);
   var from = loginFrom;
   var toastText = '登录成功';

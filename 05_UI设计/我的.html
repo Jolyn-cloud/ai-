@@ -169,7 +169,7 @@ function renderState() {
   if (STATE.logged) {
     var u = STATE.user || {};
     nameEl.textContent = u.nick || '已登录';
-    subEl.textContent = [u.major, u.grade].filter(Boolean).join(' · ') || '学习进度已同步';
+    subEl.textContent = [u.major, u.year].filter(Boolean).join(' · ') || '学习进度已同步';
     btn.textContent = '已登录';
     btn.disabled = true;
   } else {

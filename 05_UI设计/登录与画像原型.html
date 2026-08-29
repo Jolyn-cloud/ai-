@@ -299,6 +299,16 @@ body {
   background: #FBFBFE;
 }
 .field-input:focus { border-color: var(--primary); background: #fff; }
+.field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%), linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text-secondary);
+}
+.field-select:valid { color: var(--text-primary); }
 .btn-primary {
   width: 100%; height: 48px; border: none; border-radius: 14px;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -578,13 +588,34 @@ body {
 
                   <!-- 轻量进度提示：○ ○ ○ ○（非传统进度条，仅告知需完成少量信息） -->
                   <div class="ob-progress">
-                    <span class="ob-progress-label">学习画像 · 0/4</span>
+                    <span class="ob-progress-label" id="obProgressLabel">学习画像 · 0/4</span>
                     <span class="onboard-dots" id="obDots"><i class="on"></i><i></i><i></i><i></i></span>
                   </div>
 
                   <!-- 画像选择区（对话式卡片轮播：4 项依次回答，每步显示一张卡片） -->
                   <div class="onboard-chip" id="obChip0">
-                    <div class="onboard-chip-prompt"><b>第 1 项 / 4 · 所在院校</b>　告诉我你在哪所学校</div>
+                    <div class="onboard-chip-prompt" id="obPrompt0"><b>第 1 项 / 4 · 入学年份</b>　告诉我你目前处于哪个入学年份</div>
+                    <div class="onboard-picker" id="obPickerYear">
+                      <div class="onboard-picker-title">🎓 入学年份</div>
+                      <div class="onboard-picker-hint">大一、大二、大三会自动判断考试时间；选「其他」后再选择考试时间</div>
+                      <div class="onboard-caps inline" id="obYearCaps"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip1" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt1"><b>第 2 项 / 4 · 考试时间</b>　选择你的考试时间</div>
+                    <div class="onboard-picker" id="obPickerMonth">
+                      <div class="onboard-picker-title">📅 考试时间</div>
+                      <div class="onboard-picker-hint">山东统招专升本考试时间固定为三年中每年 3 月最后一个周日</div>
+                      <button class="onboard-cap ob-open" onclick="obToggleList('obMonthList', this, '选择考试时间')">
+                        <span class="ob-cap-ic">📅</span><span class="ob-cap-name">选择考试时间 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obMonthList"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip2" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt2"><b>第 3 项 / 4 · 所在院校</b>　告诉我你在哪所学校</div>
                     <div class="onboard-picker" id="obPickerSchool">
                       <div class="onboard-picker-title">🎓 所在院校</div>
                       <div class="onboard-picker-hint">选择院校，AI 可以帮你查本校的招录政策</div>
@@ -595,36 +626,15 @@ body {
                     </div>
                   </div>
 
-                  <div class="onboard-chip" id="obChip1" style="display:none">
-                    <div class="onboard-chip-prompt"><b>第 2 项 / 4 · 所在专业</b>　告诉我你的在读专业</div>
+                  <div class="onboard-chip" id="obChip3" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt3"><b>第 4 项 / 4 · 所属专业</b>　告诉我你的在读专业</div>
                     <div class="onboard-picker" id="obPickerMajor">
-                      <div class="onboard-picker-title">📚 所在专业</div>
+                      <div class="onboard-picker-title">📚 所属专业</div>
                       <div class="onboard-picker-hint">选择专业，AI 可以帮你推荐对口可报本科专业</div>
                       <button class="onboard-cap ob-open" id="obMajorOpen" onclick="obToggleList('obMajorList', this, '选择一个专业')">
                         <span class="ob-cap-ic">📚</span><span class="ob-cap-name">选择专业 ＞</span>
                       </button>
                       <div class="ob-list" id="obMajorList"></div>
-                    </div>
-                  </div>
-
-                  <div class="onboard-chip" id="obChip2" style="display:none">
-                    <div class="onboard-chip-prompt"><b>第 3 项 / 4 · 所在年级</b>　让我知道你的备考阶段</div>
-                    <div class="onboard-picker" id="obPickerGrade">
-                      <div class="onboard-picker-title">🎒 所在年级</div>
-                      <div class="onboard-picker-hint">大一打基础，大二提效率，大三冲上岸（直接点选）</div>
-                      <div class="onboard-caps inline" id="obGradeCaps"></div>
-                    </div>
-                  </div>
-
-                  <div class="onboard-chip" id="obChip3" style="display:none">
-                    <div class="onboard-chip-prompt"><b>第 4 项 / 4 · 考试时间</b>　为你倒计时，备考更有节奏</div>
-                    <div class="onboard-picker" id="obPickerMonth">
-                      <div class="onboard-picker-title">📅 考试时间</div>
-                      <div class="onboard-picker-hint">选择你的目标考试年月（月份选择器）</div>
-                      <button class="onboard-cap ob-open" onclick="obToggleList('obMonthList', this, '选择考试年月')">
-                        <span class="ob-cap-ic">📅</span><span class="ob-cap-name">选择考试时间 ＞</span>
-                      </button>
-                      <div class="ob-list" id="obMonthList"></div>
                     </div>
                   </div>
 
@@ -724,12 +734,23 @@ body {
               </div>
 
               <div class="form-row">
-                <label class="form-label">年级<span class="req">*</span></label>
-                <div class="chip-group" id="gradeGroup">
-                  <button class="field-chip" data-v="大一">大一</button>
-                  <button class="field-chip" data-v="大二">大二</button>
-                  <button class="field-chip" data-v="大三">大三</button>
+                <label class="form-label">入学年份<span class="req">*</span></label>
+                <div class="chip-group" id="yearGroup">
+                  <button class="field-chip field-chip-enroll" data-v="大一">大一</button>
+                  <button class="field-chip field-chip-enroll" data-v="大二">大二</button>
+                  <button class="field-chip field-chip-enroll" data-v="大三">大三</button>
+                  <button class="field-chip field-chip-enroll" data-v="其他">其他</button>
                 </div>
+              </div>
+
+              <div class="form-row" id="profileExamRow" style="display:none">
+                <label class="form-label">考试时间<span class="req">*</span></label>
+                <select class="field-input field-select" id="examTimeSelect">
+                  <option value="">请选择考试时间</option>
+                  <option value="2027年3月最后一个周日">2027年3月最后一个周日</option>
+                  <option value="2028年3月最后一个周日">2028年3月最后一个周日</option>
+                  <option value="2029年3月最后一个周日">2029年3月最后一个周日</option>
+                </select>
               </div>
 
               <div class="form-row">
@@ -786,29 +807,69 @@ function showView(id) {
 /* 预置数据 */
 var OB_SCHOOLS = ['日照职业技术学院', '山东商业职业技术学院', '青岛职业技术学院', '济南职业学院', '山东科技职业学院', '威海职业学院', '淄博职业学院', '烟台职业学院', '潍坊职业学院', '临沂职业学院'];
 var OB_MAJORS  = ['计算机应用技术', '软件技术', '计算机网络技术', '大数据技术', '人工智能技术应用', '数字媒体技术', '云计算技术应用'];
-var OB_GRADES  = ['大一', '大二', '大三'];
-var OB_MONTHS  = ['2027-03', '2027-04', '2027-05', '2027-06', '2027-12', '2028-03', '2028-06'];
+var OB_YEARS   = ['大一', '大二', '大三', '其他'];
+var OB_MONTHS  = ['2027年3月最后一个周日', '2028年3月最后一个周日', '2029年3月最后一个周日'];
+var OB_MONTH_AUTO = { '大一': '2027年3月最后一个周日', '大二': '2028年3月最后一个周日', '大三': '2029年3月最后一个周日' };
 
-var obStep = 0;               /* 已填项数 0..4（点 4 项完成） */
-var obDraft = {};             /* {school, major, grade, month} 完成稿/草稿（未登录也保留） */
+var obStep = 0;               /* 已填项序号 0..3 */
+var obDraft = {};             /* {year, month, school, major} 完成稿/草稿（未登录也保留） */
 var obValues = {};            /* 当前已选 */
 var obListOpen = {};          /* 某 picker 是否展开其列表 */
 var obPendingLogin = false;   /* 完成画像后待登录：登录成功（STATE.logged=true）→ 收尾进首页 */
 
 var obScroll = document.getElementById('obScroll');
+function obVisibleIndex(progress) {
+  /* 根据已完成步数返回当前应展示的卡片下标（0-3）。
+     0=入学年份，1=考试时间(仅其他)，2=所在院校，3=所属专业 */
+  if (progress === 4) return 4;
+  if (progress === 0) return 0;
+  if (progress === 1) return obValues.year === '其他' ? 1 : 2;
+  if (progress === 2) return 2;
+  if (progress === 3) return 3;
+}
+function obVisibleNum() {
+  /* 实际展示给用户的总项数：选其他=4 项，选大一/大二/大三=3 项；未确定前按 4 展示 */
+  if (obValues.year && obValues.year !== '其他') return 3;
+  return 4;
+}
+function obUpdatePromptTexts() {
+  var visibleIdx = obVisibleIndex(obStep);
+  var total = obVisibleNum();
+  ['obPrompt0','obPrompt1','obPrompt2','obPrompt3'].forEach(function(id, idx) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var names = ['入学年份', '考试时间', '所在院校', '所属专业'];
+    var tpl = {
+      0: '告诉我你目前处于哪个入学年份',
+      1: '选择你的考试时间',
+      2: '告诉我你在哪所学校',
+      3: '告诉我你的在读专业'
+    }[idx];
+    var num = idx === 0 ? 1
+      : (idx === 1 && obValues.year !== '其他') ? 2
+      : (idx === 1) ? 2
+      : (idx === 2) ? (obValues.year && obValues.year !== '其他' ? 2 : 3)
+      : (idx === 3) ? (obValues.year && obValues.year !== '其他' ? 3 : 4)
+      : idx + 1;
+    el.innerHTML = '<b>第 ' + num + ' 项 / ' + total + ' · ' + names[idx] + '</b>　' + tpl;
+  });
+}
 function obProgressLabel() {
-  return '学习画像 · ' + obStep + '/4';
+  return '学习画像 · ' + Math.min(obStep, obVisibleNum()) + '/' + obVisibleNum();
 }
 function obRerender() {
+  obUpdatePromptTexts();
+  var visibleIdx = obVisibleIndex(obStep);
   /* 4 个圆点：已填项点亮（i < obStep） */
   var dots = document.querySelectorAll('.onboard-dots i');
   dots.forEach(function(d, i) { d.classList.toggle('on', i < obStep); });
-  var label = document.querySelector('.ob-progress-label');
+  var label = document.getElementById('obProgressLabel');
   if (label) label.textContent = obProgressLabel();
   /* 轮播：只显示当前执行项卡片 */
   ['obChip0','obChip1','obChip2','obChip3'].forEach(function(id, i) {
     var el = document.getElementById(id);
-    if (el) el.style.display = (i === obStep) ? '' : 'none';
+    var show = (visibleIdx !== 4 && i === visibleIdx);
+    if (el) el.style.display = show ? '' : 'none';
   });
   obScroll.scrollTop = obScroll.scrollHeight;
 }
@@ -852,34 +913,47 @@ function obNext(payload, lbl) {
   /* 记录答案 + 前进一步 */
   Object.assign(obValues, payload);
   if (lbl) obValues[Object.keys(payload)[0] + '_lbl'] = lbl;
+  /* 入学年份：大一/大二/大三 自动判断考试时间；选「其他」后进入考试时间步骤 */
+  if (payload.year && OB_MONTH_AUTO[payload.year]) {
+    obValues.month = OB_MONTH_AUTO[payload.year];
+  }
   obDraft = Object.assign({}, obValues);
-  postToShell('PROFILE', { user: { school: obValues.school, major: obValues.major, grade: obValues.grade, subject: '计算机基础', month: obValues.month } });
-  if (obStep < 3) { obStep++; obRerender(); return; }
-  /* 第4项已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
-  obStep = 4;
+  postToShell('PROFILE', { user: { year: obValues.year, month: obValues.month, school: obValues.school, major: obValues.major, subject: '计算机基础' } });
+  if (obStep < 3) {
+    obStep++;
+  } else {
+    obStep = 4;
+  }
+  if (obStep === 4) {
+    /* 画像已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
+    obRerender();
+    document.getElementById('obLock').classList.add('open');
+    document.getElementById('obDone').classList.toggle('show', !LOGGED);
+    obScroll.scrollTop = obScroll.scrollHeight;
+    return;
+  }
   obRerender();
-  document.getElementById('obLock').classList.add('open');
-  document.getElementById('obDone').classList.toggle('show', !LOGGED);
-  obScroll.scrollTop = obScroll.scrollHeight;
 }
 
 function obInit() {
-  var schools = OB_SCHOOLS.map(function(s) { return { v: s, lbl: s, _ic: '🎓' }; });
-  obFillList('obSchoolList', schools, function(v) { obNext({ school: v }); });
-  var majors = OB_MAJORS.map(function(m) { return { v: m, lbl: m, _ic: '📚' }; });
-  obFillList('obMajorList', majors, function(v) { obNext({ major: v }); });
-  /* 年级：直接点选 inline 胶囊列表 */
-  var gradeCaps = document.getElementById('obGradeCaps');
-  gradeCaps.innerHTML = '';
-  OB_GRADES.forEach(function(g) {
+  /* 入学年份：直接点选 inline 胶囊列表 */
+  var yearCaps = document.getElementById('obYearCaps');
+  yearCaps.innerHTML = '';
+  OB_YEARS.forEach(function(y) {
     var b = document.createElement('button');
     b.className = 'onboard-cap inline';
-    b.setAttribute('data-v', g);
-    b.innerHTML = '<span class="ob-cap-name">' + escapeHtml(g) + '</span>';
-    b.addEventListener('click', function() { obNext({ grade: g }); });
-    gradeCaps.appendChild(b);
+    b.setAttribute('data-v', y);
+    b.innerHTML = '<span class="ob-cap-name">' + escapeHtml(y) + '</span>';
+    b.addEventListener('click', function() { obNext({ year: y }); });
+    yearCaps.appendChild(b);
   });
-  /* 考试时间：月份胶囊直接点选 */
+  /* 所在院校 */
+  var schools = OB_SCHOOLS.map(function(s) { return { v: s, lbl: s, _ic: '🎓' }; });
+  obFillList('obSchoolList', schools, function(v) { obNext({ school: v }); });
+  /* 所属专业 */
+  var majors = OB_MAJORS.map(function(m) { return { v: m, lbl: m, _ic: '📚' }; });
+  obFillList('obMajorList', majors, function(v) { obNext({ major: v }); });
+  /* 考试时间：仅「其他」进入本步时使用，选项为 3 月最后一个周日 */
   obFillList('obMonthList', OB_MONTHS, function(v) { obNext({ month: v }); });
 }
 function obStart() {
@@ -909,7 +983,7 @@ window.addEventListener('message', function(evt) {
 function onObFinish() {
   if (!LOGGED) {
     /* 引导登录（强调保存画像）；不登录不清空已填（草稿保留） */
-    postToShell('PROFILE', { user: { school: obValues.school, major: obValues.major, grade: obValues.grade, month: obValues.month } });
+    postToShell('PROFILE', { user: { year: obValues.year, month: obValues.month, school: obValues.school, major: obValues.major } });
     pendingLoginFinish = function() {
       var homeScroll = document.getElementById('chatScroll');
       var tip = document.createElement('div');
@@ -949,7 +1023,7 @@ function appendAiMsg(role, text) {
   box.scrollTop = box.scrollHeight;
 }
 function getObAnswer(q) {
-  if (/年级/.test(q) || /第一|刚|刚开始/.test(q)) return '你填的年级我记下啦～结合「所在年级」，我会给你更贴合阶段的备考建议。继续点下面的卡片，把画像补完吧～';
+  if (/年份|入学|大一|大二|大三|其他/.test(q) || /第一|刚|刚开始/.test(q)) return '你填的入学年份我记下啦～结合「入学年份」，会自动判断考试时间，给你更贴合阶段的备考建议。继续点下面的卡片，把画像补完吧～';
   return '收到～你可以边填写下面的「学习画像」卡片，边问我问题，我会认真记住你的情况。';
 }
 
@@ -1094,7 +1168,7 @@ function doLogin() {
   LOGGED = true;
   document.getElementById('loginMask').classList.remove('show');
   /* 上报总壳 → 广播到我的/VIP等所有 tab */
-  postToShell('LOGGED', { user: { nick: '团团酱', grade: '大三', major: '计算机大类' } });
+  postToShell('LOGGED', { user: { nick: '团团酱', year: '大三', month: '2029年3月最后一个周日', major: '计算机大类' } });
   var next = openAfterLogin;
   openAfterLogin = null;
   if (next) next();
@@ -1110,12 +1184,25 @@ function closeProfile() {
   document.getElementById('profileMask').classList.remove('show');
 }
 
-/* 年级/科目选择（单选） */
+/* 入学年份/科目选择（单选） + 年份联动考试时间 */
 document.querySelectorAll('.field-chip').forEach(function(chip) {
   chip.addEventListener('click', function() {
     var group = chip.parentElement;
     group.querySelectorAll('.field-chip').forEach(function(c) { c.classList.remove('on'); });
     chip.classList.add('on');
+    if (group.id === 'yearGroup') {
+      var examRow = document.getElementById('profileExamRow');
+      var examSel = document.getElementById('examTimeSelect');
+      var v = chip.getAttribute('data-v');
+      if (v === '其他') {
+        examRow.style.display = '';
+        examSel.setAttribute('required', 'required');
+      } else {
+        examRow.style.display = 'none';
+        examSel.removeAttribute('required');
+        examSel.value = OB_MONTH_AUTO[v] || '';
+      }
+    }
   });
 });
 
@@ -1124,8 +1211,15 @@ document.querySelectorAll('.field-chip').forEach(function(chip) {
 function doSaveProfile() {
   var school = document.getElementById('schoolInput').value.trim();
   var major  = document.getElementById('majorInput').value.trim();
-  var grade  = document.querySelector('#gradeGroup .field-chip.on')
-    ? document.querySelector('#gradeGroup .field-chip.on').getAttribute('data-v') : '';
+  var year   = document.querySelector('#yearGroup .field-chip.on')
+    ? document.querySelector('#yearGroup .field-chip.on').getAttribute('data-v') : '';
+  var examSel = document.getElementById('examTimeSelect');
+  var examTime = examSel.value;
+  var month = examTime || OB_MONTH_AUTO[year] || '';
+  if (!year || (year === '其他' && !month)) {
+    showDoneTip('请先选择入学年份和考试时间');
+    return;
+  }
   var subj   = document.querySelector('#subjectGroup .field-chip.on')
     ? document.querySelector('#subjectGroup .field-chip.on').getAttribute('data-v') : '计算机基础';
   closeProfile();
@@ -1133,7 +1227,7 @@ function doSaveProfile() {
   if (!LOGGED) {
     /* 未登录：画像草稿直接上报总壳（总壳存草稿，登录成功自动合并落库）；
        引导登录（总壳登录 Sheet）；用户拒绝登录 → 草稿保留，不再弹（规则C + 补充） */
-    postToShell('PROFILE', { user: { school: school, major: major, grade: grade, subject: subj } });
+    postToShell('PROFILE', { user: { year: year, month: month, school: school, major: major, subject: subj } });
     showDoneTip('画像已暂存，登录后自动保存 ✅');
     try {
       if (EMBEDDED) {
@@ -1147,7 +1241,7 @@ function doSaveProfile() {
   }
   /* 已登录：直接保存 + 上报总壳 */
   showDoneTip('画像已保存 ✅');
-  postToShell('PROFILE', { user: { school: school, major: major, grade: grade, subject: subj } });
+  postToShell('PROFILE', { user: { year: year, month: month, school: school, major: major, subject: subj } });
 }
 function showDoneTip(txt) {
   var tip = document.getElementById('doneTip');
@@ -1189,7 +1283,7 @@ function escapeHtml(s) {
 function getSimAnswer(q) {
   if (/专业|跨考/.test(q)) return '统招专升本部分专业允许跨考。计算机大类通常可跨考：软件工程、数据科学与大数据技术、人工智能、网络工程等。是否受限以当年山东招考院专业对照目录为准。\n\n你填了专业更方便我精确回答，可点上方「补全资料」。';
   if (/分数线|多少分/.test(q)) return '分数线按年检索。以 2025 年山东统招专升本为例：计算机类最低投档线约 153 分（具体以招考院公布为准）。你是哪一专业、哪一届？我按你的情况算更准。';
-  return '这个问题我还在学习中。您可以在 AI 问答里补充学校 / 专业 / 年级，我答得更准。';
+  return '这个问题我还在学习中。您可以在 AI 问答里补充学校 / 专业 / 入学年份，我答得更准。';
 }
 </script>
 </body>
