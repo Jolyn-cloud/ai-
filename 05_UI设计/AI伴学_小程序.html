@@ -7,7 +7,7 @@
 <style>
 /* ============================================================
    总壳样式：左手机壳 + 右逻辑说明面板
-   （4 tab 在手机壳内，模拟真实小程序；逻辑说明随闪卡视图联动）
+   （小程序框架在手机壳内：状态栏 → 小程序栏 → 功能页 → tabBar；逻辑说明随闪卡视图联动）
    ============================================================ */
 :root{
   --primary: #5B72F5;
@@ -88,16 +88,15 @@ body {
   font-size: 16px; font-weight: 600; color: #1E2130;
   letter-spacing: 0.3px;
 }
-/* 退出按钮：清登录态回学习页 */
+/* 退出按钮：演示用小程序铬，无产品逻辑 */
 .appbar-exit {
   position: absolute; left: 14px;
   display: flex; align-items: center; gap: 4px;
-  border: none; background: none; cursor: pointer;
+  border: none; background: none;
+  cursor: default; pointer-events: none;
   font-size: 13px; font-weight: 600; color: #6E778B;
   padding: 6px 8px; border-radius: 8px;
-  transition: background .15s ease, color .15s ease;
 }
-.appbar-exit:hover { background: #F2F3F8; color: #1E2130; }
 .appbar-exit svg { width: 16px; height: 16px; }
 .phone-appbar.hidden { visibility: hidden; pointer-events: none; }
 /* 刘海 */
@@ -112,8 +111,8 @@ body {
 .phone-notch .speaker { width: 42px; height: 5px; border-radius: 3px; background: rgba(30,33,48,0.2); }
 .phone-notch .cam { width: 9px; height: 9px; border-radius: 50%; background: rgba(30,33,48,0.35); }
 
-/* 内容区：4 tab 各自 iframe，切 tab 显隐；顶部让出状态栏(34)+标题栏(44)=78，底部 docs 流天然停在 tabbar 顶端 */
-.content-frame { position: absolute; top: 78px; left: 0; right: 0; bottom: 0; }
+/* 内容区：顶部让出状态栏(34)+小程序栏(44)=78，底部让出小程序 tabBar(56) */
+.content-frame { position: absolute; top: 78px; left: 0; right: 0; bottom: 56px; }
 .content-frame iframe {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -121,9 +120,10 @@ body {
 }
 .content-frame iframe.hidden { visibility: hidden; pointer-events: none; }
 
-/* 底部 4 tab（手机壳内） */
+/* 小程序 tabBar：在白屏内、功能页之下（不属于手机壳） */
 .tabbar {
-  height: 56px; flex-shrink: 0;
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 56px; z-index: 400;
   display: flex;
   background: #FFFFFF;
   border-top: 1px solid #ECEEF6;
@@ -137,9 +137,13 @@ body {
   font-size: 10px;
   transition: color .15s ease;
 }
-.tab-item svg { width: 20px; height: 20px; stroke-width: 1.8; }
-.tab-item.active { color: var(--primary-dark); font-weight: 600; }
-.tab-item.active svg { stroke-width: 2.2; }
+.tab-item svg {
+  width: 22px; height: 20px;
+  stroke-width: 1.8;
+  stroke: currentColor;
+  fill: none;
+}
+.tab-item.active { color: var(--primary); font-weight: 600; }
 /* Home 指示条 */
 .home-bar {
   height: 5px; flex-shrink: 0;
@@ -561,6 +565,42 @@ body {
           <iframe id="frame-flash" data-src="闪卡原型.html" class="hidden"></iframe>
           <iframe id="frame-mine" data-src="我的.html" class="hidden"></iframe>
         </div>
+        <!-- 小程序 tabBar：学习 / 题库 / 闪卡 / 我的（Lucide 线性，选中主色） -->
+        <nav class="tabbar">
+          <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
+            <!-- Lucide house -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+              <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+            学习
+          </button>
+          <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
+            <!-- Lucide book-open -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 7v14"/>
+              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
+            </svg>
+            题库
+          </button>
+          <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
+            <!-- Lucide layers-2 -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/>
+              <path d="m2.5 12.87 8.5 4.87a2 2 0 0 0 2 0l8.5-4.87"/>
+              <path d="m2.5 16.87 8.5 4.87a2 2 0 0 0 2 0l8.5-4.87"/>
+            </svg>
+            闪卡
+          </button>
+          <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
+            <!-- Lucide user -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="5"/>
+              <path d="M20 21a8 8 0 0 0-16 0"/>
+            </svg>
+            我的
+          </button>
+        </nav>
 
         <!-- 品牌闪屏层（2.5s后隐藏，嵌入时跳过以避免双闪屏） -->
         <div class="splash-layer" id="splashLayer">
@@ -663,24 +703,7 @@ body {
           <span class="vip-success-text">登录成功，VIP权益已到账</span>
         </div>
       </div>
-      <nav class="tabbar">
-        <button class="tab-item active" data-frame="study" onclick="switchTab('study')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l10-9 10 9"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-          学习
-        </button>
-        <button class="tab-item" data-frame="quiz" onclick="switchTab('quiz')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          题库
-        </button>
-        <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
-          闪卡
-        </button>
-        <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
-          我的
-        </button>
-      </nav>
+      <!-- 系统 Home 指示条（手机壳，不在小程序内） -->
       <div class="home-bar"></div>
     </div>
   </div>
@@ -822,9 +845,6 @@ var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 function updateAppbar(name) {
   var title = document.getElementById('appbarTitle');
   if (title) title.textContent = (TAB_NAMES[name] || '');
-  var bar = document.getElementById('appbar');
-  /* 闪卡自带顶部标题栏（退出+进度+模式）→ 总壳标题栏收起，避免双条 */
-  if (bar) bar.classList.toggle('hidden', name === 'flash');
 }
 function switchTab(name) {
   updateAppbar(name);
@@ -852,16 +872,7 @@ function switchTab(name) {
   }
 }
 
-/* ---------- 小程序退出按钮（顶栏）：清登录态回学习页，权益会话锁复位 ----------
-   退出保留画像草稿（PM 决策）：只清登录态，profileLevel 和 user 里的画像字段不清 */
-document.getElementById('appbarExit').addEventListener('click', function() {
-  STATE.logged = false;
-  STATE.vipClaimed = false;
-  benefitShown = false;
-  benefitClosed = false;
-  broadcast();
-  switchTab('study');
-});
+/* 小程序顶栏「退出」仅为演示铬，无点击逻辑 */
 
 /* ---------- VIP 弹层 ---------- */
 var vipLayer = document.getElementById('vipLayer');
