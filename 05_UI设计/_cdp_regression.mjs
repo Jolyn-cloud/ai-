@@ -17,7 +17,7 @@ const DEVTOOLS_PORT = 9333;
 /* ---------- 静态文件服务 ---------- */
 const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.png': 'image/png' };
 const server = createServer((req, res) => {
-  const path = req.url.split('?')[0] === '/' ? '/小程序总壳.html' : decodeURIComponent(req.url.split('?')[0]);
+  const path = req.url.split('?')[0] === '/' ? '/AI伴学_小程序.html' : decodeURIComponent(req.url.split('?')[0]);
   const file = join(ROOT, path);
   if (!file.startsWith(ROOT) || !existsSync(file)) { res.writeHead(404); return res.end('not found'); }
   res.writeHead(200, { 'Content-Type': MIME[`${file.match(/\.\w+$/)?.[0] || ''}`] || 'application/octet-stream' });
@@ -106,7 +106,7 @@ async function evalIn(name, expr) {
 try {
   console.log('\n== 1. 打开总壳 ==');
   await connect();
-  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await send('Page.navigate', { url: `http://localhost:${PORT}/AI伴学_小程序.html` });
   await sleep(3500); // 闪屏 2.5s
 
   // 初始：我的 tab 未登录
@@ -261,7 +261,7 @@ try {
   console.log('\n== 4. 登录成功轻量提示（Toast）==');
 
   // 重新加载页面，重置会话状态，走一遍完整登录链路
-  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await send('Page.navigate', { url: `http://localhost:${PORT}/AI伴学_小程序.html` });
   await sleep(3500);
 
   // 首切功能 tab → 弹权益 → 领取 → 登录 sheet
@@ -314,10 +314,10 @@ try {
 
   // 重置会话：清持久化 + reload → 冷启动的干净未登录+无画像态
   //（阶段4 Toast 链路 persist 过，直接 reload 会恢复登录态，场景 A 需干净的「未登录」起点）
-  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await send('Page.navigate', { url: `http://localhost:${PORT}/AI伴学_小程序.html` });
   await sleep(2000);
   await evalJs(`localStorage.removeItem('zsb_state_v1'); 'ok'`);
-  await send('Page.navigate', { url: `http://localhost:${PORT}/小程序总壳.html` });
+  await send('Page.navigate', { url: `http://localhost:${PORT}/AI伴学_小程序.html` });
   await sleep(3500); // 闪屏 2.5s + 总壳 ready
 
   // 场景 A：未登录填画像（规则②④ + C）→ 未登录 openProfile 可进（不再强制登录）

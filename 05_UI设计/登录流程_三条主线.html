@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录/领取流程图（三条主线）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #EDEFF7; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #202533;
+  }
+  .page {
+    width: 1400px;
+    margin: 0 auto;
+    background:
+      radial-gradient(900px 300px at 70% -40px, rgba(91,114,245,0.08) 0%, transparent 60%),
+      #F6F7FB;
+    padding: 34px 30px 44px;
+  }
+
+  /* ===== 头部 ===== */
+  .header { text-align: center; margin-bottom: 26px; }
+  .header .title { font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
+  .header .meta {
+    display: inline-block; margin-top: 10px;
+    font-size: 13px; color: #6E778B; background: #fff;
+    border: 1px solid #E3E8F2; border-radius: 14px; padding: 7px 14px;
+  }
+  .header .meta b { color: #4358D7; }
+
+  /* ===== 节点 ===== */
+  .node {
+    display: inline-block;
+    background: #FFFFFF;
+    border: 1.5px solid #D8DEE9;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14.5px; font-weight: 600; line-height: 1.5;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(54,66,108,0.06);
+  }
+  .node .sub { display: block; font-size: 11.5px; font-weight: 400; color: #6E778B; margin-top: 4px; line-height: 1.45; }
+  .node.start { background: linear-gradient(135deg, #20A866, #17A05A); border-color: transparent; color: #fff; }
+  .node.end { background: #EDEFF3; border-color: #D8DEE9; color: #8A93A6; font-weight: 500; }
+  .node.dec {
+    background: linear-gradient(180deg, #FFFFFF, #F4F7FF);
+    border-color: #5B72F5;
+    color: #4358D7;
+    position: relative;
+  }
+  .node.dec::before {
+    content: '判断';
+    position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    background: #5B72F5; color: #fff;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 8px; white-space: nowrap;
+  }
+  .node.login { background: linear-gradient(135deg, #F28B3D, #F07A2A); border-color: transparent; color: #fff; }
+  .node.success { background: linear-gradient(135deg, #5B72F5, #4358D7); border-color: transparent; color: #fff; }
+  .node.small { font-size: 13px; padding: 8px 12px; }
+
+  /* ===== 箭头 ===== */
+  .arrow {
+    width: 100%; text-align: center;
+    color: #9AA3B8; font-size: 15px; line-height: 1;
+    padding: 7px 0 6px;
+  }
+  .arrow.lbl { font-size: 11.5px; font-weight: 600; color: #6E778B; }
+
+  /* ===== 分支 ===== */
+  .fork {
+    display: flex; gap: 12px; align-items: stretch;
+    width: 100%; margin-top: 2px;
+  }
+  .fork-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .fork-label {
+    font-size: 11.5px; font-weight: 700;
+    background: #fff; border: 1px solid #D8DEE9; border-radius: 10px;
+    padding: 3px 10px; margin: 6px 0 5px;
+    color: #4358D7; white-space: nowrap;
+  }
+  .fork-label.no { color: #B0442E; }
+  .fork-label.ok { color: #20A866; }
+  .fork-label.plain { color: #6E778B; }
+  .fork-side {
+    border: 1.5px dashed #C9D1E0; border-radius: 12px;
+    background: rgba(255,255,255,0.55);
+    padding: 8px; display: flex; flex-direction: column; align-items: center;
+  }
+  .chain { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+  /* ===== 顶部启动链 ===== */
+  .top-chain { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 0 0 24px; }
+  .top-chain .arrow { width: auto; padding: 0 6px; }
+
+  /* ===== 三泳道 ===== */
+  .lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+  .lane {
+    background: #fff; border-radius: 18px; border: 1px solid #E6EAF4;
+    overflow: hidden; box-shadow: 0 8px 24px rgba(54,66,108,0.05);
+  }
+  .lane-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16.5px; font-weight: 800; color: #fff;
+    padding: 13px 16px; letter-spacing: 0.3px;
+  }
+  .lane-title .tag {
+    margin-left: auto; font-size: 11px; font-weight: 600;
+    background: rgba(255,255,255,0.2); border-radius: 8px; padding: 3px 9px; white-space: nowrap;
+  }
+  .lane-body { padding: 18px 14px 22px; display: flex; flex-direction: column; align-items: center; }
+  .lane-1 .lane-title { background: linear-gradient(135deg, #5B72F5, #4358D7); }
+  .lane-2 .lane-title { background: linear-gradient(135deg, #20A866, #17A05A); }
+  .lane-3 .lane-title { background: linear-gradient(135deg, #F28B3D, #F07A2A); }
+
+  /* ===== 底部收尾 ===== */
+  .footer-merge {
+    margin-top: 26px;
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+  }
+  .merge-box {
+    background: linear-gradient(135deg, #5B72F5, #4358D7); color: #fff;
+    border-radius: 16px; padding: 14px 26px; text-align: center;
+    box-shadow: 0 10px 26px rgba(91,114,245,0.28);
+  }
+  .merge-box .t1 { font-size: 16px; font-weight: 800; }
+  .merge-box .t2 { font-size: 12.5px; opacity: 0.92; margin-top: 4px; }
+
+  .lane-foot {
+    margin-top: 10px; width: 100%; text-align: center;
+    font-size: 11.5px; color: #98A0B2;
+    background: #F5F6FB; border-radius: 10px; padding: 6px 8px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ 头部 ============ -->
+  <div class="header">
+    <div class="title">登录 / 领取流程图（三条主线）</div>
+    <div class="meta">
+      对齐基线：2026-08-30 总壳实现（<b>AI伴学_小程序.html</b>）· 三条线入口独立，收尾统一 · 登录成功 → <b>broadcast()</b> 状态全局同步（所有页面一致）
+    </div>
+  </div>
+
+  <!-- ============ 启动 → 进入首页 ============ -->
+  <div class="top-chain">
+    <div class="node start">启动</div>
+    <div class="arrow">▼</div>
+    <div class="node start">进入首页（AI 学习页 tab）</div>
+  </div>
+
+  <div class="lanes">
+
+  <!-- ============ 第一线 · 功能 tab（VIP 领取） ============ -->
+  <div class="lane lane-1">
+    <div class="lane-title">第一线 · 功能 tab <span class="tag">VIP 领取</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node dec">切到功能 tab<br><span class="sub">首次进入题库页：闪屏后默认落题库页（仅题库触发，闪卡/我的不再弹）</span></div>
+        <div class="arrow">▼</div>
+        <div class="node dec">是否已领过？<span class="sub">vipClaimed 持久化：未领取→每次登录/重开仍弹</span></div>
+      </div>
+
+      <div class="fork">
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label no">领过</div>
+          <div class="node end">不显示（结束）</div>
+        </div>
+        <div class="fork-col" style="flex:2">
+          <div class="fork-label ok">未领过</div>
+          <div class="node">弹出领取弹窗</div>
+          <div class="arrow">▼</div>
+          <div class="node dec">是否已登录？</div>
+        </div>
+      </div>
+
+      <div class="fork" style="margin-top:6px">
+        <div class="fork-col" style="flex:1.35">
+          <div class="fork-label no">未登录</div>
+          <div class="node login">登录 Sheet</div>
+          <div class="arrow">▼</div>
+          <div class="node success">登录成功 → VIP 到账</div>
+          <div class="arrow lbl">Toast「登录成功，VIP权益已到账」</div>
+          <div class="node">跳学习页填画像</div>
+        </div>
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label ok">已登录</div>
+          <div class="node small">点「领取专属权益」→ VIP 直接到账</div>
+          <div class="arrow lbl">Toast「领取成功」</div>
+          <div class="node small">跳学习页（正常使用）</div>
+        </div>
+      </div>
+
+      <div class="fork-side" style="margin-top:12px; width:100%">
+        <div class="fork-label plain">关闭（点 X / 图外）</div>
+        <div class="node end small">本会话不再弹</div>
+        <div class="arrow lbl">▼</div>
+        <div class="node small">跳学习页填画像<br><span class="sub">未领取，下次登录仍弹</span></div>
+      </div>
+
+      <div class="lane-foot">领取后收尾见底部「登录成功 → 状态全局同步」；已领取走「我的 → VIP 会员」常驻入口</div>
+    </div>
+  </div>
+
+  <!-- ============ 第二线 · AI 首次互动（用户画像） ============ -->
+  <div class="lane lane-2">
+    <div class="lane-title">第二线 · AI 首次互动 <span class="tag">用户画像</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node">AI 首次互动<br><span class="sub">学习页 AI 问答 / 首次进入画像对话</span></div>
+        <div class="arrow">▼</div>
+        <div class="node dec">是否填写用户信息？<span class="sub">学校/专业/入学年份（+考试时间，其他需手选）</span></div>
+      </div>
+
+      <div class="fork">
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label no">不填</div>
+          <div class="node">AI 正常对话<br><span class="sub">游客可试用，不强制登录</span></div>
+        </div>
+        <div class="fork-col" style="flex:2">
+          <div class="fork-label ok">填</div>
+          <div class="node">画像已保存<span class="sub">未登录存草稿，登录成功自动合并落库</span></div>
+          <div class="arrow">▼</div>
+          <div class="node dec">是否已登录？</div>
+        </div>
+      </div>
+
+      <div class="fork" style="margin-top:6px">
+        <div class="fork-col" style="flex:1.5">
+          <div class="fork-label no">未登录</div>
+          <div class="node login">登录 Sheet<span class="sub">拒绝登录 → 草稿保留，不再强弹</span></div>
+          <div class="arrow">▼</div>
+          <div class="node success">登录成功</div>
+          <div class="arrow lbl">画像已保存</div>
+          <div class="node small">正常使用</div>
+        </div>
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label ok">已登录</div>
+          <div class="node small">直接落库<br>正常使用</div>
+        </div>
+      </div>
+
+      <div class="lane-foot">AI 可未登录试用；登录与画像状态互相独立（logged × profileLevel）</div>
+    </div>
+  </div>
+
+  <!-- ============ 第三线 · 所有登录状态 / 其他通用 ============ -->
+  <div class="lane lane-3">
+    <div class="lane-title">第三线 · 其他通用 <span class="tag">我的页 / 需账号功能</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node">其他入口 → 我的页 / 需账号功能</div>
+        <div class="arrow">▼</div>
+        <div class="node dec">是否已登录？</div>
+      </div>
+
+      <div class="fork">
+        <div class="fork-col" style="flex:1.5">
+          <div class="fork-label no">未登录</div>
+          <div class="node login">总壳登录 Sheet<span class="sub">REQ_LOGIN 由总壳统一承载</span></div>
+          <div class="arrow">▼</div>
+          <div class="node success">登录成功</div>
+          <div class="arrow lbl">Toast「登录成功」</div>
+          <div class="node small">正常使用</div>
+        </div>
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label ok">已登录</div>
+          <div class="node small">正常使用</div>
+        </div>
+      </div>
+
+      <div class="lane-foot">登录唯一入口：总壳登录 Sheet（A）；登录成功 → broadcast() 状态全局同步</div>
+    </div>
+  </div>
+
+  </div><!-- /.lanes -->
+
+  <!-- ============ 底部统一收尾 ============ -->
+  <div class="footer-merge">
+    <div class="node login">登录</div>
+    <div class="arrow">▼</div>
+    <div class="node success">登录成功</div>
+    <div class="arrow">▼</div>
+    <div class="merge-box">
+      <div class="t1">broadcast() 状态全局同步</div>
+      <div class="t2">所有页面一致（学习 / 题库 / 闪卡 / 我的）</div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+</body>
+</html>
