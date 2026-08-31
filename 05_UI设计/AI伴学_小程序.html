@@ -384,13 +384,165 @@ body {
 }
 .vip-login-privacy a:hover { text-decoration: underline; }
 
-.vip-login-tip {
-  min-height: 18px;
-  font-size: 12px; color: #E5573F;
-  text-align: center; margin-top: 8px;
-  opacity: 0; transition: opacity .2s ease;;
+/* ============ 隐私政策提示浮窗（未勾选协议点微信登录时上浮，叠于登录 Sheet 之上） ============
+   交互：同意→下滑隐藏+自动勾选；不同意→下滑隐藏+不勾选；遮罩点击不关闭（需显式选择） */
+.privacy-modal {
+  position: absolute; inset: 0;
+  z-index: 3800;               /* 高于登录 Sheet(3600)，低于成功 Toast(4000) */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
 }
-.vip-login-tip.show { opacity: 1; }
+.privacy-modal.show { opacity: 1; visibility: visible; }
+
+.privacy-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.privacy-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角，与登录 Sheet 一致 */
+  padding: 12px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  text-align: left;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 / 下滑隐藏 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.privacy-modal.show .privacy-sheet { transform: translateY(0); }
+
+.privacy-handle {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: #E3E6F0; margin: 0 auto 20px;
+}
+.privacy-title {
+  font-size: 19px; font-weight: 700; color: #25283A;
+  text-align: left;
+  margin-bottom: 12px;
+}
+.privacy-desc {
+  font-size: 13px; color: #6E778B;
+  line-height: 1.7; margin-bottom: 22px;
+  text-align: left;
+  max-height: 42vh;               /* 文案较长：超出滚动，保证按钮可见 */
+  overflow-y: auto;
+}
+.privacy-desc p { margin-bottom: 10px; }
+.privacy-desc p:last-child { margin-bottom: 0; }
+.privacy-desc a {
+  color: #5B72F5; text-decoration: none; font-weight: 600;
+  cursor: pointer;
+}
+.privacy-desc a:hover { text-decoration: underline; }
+
+.privacy-actions {
+  display: flex; gap: 12px;
+}
+.privacy-btn {
+  flex: 1; height: 48px;
+  border: none; border-radius: 15px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.privacy-btn:active { transform: scale(.97); filter: brightness(.97); }
+/* 不同意：白底灰字描边（次级） */
+.privacy-btn-no {
+  background: #F5F6FA; color: #6E778B;
+  border: 1px solid #E3E6F0;
+}
+/* 同意：紫→绿渐变（主 CTA，与微信登录按钮一致） */
+.privacy-btn-yes {
+  background: linear-gradient(100deg, #7169ED 0%, #62CFA9 100%);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(113,105,237,0.28);
+}
+.privacy-btn-yes:active { box-shadow: 0 5px 12px rgba(113,105,237,.24); }
+
+/* ============ 手机号选择弹窗（微信一键登录返回多个手机号时上浮，选绑定号后登录） ============
+   交互：点击手机号条目→绑定该号并登录；暂不登录→仅关闭选择弹窗停留登录 Sheet */
+.phone-modal {
+  position: absolute; inset: 0;
+  z-index: 3900;               /* 高于隐私弹窗(3800)，低于成功 Toast(4000) */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.phone-modal.show { opacity: 1; visibility: visible; }
+
+.phone-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.phone-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角，与登录/隐私弹窗一致 */
+  padding: 12px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 / 下滑隐藏 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.phone-modal.show .phone-sheet { transform: translateY(0); }
+
+.phone-handle {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: #E3E6F0; margin: 0 auto 20px;
+}
+.phone-title {
+  font-size: 19px; font-weight: 700; color: #25283A;
+  margin-bottom: 8px;
+}
+.phone-desc {
+  font-size: 13px; color: #6E778B;
+  line-height: 1.7; margin-bottom: 18px;
+}
+.phone-list {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.phone-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; height: 58px;
+  border: 1px solid #EDEFF5; border-radius: 16px;
+  background: #F7F8FC;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: border-color .12s ease, background .12s ease, transform .12s ease;
+}
+.phone-item:active { transform: scale(.98); border-color: #5B72F5; background: #EEF1FF; }
+.phone-item-ico {
+  width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #EEF1FF, #E4FBF5);
+  color: #5B72F5;
+}
+.phone-item-ico svg { width: 18px; height: 18px; }
+.phone-item-num {
+  flex: none;
+  width: 128px;          /* 号码列定宽 → 两个号码右边缘对齐到同一位置 */
+  text-align: right;     /* 号码右对齐 */
+  font-size: 16px; font-weight: 600; color: #202533;
+  letter-spacing: 1px;
+}
+.phone-item-tag {
+  font-size: 11px; font-weight: 600; color: #4358D7;
+  background: #EEF1FF; border-radius: 99px; padding: 3px 9px;
+}
+.phone-cancel {
+  width: 100%; height: 48px;
+  border: 1px solid #E3E6F0; border-radius: 15px;
+  background: #F5F6FA; color: #6E778B;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.phone-cancel:active { transform: scale(.97); }
 
 /* ============ 登录成功轻量提示（Toast）：登录成功 → 短暂出现 → 自动消失 ============
    视觉：半透明白 · 紫绿渐变光晕 · 轻阴影 · 圆角14-16px · 紧凑 · 无皇冠/关闭/大卡片 */
@@ -686,7 +838,6 @@ body {
             <p class="vip-login-desc">登录后即可领取新用户专属 VIP 学习权益</p>
 
             <button class="vip-login-button" id="loginButton">微信一键登录</button>
-            <div class="vip-login-tip" id="loginTip">请先同意用户协议和隐私政策</div>
 
             <label class="vip-login-privacy">
               <input type="checkbox" id="loginAgree" />
@@ -694,6 +845,43 @@ body {
               <a href="javascript:void(0)">《用户协议》</a>和
               <a href="javascript:void(0)">《隐私政策》</a>
             </label>
+          </section>
+        </div>
+
+        <!-- 隐私政策提示浮窗（未勾选协议点微信登录时上浮；同意→自动勾选，不同意→不勾选） -->
+        <div class="privacy-modal" id="privacyModal">
+          <div class="privacy-overlay"></div>
+
+          <section class="privacy-sheet">
+            <div class="privacy-handle"></div>
+
+            <h3 class="privacy-title">用户协议及隐私政策</h3>
+            <div class="privacy-desc">
+              <p>在您注册成为成员的过程中，您需要通过点击同意的形式在线签署<a href="javascript:void(0)">《用户协议》</a>、<a href="javascript:void(0)">《隐私政策》</a>，请您务必仔细阅读、充分理解条款内容后再点击同意。</p>
+              <p>请您注意:如果您不同意上述服务条款、隐私政策或其中任何约定，请您停止注册。如您阅读并点击同意即表示您已充分阅读、理解并接受其全部内容，并表明您也同意可以依据以上隐私政策来处理您的个人信息。</p>
+              <p>点击同意即表示您已阅读并同意<a href="javascript:void(0)">《用户协议》</a>与<a href="javascript:void(0)">《隐私政策》</a>。</p>
+            </div>
+
+            <div class="privacy-actions">
+              <button class="privacy-btn privacy-btn-no" id="privacyDisagree">不同意</button>
+              <button class="privacy-btn privacy-btn-yes" id="privacyAgree">同意</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- 手机号选择弹窗（微信一键登录返回多个手机号时上浮，点击选择绑定哪个后登录） -->
+        <div class="phone-modal" id="phoneModal">
+          <div class="phone-overlay"></div>
+
+          <section class="phone-sheet">
+            <div class="phone-handle"></div>
+
+            <h3 class="phone-title">选择绑定手机号</h3>
+            <p class="phone-desc">检测到您的微信关联了多个手机号，请选择要绑定登录的手机号</p>
+
+            <div class="phone-list" id="phoneList"></div>
+
+            <button class="phone-cancel" id="phoneCancel">暂不登录</button>
           </section>
         </div>
 
@@ -949,14 +1137,12 @@ var loginSheet   = document.getElementById('loginSheet');
 var loginClose   = document.getElementById('loginClose');
 var loginButton  = document.getElementById('loginButton');
 var loginAgree   = document.getElementById('loginAgree');
-var loginTip     = document.getElementById('loginTip');
 var loginOverlay = document.getElementById('loginOverlay');
 
 /* 登录来源：benefit=权益线（领取→登录→VIP到账） / onboarding=画像线（登录→跳问答） / 其他=我的等普通登录 */
 var loginFrom = 'general';
 function openLoginSheet(from) {
   loginFrom = from || 'general';          /* 记录本次登录来源（决定 toast 文案 & 是否 VIP 到账） */
-  loginTip.classList.remove('show');     /* 重置提示 */
   loginSheet.classList.add('show');
 }
 function closeLoginSheet() {
@@ -971,18 +1157,74 @@ function closeLoginSheetThen() {
 loginClose.addEventListener('click', closeLoginSheetThen);
 /* 点遮罩：同样关闭（与 × 一致） */
 loginOverlay.addEventListener('click', closeLoginSheetThen);
-/* 微信一键登录：先校验协议勾选 */
+/* ---------- 隐私政策提示浮窗（未勾选协议 → 上浮提示；同意→自动勾选 / 不同意→不勾选） ---------- */
+var privacyModal = document.getElementById('privacyModal');
+function openPrivacyModal()  { privacyModal.classList.add('show'); }
+function closePrivacyModal() { privacyModal.classList.remove('show'); }
+/* 同意 → 弹窗下滑隐藏 + 自动勾选，用户可再点微信一键登录（不自动登录） */
+document.getElementById('privacyAgree').addEventListener('click', function() {
+  closePrivacyModal();
+  loginAgree.checked = true;
+});
+/* 不同意 → 弹窗下滑隐藏 + 保持不勾选 */
+document.getElementById('privacyDisagree').addEventListener('click', function() {
+  closePrivacyModal();
+});
+
+/* ---------- 手机号选择弹窗（微信一键登录返回多个手机号 → 选择绑定哪个后登录） ---------- */
+var phoneModal  = document.getElementById('phoneModal');
+var phoneList   = document.getElementById('phoneList');
+var phoneCancel = document.getElementById('phoneCancel');
+/* 模拟微信 getPhoneNumber 返回的关联手机号（接真实接口时替换）；仅 1 个时直接登录，不弹选择 */
+var WX_PHONES = [
+  { num: '138****1234', tag: '微信绑定' },
+  { num: '139****5678', tag: '' }
+];
+function renderPhoneList(phones) {
+  phoneList.innerHTML = phones.map(function(p) {
+    return '<button class="phone-item" data-phone="' + p.num + '">' +
+      '<span class="phone-item-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>' +
+      '<span class="phone-item-num">' + p.num + '</span>' +
+      (p.tag ? '<span class="phone-item-tag">' + p.tag + '</span>' : '') +
+      '</button>';
+  }).join('');
+}
+function openPhoneModal()  { phoneModal.classList.add('show'); }
+function closePhoneModal() { phoneModal.classList.remove('show'); }
+/* 点击手机号条目 → 绑定该号并登录 */
+phoneList.addEventListener('click', function(e) {
+  var item = e.target.closest('.phone-item');
+  if (!item) return;
+  closePhoneModal();
+  doWechatLogin(item.getAttribute('data-phone'));
+});
+/* 暂不登录 → 仅关闭手机号选择弹窗，停留登录 Sheet */
+phoneCancel.addEventListener('click', closePhoneModal);
+
+/* 微信一键登录：未勾选协议 → 上浮隐私弹窗；已勾选 → 判断手机号（多个→选择弹窗）→ 登录 */
 loginButton.addEventListener('click', function() {
   if (!loginAgree.checked) {
-    loginTip.classList.add('show');
+    openPrivacyModal();
     return;
   }
-  loginTip.classList.remove('show');
-  /* 模拟登录成功（三条线共用总壳登录 Sheet，来源区分文案 & VIP 到账） */
+  /* 模拟微信一键登录返回关联手机号：多个 → 弹选择框选绑定号；仅 1 个 → 直接登录 */
+  var phones = WX_PHONES;
+  if (phones.length > 1) {
+    renderPhoneList(phones);
+    openPhoneModal();
+    return;
+  }
+  doWechatLogin(phones.length ? phones[0].num : '');
+});
+
+/* 登录成功统一收口：携带绑定手机号（三条线共用登录 Sheet，来源区分文案 & VIP 到账） */
+function doWechatLogin(phone) {
   STATE.logged = true;
-  /* 登录不覆盖已填的画像草稿（C）：合并昵称等身份字段，保留 school/major/year/month 画像 */
+  /* 登录不覆盖已填的画像草稿（C）：合并昵称/手机号等身份字段，保留 school/major/year/month 画像 */
   STATE.user = Object.assign({}, STATE.user || {},
-    { nick: '团团酱', year: STATE.user && STATE.user.year || '大三', major: STATE.user && STATE.user.major || '计算机大类' });
+    { nick: '团团酱', phone: phone,
+      year: STATE.user && STATE.user.year || '大三',
+      major: STATE.user && STATE.user.major || '计算机大类' });
   STATE.profileLevel = calcProfileLevel(STATE.user);
   var from = loginFrom;
   var toastText = '登录成功';
@@ -1002,7 +1244,7 @@ loginButton.addEventListener('click', function() {
   showToastText(toastText);    /* 登录成功 → 按来源提示（自动消失，无额外点击） */
   /* 领取路径（权益线）登录成功 → VIP 已到账，跳学习页填画像/进首页 */
   if (from === 'benefit') switchTab('study');
-});
+}
 
 /* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
 var toastTimer = null;

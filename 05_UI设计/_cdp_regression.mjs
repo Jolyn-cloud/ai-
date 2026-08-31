@@ -134,16 +134,44 @@ try {
   const loginSheetShown = await evalJs(`document.getElementById('loginSheet').classList.contains('show')`);
   check('登录Sheet底部弹出', loginSheetShown === true);
 
-  // 未勾选协议 → 提示 + 不登录
+  // 未勾选协议 → 上浮隐私政策提示弹窗 + 不登录
   await evalJs(`loginAgree.checked=false; loginButton.click(); 'ok'`);
   await sleep(200);
-  const tipShown = await evalJs(`document.getElementById('loginTip').classList.contains('show')`);
+  const privacyShown = await evalJs(`document.getElementById('privacyModal').classList.contains('show')`);
   const notLogged = await evalJs(`STATE.logged === false`);
-  check('未勾选协议显示提示', tipShown === true);
+  check('未勾选协议上浮隐私提示弹窗', privacyShown === true);
   check('未勾选协议不登录', notLogged === true);
 
-  // 勾选协议 → 微信一键登录 → VIP 到账 + Sheet 关闭
-  await evalJs(`loginAgree.checked=true; loginButton.click(); 'ok'`);
+  // 不同意 → 弹窗下滑隐藏 + 不勾选 + 不登录
+  await evalJs(`document.getElementById('privacyDisagree').click(); 'ok'`);
+  await sleep(350);   // 等下滑动画 .32s 结束
+  const privacyHiddenNo = await evalJs(`!document.getElementById('privacyModal').classList.contains('show')`);
+  const agreeNo = await evalJs(`loginAgree.checked === false`);
+  check('不同意→隐私弹窗下滑隐藏', privacyHiddenNo === true);
+  check('不同意→协议不勾选', agreeNo === true);
+
+  // 再次点微信登录 → 弹窗再次上浮 → 同意 → 自动勾选 + 弹窗下滑隐藏
+  await evalJs(`loginButton.click(); 'ok'`);
+  await sleep(200);
+  const privacyShown2 = await evalJs(`document.getElementById('privacyModal').classList.contains('show')`);
+  check('再次点登录→隐私弹窗再次上浮', privacyShown2 === true);
+  await evalJs(`document.getElementById('privacyAgree').click(); 'ok'`);
+  await sleep(350);   // 等下滑动画 .32s 结束
+  const agreeYes = await evalJs(`loginAgree.checked === true`);
+  const privacyHiddenYes = await evalJs(`!document.getElementById('privacyModal').classList.contains('show')`);
+  check('同意→自动勾选协议', agreeYes === true);
+  check('同意→隐私弹窗下滑隐藏', privacyHiddenYes === true);
+
+  // 已勾选协议 → 微信一键登录 → 微信返回多手机号 → 手机号选择弹窗上浮
+  await evalJs(`loginButton.click(); 'ok'`);
+  await sleep(300);
+  const phoneShown = await evalJs(`document.getElementById('phoneModal').classList.contains('show')`);
+  const phoneCount = await evalJs(`document.querySelectorAll('.phone-item').length`);
+  check('多手机号→手机号选择弹窗上浮', phoneShown === true);
+  check('手机号弹窗展示多个号码', phoneCount > 1, `count=${phoneCount}`);
+
+  // 选择手机号 → 绑定该号登录 → VIP 到账 + Sheet 关闭
+  await evalJs(`document.querySelector('.phone-item').click(); 'ok'`);
   await sleep(400);
   const vipArrived = await evalJs(`STATE.vipClaimed === true`);
   check('登录后VIP直接到账', vipArrived === true);
@@ -271,8 +299,10 @@ try {
   await sleep(260);
   await evalJs(`loginAgree.checked=true`);
 
-  // 触发登录成功
+  // 触发登录成功（微信登录→多手机号弹窗→选手机号）
   await evalJs(`loginButton.click()`);
+  await sleep(300);
+  await evalJs(`document.querySelector('.phone-item').click()`);
   await sleep(120);  // 等 .show 加上（requestAnimationFrame 后）
 
   // Toast 出现：.show + opacity=1 + 文案 + 位置
@@ -355,7 +385,9 @@ try {
   await sleep(300);
   await evalJs(`document.getElementById('benefitCta').click()`);  // 领取→弹登录
   await sleep(260);
-  await evalJs(`loginAgree.checked=true; loginButton.click()`);  // 登录（benefitUsing→到账）
+  await evalJs(`loginAgree.checked=true; loginButton.click()`);  // 微信登录→多手机号弹窗
+  await sleep(300);
+  await evalJs(`document.querySelector('.phone-item').click()`); // 选手机号登录（benefitUsing→到账）
   await sleep(300);
   const loggedState = await evalJs(`JSON.stringify({ logged: STATE.logged, vip: STATE.vipClaimed })`);
   check('已登录且已领取(登录链路)', JSON.parse(loggedState).logged === true && JSON.parse(loggedState).vip === true, loggedState);
@@ -380,6 +412,8 @@ try {
   await evalJs(`openLoginSheet(); 'ok'`);
   await sleep(200);
   await evalJs(`loginAgree.checked=true; loginButton.click()`);
+  await sleep(300);
+  await evalJs(`document.querySelector('.phone-item').click()`); // 选手机号登录
   await sleep(300);
   const relogged = await evalJs(`JSON.stringify({ logged: STATE.logged, vip: STATE.vipClaimed })`);
   check('重新登录未领VIP(登录不上VIP)', JSON.parse(relogged).logged === true && JSON.parse(relogged).vip === false, relogged);
