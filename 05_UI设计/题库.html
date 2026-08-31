@@ -5,28 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>题库 · 首页</title>
 <style>
+/* ==== Product Theme：蓝靛 #5B72F5（与闪卡/AI 页统一，2026-08-31 对齐） ====
+   来源：闪卡原型/登录画像页 :root 共用的主色 + 辅助/状态色
+   --primary            #5B72F5  主色（选中/强调/按钮）
+   --primary-dark       #4358D7  按压/深色强调
+   --primary-light      #EEF1FF  浅底/选中背景
+   --brand-grad-end     #5A8BF5  主按钮渐变终点（AI 页口径）
+   文字  #1E2130 / #98A0B2      背景 #F8F9FC / 卡片 #FFFFFF
+   状态  绿#20A866 橙#F28B3D 红#EF4444（闪卡页口径） */
 :root{
-  --primary: #6B5CF6;
-  --primary-dark: #5445D8;
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
   --primary-light: #EEF1FF;
-  --text-primary: #1A1A2E;
-  --text-secondary: #666;
-  --text-tertiary: #999;
-  --card-radius: 16px;
+  --brand-grad-end: #5A8BF5;
+  --text-primary: #1E2130;
+  --text-secondary: #98A0B2;
+  --text-tertiary: #8A90A8;
+  --card-radius: 17px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { width: 100%; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
-  background: #F5F6FA;
+  background: #F8F9FC;
   -webkit-overflow-scrolling: touch;
 }
 .content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; }
 
 /* ===== 顶部 Hero：倒计时头（对齐甲方 demo 抬头，无多余行） ===== */
 .hero {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--brand-grad-end) 100%);
   padding: 24px 20px 40px;
   color: #fff;
 }
@@ -50,31 +59,31 @@ body {
 }
 .ai-card::before {
   content: ''; position: absolute; top:0; left:0; right:0; height:4px;
-  background: linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899);
+  background: linear-gradient(90deg, var(--primary), var(--brand-grad-end));
 }
 .ai-task-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
 .ai-badge {
-  background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+  background: linear-gradient(135deg, var(--primary), var(--brand-grad-end)); color:#fff;
   font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px;
   display:flex; align-items:center; gap:4px;
 }
 .ai-badge svg { width:12px; height:12px; }
-.ai-task-title { font-size:11px; color:#999; }
+.ai-task-title { font-size:11px; color:var(--text-tertiary); }
 .ai-empty-title { font-size:15px; font-weight:600; margin-bottom:6px; }
-.ai-empty-desc { font-size:12px; color:#666; line-height:1.6; margin-bottom:14px; }
+.ai-empty-desc { font-size:12px; color:var(--text-secondary); line-height:1.6; margin-bottom:14px; }
 .ai-task-chapter { font-size:18px; font-weight:700; margin-bottom:4px; }
-.ai-task-section { font-size:13px; color:#666; margin-bottom:12px; }
+.ai-task-section { font-size:13px; color:var(--text-secondary); margin-bottom:12px; }
 .ai-task-meta { display:flex; gap:16px; margin-bottom:14px; }
-.meta-item { display:flex; align-items:center; gap:4px; font-size:12px; color:#666; }
-.meta-item svg { width:14px; height:14px; color:#8b5cf6; }
+.meta-item { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text-secondary); }
+.meta-item svg { width:14px; height:14px; color:var(--primary); }
 .ai-reason {
-  background:#f0f0ff; border-radius:10px; padding:10px 12px;
-  font-size:12px; color:#6366f1; line-height:1.5; margin-bottom:16px;
+  background:var(--primary-light); border-radius:10px; padding:10px 12px;
+  font-size:12px; color:var(--primary-dark); line-height:1.5; margin-bottom:16px;
   display:flex; align-items:flex-start; gap:6px;
 }
 .ai-reason svg { width:14px; height:14px; flex-shrink:0; margin-top:1px; }
 .start-btn {
-  width:100%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+  width:100%; background:linear-gradient(135deg, var(--primary), var(--brand-grad-end)); color:#fff;
   border:none; border-radius:14px; padding:14px; font-size:16px; font-weight:700;
   display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
   box-shadow:0 4px 16px rgba(99,102,241,.35);
@@ -83,10 +92,10 @@ body {
 .start-btn:active { transform:scale(.97); box-shadow:0 2px 8px rgba(99,102,241,.3); }
 .start-btn svg { width:18px; height:18px; }
 .start-btn.ghost {
-  background:#fff; color:#6366f1; border:1.5px solid #c4b5fd;
+  background:#fff; color:var(--primary-dark); border:1.5px solid var(--primary);
   box-shadow:none; border-radius:12px; padding:12px; font-size:14px;
 }
-.start-btn.ghost:active { background:#faf5ff; }
+.start-btn.ghost:active { background:var(--primary-light); }
 
 /* ===== 区块标题（自主入口） ===== */
 .section-title {
@@ -95,7 +104,7 @@ body {
 }
 .section-title::before {
   content:''; width:3px; height:14px; border-radius:2px;
-  background:linear-gradient(180deg,#6366f1,#8b5cf6);
+  background:linear-gradient(180deg, var(--primary), var(--brand-grad-end));
 }
 
 /* ===== 自主入口 2×2 ===== */
@@ -111,12 +120,9 @@ body {
   display:flex; align-items:center; justify-content:center; margin-bottom:4px;
 }
 .entry-icon svg { width:20px; height:20px; color:#fff; }
-.entry-icon.blue { background:linear-gradient(135deg,#3b82f6,#60a5fa); }
-.entry-icon.orange { background:linear-gradient(135deg,#f97316,#fb923c); }
-.entry-icon.purple { background:linear-gradient(135deg,#8b5cf6,#a78bfa); }
-.entry-icon.green { background:linear-gradient(135deg,#10b981,#34d399); }
+.entry-icon { background:linear-gradient(135deg, var(--primary), var(--brand-grad-end)); }
 .entry-name { font-size:14px; font-weight:600; }
-.entry-desc { font-size:11px; color:#999; }
+.entry-desc { font-size:11px; color:var(--text-tertiary); }
 
 /* ===== 快捷行 ===== */
 .quick-row { display:flex; gap:8px; margin-bottom:16px; }
@@ -126,8 +132,8 @@ body {
 }
 .quick-item:active { transform:scale(.96); }
 .quick-item .q-icon { width:24px; height:24px; margin:0 auto 4px; display:flex; align-items:center; justify-content:center; }
-.quick-item .q-icon svg { width:22px; height:22px; color:#6366f1; }
-.quick-item .q-name { font-size:11px; color:#666; }
+.quick-item .q-icon svg { width:22px; height:22px; color:var(--primary-dark); }
+.quick-item .q-name { font-size:11px; color:var(--text-secondary); }
 
 /* ===== Toast ===== */
 #toast {
