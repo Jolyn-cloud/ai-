@@ -264,6 +264,46 @@ body{
 .modal-btn.cancel{ background:#F5F6FA; color:var(--text-secondary); }
 .modal-btn.ok{ background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff; }
 
+/* ===== 反馈入口：选项下方居中，不显眼 ===== */
+.feedback-entry{
+  padding:6px 16px 14px; background:#fff; text-align:center; flex-shrink:0;
+}
+.feedback-link{
+  border:none; background:none; cursor:pointer;
+  font-size:11px; color:var(--text-tertiary); line-height:1;
+  padding:4px 8px; border-radius:6px;
+  text-decoration:underline; text-decoration-color:rgba(152,160,178,.4); text-underline-offset:3px;
+  transition:color .15s ease;
+}
+.feedback-link:active{ color:var(--primary); }
+
+/* ===== 反馈弹窗（复用 .modal-mask 容器） ===== */
+.feedback-panel{ width:84%; max-width:340px; text-align:left; }
+.feedback-panel .modal-title{ text-align:center; margin-bottom:14px; }
+.feedback-sec{ margin-bottom:14px; }
+.feedback-sec-t{
+  font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;
+}
+.feedback-sec-t .req{ color:var(--danger); margin-left:2px; }
+/* 错误类型多选（chips 流式排列） */
+.feedback-opts{ display:flex; flex-wrap:wrap; gap:8px; }
+.fb-chip{
+  padding:6px 12px; border-radius:14px; border:1px solid #E3E8F2;
+  background:#F7F9FC; color:var(--text-secondary);
+  font-size:12px; cursor:pointer; transition:all .12s ease;
+}
+.fb-chip.on{
+  background:var(--primary-light); border-color:var(--primary); color:var(--primary-dark); font-weight:600;
+}
+.feedback-ta{
+  width:100%; min-height:74px; padding:10px 12px; box-sizing:border-box;
+  border:1px solid #E3E8F2; border-radius:10px; background:#FBFBFE;
+  font-size:13px; color:var(--text-primary); line-height:1.5;
+  font-family:inherit; outline:none; resize:none;
+  transition:border-color .15s ease;
+}
+.feedback-ta:focus{ border-color:var(--primary); background:#fff; }
+
 /* ===== 答题卡：上滑遮罩浮窗 ===== */
 .sheet-mask{
   position:fixed; inset:0; background:rgba(22,27,46,.45); z-index:110;
@@ -381,6 +421,11 @@ body{
 <!-- 题目区 -->
 <div class="question-area" id="questionArea"></div>
 
+<!-- 反馈入口：选项下方居中，不显眼字体 -->
+<div class="feedback-entry">
+  <button class="feedback-link" onclick="openFeedback()">题目有错误？点击反馈</button>
+</div>
+
 <!-- 解析区 -->
 <div class="analysis-area" id="analysisArea"></div>
 
@@ -412,6 +457,32 @@ body{
       <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
     </div>
     <div class="sheet-grid" id="sheetGrid"></div>
+  </div>
+</div>
+
+<!-- 反馈弹窗：错误类型多选 + 补充说明，提交同步后台管理端 -->
+<div class="modal-mask" id="feedbackModal">
+  <div class="modal-panel feedback-panel">
+    <div class="modal-title">题目反馈</div>
+    <div class="feedback-sec">
+      <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
+      <div class="feedback-opts" id="fbOpts">
+        <span class="fb-chip" data-k="题干描述错" onclick="toggleFb(this)">题干描述错</span>
+        <span class="fb-chip" data-k="选项不严密" onclick="toggleFb(this)">选项不严密</span>
+        <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
+        <span class="fb-chip" data-k="解析错误" onclick="toggleFb(this)">解析错误</span>
+        <span class="fb-chip" data-k="错别字" onclick="toggleFb(this)">错别字</span>
+        <span class="fb-chip" data-k="其他" onclick="toggleFb(this)">其他</span>
+      </div>
+    </div>
+    <div class="feedback-sec">
+      <div class="feedback-sec-t">补充说明（选填）</div>
+      <textarea class="feedback-ta" id="fbText" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeFeedback()">取消</button>
+      <button class="modal-btn ok" onclick="submitFeedback()">提交</button>
+    </div>
   </div>
 </div>
 
@@ -988,6 +1059,52 @@ function reviewAnswers() {
   document.getElementById('resultMask').classList.remove('show');
   idx = 0;
   renderQuestion();
+}
+
+/* ---------- 题目反馈（错误类型多选 + 补充说明，提交同步后台管理端） ----------
+   数据契约（v5.0 接后台反馈管理模块）：
+   { type:'QUESTION_FEEDBACK', questionId: 当前题id, entry: ENTRY, errorTypes:[...], detail:'...', ts:Date.now() }
+   演示期：本地 console + Toast；真实接入由总壳 postMessage 转发或直接调 API。 */
+var FB_TYPES = [];
+function openFeedback() {
+  FB_TYPES = [];
+  var chips = document.querySelectorAll('#fbOpts .fb-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on');
+  var ta = document.getElementById('fbText');
+  if (ta) ta.value = '';
+  document.getElementById('feedbackModal').classList.add('show');
+}
+function closeFeedback() {
+  document.getElementById('feedbackModal').classList.remove('show');
+}
+function toggleFb(el) {
+  var k = el.getAttribute('data-k');
+  var i = FB_TYPES.indexOf(k);
+  if (i >= 0) { FB_TYPES.splice(i, 1); el.classList.remove('on'); }
+  else { FB_TYPES.push(k); el.classList.add('on'); }
+}
+function submitFeedback() {
+  if (FB_TYPES.length === 0) {
+    showToast('请至少选择一种错误类型');
+    return;
+  }
+  var detail = (document.getElementById('fbText').value || '').trim();
+  var q = QUESTIONS[idx] || {};
+  var payload = {
+    type: 'QUESTION_FEEDBACK',
+    questionId: q.id || (ENTRY + '-' + idx),   /* v5.0 接题库真实 id */
+    entry: ENTRY,
+    chapter: q.chapter || '',
+    concept: q.concept || '',
+    errorTypes: FB_TYPES.slice(),
+    detail: detail,
+    ts: Date.now()
+  };
+  /* 演示：打印 + 转发总壳；v5.0 改为真实 API */
+  try { console.log('[QUESTION_FEEDBACK]', payload); } catch(e) {}
+  try { window.parent.postMessage(payload, '*'); } catch(e) {}
+  closeFeedback();
+  showToast('已反馈，谢谢');
 }
 
 /* ---------- 关闭（通知总壳收起做题层） ---------- */
