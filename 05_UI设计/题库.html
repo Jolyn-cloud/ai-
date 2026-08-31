@@ -471,11 +471,17 @@ function goPractice(entry) {
    close：章节页点返回 → 收起章节层回题库首页（展开状态保留在 iframe 内）
    章节页内选到三四级 → 仍走 goPractice(总壳 practiceLayer 做题页) */
 var chapterLayer = document.getElementById('chapterLayer');
+function notifyShellChapter(open) {
+  /* 通知总壳 appbar 跟随：标题=章节刷题 / 退出按钮显隐 */
+  try { window.parent.postMessage({ type: 'CHAPTER_LAYER', data: { open: open } }, '*'); } catch(e) {}
+}
 function openChapterLayer() {
   chapterLayer.classList.add('show');
+  notifyShellChapter(true);
 }
 function closeChapterLayer() {
   chapterLayer.classList.remove('show');
+  notifyShellChapter(false);
 }
 /* 监听章节刷题页发来的消息：
    - CLOSE_CHAPTER：章节页点返回 → 收起章节层

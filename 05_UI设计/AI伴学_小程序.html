@@ -1041,6 +1041,12 @@ window.addEventListener('message', function(evt) {
     closePractice();
     return;
   }
+  if (d.type === 'CHAPTER_LAYER') {
+    /* 题库 tab 内「章节刷题」二级层开关 → appbar 标题/退出跟随 */
+    chapterLayerOpen = !!(d.data && d.data.open);
+    updateAppbarUI();
+    return;
+  }
   if (d.type === 'LOGGED') {
     STATE.logged = true;
     if (d.data && d.data.user) STATE.user = d.data.user;
@@ -1093,6 +1099,7 @@ var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习' };
 var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
 var practiceTitle = '';
+var chapterLayerOpen = false;   /* 题库 tab 内「章节刷题」二级层是否展开（appbar 跟随） */
 function currentTabName() {
   var t = document.querySelector('.tab-item.active');
   return t ? t.getAttribute('data-frame') : '';
@@ -1104,6 +1111,8 @@ function updateAppbar(name) {
   var t;
   if (practiceLayer.classList.contains('show')) {
     t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
+  } else if (chapterLayerOpen) {
+    t = '章节刷题';                                         /* 题库 tab 内章节刷题二级层 */
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')
       ? (TAB_NAMES.flash || '闪卡')
@@ -1120,13 +1129,22 @@ function updateAppbarExit() {
   var n = currentTabName();
   var show = false;
   if (practiceLayer.classList.contains('show')) show = true;           /* 答题页 */
+  else if (chapterLayerOpen) show = true;                            /* 题库 tab 内章节刷题二级层 */
   else if (n === 'flash' && flashView !== 'view-home' && flashView !== 'view-stats') show = true;  /* 闪卡二级 */
   exit.classList.toggle('show', show);
 }
-/* 左侧退出：返回上一级（答题页→回题库；闪卡二级→回闪卡首页） */
+/* 左侧退出：返回上一级（答题页→回题库；章节层→收起回题库首页；闪卡二级→回闪卡首页） */
 function handleAppbarExit() {
   if (practiceLayer.classList.contains('show')) {
     closePractice();
+    return;
+  }
+  if (chapterLayerOpen) {
+    /* 通知题库 iframe 收起章节层（状态保留） */
+    var quiz = document.getElementById('frame-quiz');
+    if (quiz && quiz.contentWindow) {
+      quiz.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
+    }
     return;
   }
   var n = currentTabName();
@@ -1143,6 +1161,11 @@ function updateAppbarUI() {
 }
 function switchTab(name) {
   closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
+  if (chapterLayerOpen) {  /* 切 tab → 收起章节层 */
+    var quiz = document.getElementById('frame-quiz');
+    if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
+    chapterLayerOpen = false;
+  }
   updateAppbar(name);
   updateLogicForTab(name);
   /* 免费 VIP 触发：首次进题库 tab 自动弹（判据=未领取+会话未关；触发时机=切到题库页，登录与否都弹）。

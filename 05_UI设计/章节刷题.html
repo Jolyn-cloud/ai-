@@ -178,8 +178,8 @@ body {
 }
 
 /* ===== 二级：节（手风琴展开） ===== */
-.sub-list { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-.chapter-card.open .sub-list { max-height: 5000px; }
+.sub-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+.chapter-card.open .sub-list { max-height: 9999px; }   /* 展开态用大值，子级撑高不被卡 */
 .sub-inner { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .sub-container {
   background: #FAFBFF;
@@ -228,8 +228,9 @@ body {
 }
 
 /* ===== 三级：主题 ===== */
-.l3-list { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-.sub-item.open-l2 .l3-list { max-height: 3000px; }
+.l3-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+/* l3-list 是 sub-item 的后续兄弟（同在 sub-container 内），用兄弟选择器命中 */
+.sub-item.open-l2 ~ .l3-list { max-height: 9999px; }
 .l3-inner { padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .l3-block {
   border: 1px solid rgba(91,114,245,.08);
@@ -277,8 +278,9 @@ body {
 .rebtn.todo { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* ===== 四级：考点 ===== */
-.l4-list { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-.l3-item.open .l4-list { max-height: 2000px; }
+.l4-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+/* l4-list 是 l3-item 的后续兄弟（同在 l3-block 内），用兄弟选择器命中 */
+.l3-item.open ~ .l4-list { max-height: 9999px; }
 .l4-inner { margin: 0 0 0 12px; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .l4-item {
   display: flex; align-items: center;
@@ -1000,44 +1002,17 @@ function renderChapters(){
 
 function escapeName(s){ return s.replace(/'/g,"\\'"); }
 
-/* ===== 展开/收起 ===== */
+/* ===== 展开/收起（CSS class 控 max-height，展开态 9999px 不被父级卡，嵌套级联自动） ===== */
 function toggleChapter(head){
-  var card = head.parentNode;
-  var list = card.querySelector('.sub-list');
-  var open = card.classList.toggle('open');
-  list.style.maxHeight = open ? list.scrollHeight + 'px' : '0';
-  // 展开后重开已展开的子级高度（避免嵌套高度限制）
-  if(open){
-    card.querySelectorAll('.sub-item.open-l2').forEach(function(s){
-      var sl = s.parentNode.querySelector('.l3-list');
-      if(sl) sl.style.maxHeight = sl.scrollHeight + 'px';
-    });
-  }
+  head.parentNode.classList.toggle('open');
 }
 function toggleSub(item){
-  var container = item.parentNode;
-  var l3list = container.querySelector('.l3-list');
-  var open = item.classList.toggle('open-l2');
-  l3list.style.maxHeight = open ? l3list.scrollHeight + 'px' : '0';
-  // 父级 sub-list 高度重算
-  resizeParentSub(item);
+  /* sub-item 与 l3-list 同为 sub-container 子级；在 sub-item 上 toggle，CSS 用兄弟选择器命中 l3-list */
+  item.classList.toggle('open-l2');
 }
 function toggleL3(item){
-  var block = item.parentNode;
-  var l4list = block.querySelector('.l4-list');
-  var open = item.classList.toggle('open');
-  l4list.style.maxHeight = open ? l4list.scrollHeight + 'px' : '0';
-  resizeParentSub(item);
-}
-/* 展开嵌套后，向上回溯重算各级 max-height */
-function resizeParentSub(el){
-  var card = el.closest('.chapter-card');
-  if(!card || !card.classList.contains('open')) return;
-  var subList = card.querySelector('.sub-list');
-  // 临时设大再读 scrollHeight
-  subList.style.maxHeight = '9999px';
-  var h = subList.scrollHeight;
-  subList.style.maxHeight = h + 'px';
+  /* l4-list 是 l3-item 的兄弟（同在 l3-block 内）；l3-item.toggle .open */
+  item.classList.toggle('open');
 }
 
 /* ===== 筛选 ===== */
