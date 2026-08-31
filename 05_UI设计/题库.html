@@ -32,10 +32,31 @@ html, body { width: 100%; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
-  background: #EDEFF7;
+  background-color: #EDEFF7;   /* 背景氛围图兜底色 */
   -webkit-overflow-scrolling: touch;
 }
-.content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; }
+
+/* ===== 背景氛围图（与闪卡共用 ui切图/bg-flashcard-home.png）
+   固定视口层不随内容滚动（避免 cover 拉伸）；底部白色渐隐遮罩保持长列表可读 */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  z-index: 0;
+  background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; left: 0; right: 0; top: 300px; bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(237,239,247,0) 0%,
+    rgba(237,239,247,0.4) 20%,
+    rgba(237,239,247,0.8) 45%,
+    #EDEFF7 100%);
+}
+.content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; position: relative; z-index: 1; }
 
 /* ===== 顶部 Hero：倒计时头（三色渐变，对齐 VIP CTA 语言） ===== */
 .hero {
@@ -43,10 +64,10 @@ body {
   padding: 24px 20px 40px;
   color: #fff;
 }
-.hero .countdown { display: flex; align-items: baseline; gap: 8px; }
-.hero .num { font-size: 46px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
-.hero .unit { font-size: 15px; opacity: .85; }
-.hero .label { font-size: 12px; opacity: .78; margin-top: 6px; }
+.hero .countdown { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.hero .label { font-size: 15px; font-weight: 700; opacity: .95; white-space: nowrap; }
+.hero .num { font-size: 34px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+.hero .unit { font-size: 15px; font-weight: 700; opacity: .9; }
 
 /* ===== 主体（负 margin 叠上 hero 底部） ===== */
 .body { padding: 0 16px; margin-top: -24px; }
@@ -163,13 +184,13 @@ body {
 
 <div class="content">
 
-  <!-- Hero：考试倒计时头（对齐甲方 demo） -->
+  <!-- Hero：考试倒计时头（一行显示「距离X年山东专升本考试N天」，数字放大） -->
   <div class="hero">
     <div class="countdown">
+      <span class="label" id="cdLabel">距离2027年山东专升本考试</span>
       <span class="num" id="cdDays">--</span>
       <span class="unit">天</span>
     </div>
-    <div class="label" id="cdLabel">距离山东专升本考试</div>
   </div>
 
   <div class="body">
@@ -180,7 +201,7 @@ body {
     <!-- 自主学习（逃生口） -->
     <div class="section-title">自主学习</div>
     <div class="entry-grid">
-      <button class="entry-card" onclick="showToast('章节刷题（v5.0 待做）')">
+      <button class="entry-card" onclick="goPractice('chapter')">
         <div class="entry-icon blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         </div>
@@ -201,7 +222,7 @@ body {
         <div class="entry-name">历年真题</div>
         <div class="entry-desc">2010-2025年真题</div>
       </button>
-      <button class="entry-card" onclick="showToast('错题本：专攻你的错题')">
+      <button class="entry-card" onclick="goPractice('wrong')">
         <div class="entry-icon green">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
@@ -259,32 +280,79 @@ var today = new Date(2026, 7, 31);
 
 var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
 
-/* ---------- 薄弱/顽固判定（口径与逻辑面板一致） ----------
-   四级知识点 = 最后一级，每知识点对应多道考题。
-   顽固判定（PM 2026-08-31 拍板）：
-     ① 错误率 = 该考点下错过的考题数 ÷ 该考点考题总数，错误率 ≥ 50% → 考点顽固
-     ② 答错 ≥ 3 次也触发顽固（新旧叠加）
-     顽固考点内 错过的考题 标记「顽固」；顽固必进今日任务，插队最前。
-   薄弱判定（PM 拍板）：
-     正确率 < 60% 且答题样本 ≥ 5 题 → 薄弱；纯薄弱度(1-正确率)降序抽题，不结合考频。
-   今日任务题量：目标 15-20 道；字段顽空 → 补抽正常考点；不足 → 收缩为实际可用题量。 */
+/* ============================================================
+   顽固标签规则（通用 · 闪卡 / 题库共用，口径与逻辑面板一致）
+   ------------------------------------------------------------
+   层级：第一级考点（章）→ … → 四级考点（最后一级）→ 具体考题。
+   ① 考题级顽固：同一道考题答错 ≥ 3 次 → 该考题标记「顽固」。
+   ② 考点级顽固：四级考点内 错误考题数 ÷ 该考点考题总数 × 100% ≥ 50%
+      → 该四级考点标记「顽固」；答题时该考点优先展示错过的考题。
+   ③ 薄弱（PM 拍板）：考点正确率 < 60% 且答题样本 ≥ 5 → 薄弱。
+   ◆ 顽固包含在薄弱中：顽固 = 薄弱项中更严重的一档（考点级顽固 / 考题级顽固）。
 
-/* 四级考点数据（演示常量）：id / 名称 / 考题总数 / 已答 / 答错（错误/总数 计算率）
-   demo：考点A 40% 顽固、考点B 55% 薄弱、考点C 正常 */
+   首次分配题目规则（AI 定制 · 题库「今日任务」）
+   ------------------------------------------------------------
+   ① 出题范围：从第一级考点（章）中搜集「薄弱项」（顽固 ⊂ 薄弱）出题。
+   ② 优先级：顽固 > 一般薄弱（顽固优先，插队最前）。
+   ③ 题量：目标 15-20 道，各考点考题数求和后收敛到区间。
+   ④ 时间：约 count ÷ 1.5 分钟。
+   ⑤ 页面展示：第几章 - 哪个考点（chapter = 第一级考点，section = 四级薄弱考点）。
+   ⑥ 文案：取首个考点 → 错误率%（顽固/薄弱）+ 近5年考频，
+      标注「答题时优先展示错过的考题」。
+   ============================================================ */
+
+/* 四级考点数据（演示 demo）：第一级考点 chapter → 四级考点 name → 下挂具体考题 questions
+   qid=考题号；wrong=该考题答错次数（≥3 → 考题顽固） */
 var WEAK_POINTS = [
-  { id: 'p1', name: '文件管理',      total: 10, answered: 10, wrong: 4 },  /* 40% 顽固 */
-  { id: 'p2', name: '进程与线程',    total: 8,  answered: 6,  wrong: 3 }   /* 50% 顽固 */
+  { id: 'p1', chapter: '第3章 操作系统', name: '文件管理', freq: 8, questions: [
+      { qid: 'Q101', wrong: 4 },   /* 答错4次≥3 → 考题顽固 */
+      { qid: 'Q102', wrong: 1 },
+      { qid: 'Q103', wrong: 0 },
+      { qid: 'Q104', wrong: 0 } ] },   /* 错误考题2/4=50% → 考点顽固 */
+  { id: 'p2', chapter: '第3章 操作系统', name: '进程与线程', freq: 5, questions: [
+      { qid: 'Q201', wrong: 3 },   /* 答错3次≥3 → 考题顽固 */
+      { qid: 'Q202', wrong: 2 },
+      { qid: 'Q203', wrong: 0 },
+      { qid: 'Q204', wrong: 0 } ] }    /* 错误考题2/4=50% → 考点顽固 */
 ];
 
-/* 今日任务组装（当前演示：直接返回 mock 数据；v5.0 由 identifyWeakPoints() 真算） */
+/* 顽固标签识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
+   wrongRate（考点错误率）/ wrongQuestions（错过的考题）/ stubbornQuestions（考题级顽固） */
+function identifyWeakPoints() {
+  var stubborn = [], weak = [];
+  WEAK_POINTS.forEach(function(p) {
+    var wrongQuestions    = p.questions.filter(function(q) { return q.wrong > 0; });
+    var stubbornQuestions = p.questions.filter(function(q) { return q.wrong >= 3; });  /* 考题级顽固：答错≥3 */
+    var wrongRate = wrongQuestions.length / p.questions.length;
+    var isStubborn = wrongRate >= 0.5;                    /* 考点级顽固：错误考题数/总数 ≥ 50% */
+    var isWeak = (1 - wrongRate) < 0.6 && p.questions.length >= 5;   /* 薄弱：正确率<60% 且样本≥5 */
+    var info = { wrongRate: wrongRate, wrongQuestions: wrongQuestions, stubbornQuestions: stubbornQuestions };
+    if (isStubborn) stubborn.push(Object.assign({}, p, info));
+    else if (isWeak) weak.push(Object.assign({}, p, info));
+  });
+  return { stubborn: stubborn, weak: weak };
+}
+
+/* 今日任务组装（首次分配题目规则）：按考点识别结果分配，演示 demo */
 function buildTodayTask() {
+  var points = identifyWeakPoints();
+  var focus = points.stubborn.concat(points.weak);       /* 顽固优先，插队最前 */
+  var names = focus.length ? focus.map(function(p) { return p.name; }).join(' · ') : '基础知识巩固';
+  var first = focus[0] || null;
+  var flag = points.stubborn.length ? '顽固' : (points.weak.length ? '薄弱' : '巩固');
+  var count = focus.reduce(function(s, p) { return s + p.questions.length; }, 0);
+  count = Math.max(15, Math.min(20, count));             /* 目标 15-20 道 */
+  var minutes = Math.max(8, Math.round(count / 1.5));
+  var reason = first
+    ? '「' + first.name + '」考点错误率 ' + Math.round(first.wrongRate * 100) + '%（' + flag + '），近5年考 ' + first.freq + ' 次，答题时优先展示错过的考题。'
+    : '今日按考点分配基础巩固任务，稳步提升。';
   return {
-    chapter: '第3章 操作系统',
-    section: '文件管理 · 进程与线程',
-    count: 18,            /* 15-20 目标 */
-    minutes: 12,
-    reason: '「文件管理」考点正确率仅 40%（顽固），近5年考 8 次，建议优先攻克。',
-    flag: '顽固'
+    chapter: first ? first.chapter : '基础知识巩固',   /* 第一级考点（章） */
+    section: names,
+    count: count,
+    minutes: minutes,
+    reason: reason,
+    flag: flag
   };
 }
 
@@ -331,7 +399,7 @@ function renderAiCard() {
       + '</div>'
       + '<div class="ai-empty-title">完善学习资料后，为你定制今日任务</div>'
       + '<div class="ai-empty-desc">填写备考年份与专业，AI 将根据你的薄弱点和考试日程，自动生成每天最该练的题。</div>'
-      + '<button class="start-btn ghost" onclick="showToast(\'完善学习资料（学习页入口）\')">完善资料</button>';
+      + '<button class="start-btn ghost" onclick="goCompleteProfile()">完善资料</button>';
     return;
   }
 
@@ -348,18 +416,38 @@ function renderAiCard() {
     + '<div class="ai-task-section">' + t.section + ' — 继续上次进度</div>'
     + '<div class="ai-task-meta">'
     +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + t.count + '道题</div>'
-    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>约' + t.minutes + '分钟</div>'
     +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + t.flag + '</div>'
     + '</div>'
     + '<div class="ai-reason">'
     +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
     +   '<span>' + t.reason + '</span>'
     + '</div>'
-    + '<button class="start-btn" onclick="showToast(\'开始今日学习（刷题页 v5.0 待做）\')">'
+    + '<button class="start-btn" onclick="goPractice(\'today\')">'
     +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
     +   '开始今日学习（' + t.count + '道）'
     + '</button>';
   /* ② 今日已刷完 → 空态已完成（本轮 demo 恒未刷，仅预留分支） */
+}
+
+/* 未完善资料 → 跳转 AI（学习）页完善画像：向总壳发 OPEN_PROFILE（总壳转发学习页 + 切 AI tab）
+   独立打开题库.html 时无父壳 → 兜底提示 */
+function goCompleteProfile() {
+  var embedded = false;
+  try { embedded = window.parent !== window.self; } catch(e) {}
+  if (embedded) {
+    window.parent.postMessage({ type: 'OPEN_PROFILE' }, '*');
+  } else {
+    showToast('请从总壳进入，完善学习资料');
+  }
+}
+
+/* 开始做题：向总壳请求打开统一做题层（今日学习/错题本/章节练习共用一页，entry 区分来源） */
+function goPractice(entry) {
+  try {
+    window.parent.postMessage({ type: 'REQ_PRACTICE', data: { entry: entry || 'today' } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始做题');
+  }
 }
 
 /* ---------- Toast ---------- */

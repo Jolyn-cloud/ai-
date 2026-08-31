@@ -4757,6 +4757,13 @@ function restart() {
 /* ============================================================
    按钮事件绑定
    ============================================================ */
+/* 嵌入总壳时：退出功能由小程序栏自带退出按钮替代，隐藏单卡/列表页内部退出按钮 */
+try {
+  if (window.parent !== window.self) {
+    var _ebs = document.querySelectorAll('.exit-btn');
+    for (var _i = 0; _i < _ebs.length; _i++) _ebs[_i].style.display = 'none';
+  }
+} catch(e) {}
 getById('exitBtn').addEventListener('click', function() {
   getById('exitModal').classList.add('show');
 });

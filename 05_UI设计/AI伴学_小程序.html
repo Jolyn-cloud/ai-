@@ -77,7 +77,7 @@ body {
 .phone-statusbar .status-icons svg { width: 16px; height: 12px; color: #1E2130; display: block; }
 .phone-statusbar .status-icons .wifi { transform: translateY(1px); }
 
-/* 小程序自带标题栏：状态栏下一行 · 固定不随内容滚动 · 显示当前 tab 标题 + 退出按钮 */
+/* 小程序自带标题栏：状态栏下一行 · 固定 · 显示当前页标题（含二级）+ 左退出 + 右固定图标 */
 .phone-appbar {
   position: absolute; top: 34px; left: 0; right: 0;
   height: 44px; z-index: 500;
@@ -88,16 +88,30 @@ body {
   font-size: 16px; font-weight: 600; color: #1E2130;
   letter-spacing: 0.3px;
 }
-/* 退出按钮：演示用小程序铬，无产品逻辑 */
+/* 左侧退出：二级页面显示（点击返回上一级），一级页面隐藏 */
 .appbar-exit {
   position: absolute; left: 14px;
   display: flex; align-items: center; gap: 4px;
-  border: none; background: none;
-  cursor: default; pointer-events: none;
+  border: none; background: none; cursor: pointer;
   font-size: 13px; font-weight: 600; color: #6E778B;
   padding: 6px 8px; border-radius: 8px;
+  visibility: hidden;
 }
+.appbar-exit.show { visibility: visible; }
+.appbar-exit:active { background: #F0F1F6; }
 .appbar-exit svg { width: 16px; height: 16px; }
+/* 右侧固定图标：三个点（更多）+ 圆圈（退出） */
+.phone-appbar .appbar-right {
+  position: absolute; right: 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.appbar-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; color: #1E2130; opacity: .85;
+  cursor: default; pointer-events: none;
+}
+.appbar-more { font-size: 20px; line-height: 1; letter-spacing: 1px; }
+.appbar-circle { font-size: 17px; line-height: 1; }
 .phone-appbar.hidden { visibility: hidden; pointer-events: none; }
 /* 刘海 */
 .phone-notch {
@@ -607,6 +621,23 @@ body {
 .vip-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
 .vip-layer iframe { flex: 1; min-height: 0; width: 100%; border: none; }
 
+/* 统一做题层（题库/错题本/章节练习共用一页；覆盖内容区，二级页面隐藏 tabBar） */
+.practice-layer {
+  position: absolute;
+  top: 78px; left: 0; right: 0; bottom: 56px;   /* 内容区范围（tabBar 显示时） */
+  z-index: 2000;               /* 高于内容 iframe */
+  background: #F6F7FB;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.practice-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
+.practice-layer iframe { width: 100%; height: 100%; border: none; }
+
+/* 二级页面（答题页 / 闪卡单卡·列表·完成）：隐藏 tabBar，内容区/做题层扩展到底 */
+body.tab-hidden .tabbar { display: none; }
+body.tab-hidden .content-frame { bottom: 0; }
+body.tab-hidden .practice-layer { bottom: 0; }
+
 /* ============ 右侧逻辑说明面板 ============ */
 .logic-col {
   width: 0;               /* 收起态无宽度 */
@@ -702,13 +733,17 @@ body {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="8" width="18" height="11" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h3"/><path d="M20 11h1"/></svg>
           </span>
         </div>
-        <!-- 小程序自带标题栏：当前 tab 标题 + 退出按钮（固定，不随内容滚动） -->
+        <!-- 小程序自带标题栏：当前页标题（含二级）+ 左退出（返回上一级）+ 右固定图标 -->
         <div class="phone-appbar" id="appbar">
-          <button class="appbar-exit" id="appbarExit" aria-label="退出小程序">
+          <button class="appbar-exit" id="appbarExit" onclick="handleAppbarExit()" aria-label="返回上一级">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             退出
           </button>
           <span class="appbar-title" id="appbarTitle">AI</span>
+          <div class="appbar-right">
+            <span class="appbar-ico appbar-more" aria-label="更多">⋯</span>
+            <span class="appbar-ico appbar-circle" aria-label="退出小程序">○</span>
+          </div>
         </div>
         <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
         <div class="content-frame">
@@ -762,6 +797,11 @@ body {
         <!-- VIP 弹层（领取VIP时覆盖内容区，绝对定位于手机屏幕内） -->
         <div class="vip-layer" id="vipLayer">
           <iframe id="frame-vip" src="VIP领取页.html"></iframe>
+        </div>
+
+        <!-- 统一做题层（题库/错题本/章节练习共用；覆盖内容区，tabBar 保留） -->
+        <div class="practice-layer" id="practiceLayer">
+          <iframe id="frame-practice" data-src="做题页.html"></iframe>
         </div>
 
         <!-- 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
@@ -991,6 +1031,16 @@ window.addEventListener('message', function(evt) {
     switchTab('study');
     return;
   }
+  if (d.type === 'REQ_PRACTICE') {
+    /* 统一做题层：题库/错题本/章节练习任一入口请求做题（entry 区分来源） */
+    openPractice(d.data && d.data.entry);
+    return;
+  }
+  if (d.type === 'CLOSE_PRACTICE') {
+    /* 做题页点关闭/完成 → 收起做题层回原页 */
+    closePractice();
+    return;
+  }
   if (d.type === 'LOGGED') {
     STATE.logged = true;
     if (d.data && d.data.user) STATE.user = d.data.user;
@@ -1011,9 +1061,12 @@ window.addEventListener('message', function(evt) {
     broadcast();
     closeVip();
   } else if (d.type === 'NAV') {
-    /* 闪卡视图切换 → 逻辑面板跟随（高亮 + 说明同步） */
+    /* 闪卡视图切换 → 逻辑面板跟随 + 二级页面隐藏 tabBar + 小程序栏标题/退出更新 */
     setActivePanel(d.view);
     renderLogicPanel(currentLogicData());
+    flashView = d.view;
+    updateTabBar();
+    updateAppbarUI();
   } else if (d.type === 'POPUP') {
     /* 闪卡弹窗/浮层开关 → 逻辑面板跟随（完成页/settings） */
     if (d.name === 'settings') { settingsOpen = !!d.open; }
@@ -1036,11 +1089,60 @@ function syncChildState() {
 /* ---------- 底部 tab 切换 ---------- */
 var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
+/* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习' };
+var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
+var practiceTitle = '';
+function currentTabName() {
+  var t = document.querySelector('.tab-item.active');
+  return t ? t.getAttribute('data-frame') : '';
+}
 function updateAppbar(name) {
   var title = document.getElementById('appbarTitle');
-  if (title) title.textContent = (TAB_NAMES[name] || '');
+  if (!title) return;
+  var n = name || currentTabName();
+  var t;
+  if (practiceLayer.classList.contains('show')) {
+    t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
+  } else if (n === 'flash') {
+    t = (flashView === 'view-home' || flashView === 'view-stats')
+      ? (TAB_NAMES.flash || '闪卡')
+      : (FLASH_TITLES[flashView] || TAB_NAMES.flash || '闪卡');  /* 闪卡单卡/列表/完成 */
+  } else {
+    t = TAB_NAMES[n] || '';
+  }
+  title.textContent = t;
+}
+/* 左侧退出显隐：二级页面显示，一级页面隐藏 */
+function updateAppbarExit() {
+  var exit = document.getElementById('appbarExit');
+  if (!exit) return;
+  var n = currentTabName();
+  var show = false;
+  if (practiceLayer.classList.contains('show')) show = true;           /* 答题页 */
+  else if (n === 'flash' && flashView !== 'view-home' && flashView !== 'view-stats') show = true;  /* 闪卡二级 */
+  exit.classList.toggle('show', show);
+}
+/* 左侧退出：返回上一级（答题页→回题库；闪卡二级→回闪卡首页） */
+function handleAppbarExit() {
+  if (practiceLayer.classList.contains('show')) {
+    closePractice();
+    return;
+  }
+  var n = currentTabName();
+  if (n === 'flash') {
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: 'view-home' }, '*');
+    }
+  }
+}
+function updateAppbarUI() {
+  updateAppbar(currentTabName());
+  updateAppbarExit();
 }
 function switchTab(name) {
+  closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
   updateAppbar(name);
   updateLogicForTab(name);
   /* 免费 VIP 触发：首次进题库 tab 自动弹（判据=未领取+会话未关；触发时机=切到题库页，登录与否都弹）。
@@ -1054,18 +1156,22 @@ function switchTab(name) {
   });
   /* 首次切入懒加载：切到才设 src，避免4个页面同载 */
   var next = document.getElementById('frame-' + name);
+  var justLoaded = false;
   if (!next.getAttribute('src') && next.getAttribute('data-src')) {
     next.setAttribute('src', next.getAttribute('data-src'));
+    justLoaded = true;
   }
   /* 切入后同步状态 */
   setTimeout(syncChildState, 150);
-  if (name === 'flash') {
-    /* 切到闪卡：让 flash iframe 感知当前面板高亮，并校准逻辑说明 */
+  if (name === 'flash' && justLoaded) {
+    /* 仅首次加载闪卡时同步面板高亮（避免切回时重置闪卡内部视图，保证单卡/列表二级页状态保留） */
     var flash = document.getElementById('frame-flash');
     if (flash && flash.contentWindow) {
       flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: activePanel }, '*');
     }
   }
+  updateTabBar();   /* 切 tab 后按当前页状态刷新 tabBar 显隐 */
+  updateAppbarExit();   /* 切 tab 后刷新左侧退出显隐（二级显示/一级隐藏） */
 }
 
 /* 小程序顶栏「退出」仅为演示铬，无点击逻辑 */
@@ -1078,6 +1184,42 @@ function openVip() {
 }
 function closeVip() {
   vipLayer.classList.remove('show');
+}
+
+/* ---------- 统一做题层（题库/错题本/章节练习共用一页；覆盖内容区，二级页面隐藏 tabBar） ---------- */
+var practiceLayer = document.getElementById('practiceLayer');
+var practiceFrame = document.getElementById('frame-practice');
+var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
+
+/* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
+function updateTabBar() {
+  var activeTab = document.querySelector('.tab-item.active');
+  var name = activeTab ? activeTab.getAttribute('data-frame') : '';
+  var show = true;
+  if (practiceLayer.classList.contains('show')) {
+    show = false;                                             /* 答题页（二级）→ 隐藏 */
+  } else if (name === 'flash') {
+    show = (flashView === 'view-home' || flashView === 'view-stats');  /* 闪卡单卡/列表/完成 → 隐藏 */
+  }
+  document.body.classList.toggle('tab-hidden', !show);
+}
+
+function openPractice(entry) {
+  practiceTitle = PRACTICE_TITLES[entry] || '今日学习';   /* 记录答题页标题（今日学习等） */
+  var url = '做题页.html?entry=' + (entry || 'today');
+  if (!practiceFrame.getAttribute('src')) {
+    practiceFrame.setAttribute('src', url);
+  } else {
+    try { practiceFrame.contentWindow.location.href = url; } catch(e) { practiceFrame.setAttribute('src', url); }
+  }
+  practiceLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+function closePractice() {
+  practiceLayer.classList.remove('show');
+  updateTabBar();
+  updateAppbarUI();
 }
 
 /* ---------- 免费权益弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ---------- */
