@@ -28,6 +28,7 @@ body{
 /* ===== 顶部导航：模式切换左 / 计时中 / 答题卡右 ===== */
 .practice-nav{
   flex-shrink:0; height:52px;
+  position:relative;                 /* 给 .nav-timer absolute 提供定位基准，否则跑到 viewport 中央 */
   display:flex; align-items:center; gap:10px;
   padding:0 12px; background:#fff;
   border-bottom:1px solid #F0F1F6;
