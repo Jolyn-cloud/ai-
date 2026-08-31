@@ -165,9 +165,10 @@ body{
 .analysis-text b{ color:#333; }
 .step-list{ font-size:13px; color:#666; line-height:1.8; margin-top:8px; padding-top:8px; border-top:1px dashed #EDEFF3; }
 
-/* ===== 九节解析（PM 2026-08-31 拍板顺序） =====
-   1 答题结果 / 2 系统判断 / 3 解析 / 4 考点对比 / 5 举一反三
-   6 我的笔记 / 7 相关知识点 / 8 视频解析 / 9 答题时间·耗时分析 */
+/* ===== 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） =====
+   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
+   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
+   注：ico-2/verdict-* 为系统判断节遗留样式，已不用（PM 2026-08-31 删） */
 .ana-sec{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
 .ana-sec .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .ana-sec .sec-head .ico{
@@ -1019,10 +1020,10 @@ function renderSubOptions(sub, subAns, reveal, subIdx) {
   });
   return html + '</div>';
 }
-/* ---------- 九节解析（PM 2026-08-31 拍板顺序） ----------
-   1 答题结果 / 2 系统判断 / 3 解析 / 4 考点对比 / 5 举一反三
-   6 我的笔记 / 7 相关知识点 / 8 视频解析 / 9 答题时间·耗时分析
-   每题独立组装；演示期 4/5/7/8 mock，6 笔记本地存，9 接会话计时。 */
+/* ---------- 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） ----------
+   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
+   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
+   每题独立组装；演示期 3/4/6/7 mock，5 笔记本地存，8 接会话计时。 */
 function renderAnalysis(q, ans, reveal) {
   if (!reveal) return '';
   var correct = checkAnswer(q, ans);
@@ -1034,27 +1035,13 @@ function renderAnalysis(q, ans, reveal) {
   else if (correct === false) resultLine = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + formatUserAnswer(q, ans) + '　正确答案：' + formatAnswer(q) + '</div>';
   else resultLine = '<div class="answer-line">正确答案：' + formatAnswer(q) + '</div>';
   html += '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span><span class="seq">1</span></div>'
+    + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
     + resultLine + '</div>';
 
-  /* ② 系统判断（对该题掌握度的系统判定） */
-  var verdict = '部分掌握';
-  var vCls = 'partial';
-  if (correct === true) { verdict = '已掌握'; vCls = 'right'; }
-  else if (correct === false) { verdict = '未掌握'; vCls = 'wrong'; }
-  var stubbornTag = q.stubborn ? '<span class="verdict-tag wrong">顽固题</span>' : '';
-  html += '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-2">⚖</span><span class="name">系统判断</span><span class="seq">2</span></div>'
-    + '<div class="verdict-tags">'
-    + '<span class="verdict-tag ' + vCls + '">' + verdict + '</span>'
-    + stubbornTag
-    + '<span class="verdict-tag partial">难度·' + (q.difficulty || '中') + '</span>'
-    + '</div></div>';
-
-  /* ③ 解析（答案解析 + 解题步骤） */
+  /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31） */
   var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
   html += '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span><span class="seq">3</span></div>'
+    + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span></div>'
     + '<div class="analysis-text">' + q.analysis + '</div>' + steps + '</div>';
 
   /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
@@ -1103,7 +1090,7 @@ function renderCompare(c) {
   var curItems = c.curList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
   var vsItems = c.vsList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
   return '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-4">⇄</span><span class="name">考点对比</span><span class="seq">4</span></div>'
+    + '<div class="sec-head"><span class="ico ico-4">⇄</span><span class="name">考点对比</span></div>'
     + '<div class="compare-box">'
     + '<div class="compare-col is-cur"><div class="col-t">本考点</div><div class="col-name">' + c.curName + '</div><ul class="col-list">' + curItems + '</ul></div>'
     + '<div class="compare-mid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h8m0 0l-3-3m3 3l-3 3"/><path d="M16 17H8m0 0l3 3m-3-3l3-3"/></svg></div>'
@@ -1120,7 +1107,7 @@ function mockVariants(q) {
 }
 function renderVariants(vs) {
   var html = '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-5">①</span><span class="name">举一反三</span><span class="seq">5</span></div>';
+    + '<div class="sec-head"><span class="ico ico-5">①</span><span class="name">举一反三</span></div>';
   vs.forEach(function(v) {
     html += '<div class="variant-card">'
       + '<div class="v-stem">' + v.stem + '</div>'
@@ -1145,7 +1132,7 @@ function renderNote(q) {
   var notes = loadNotes();
   var has = !!notes[id];
   var html = '<div class="ana-sec" id="noteSec">'
-    + '<div class="sec-head"><span class="ico ico-6">✎</span><span class="name">我的笔记</span><span class="seq">6</span></div>';
+    + '<div class="sec-head"><span class="ico ico-6">✎</span><span class="name">我的笔记</span></div>';
   if (has) {
     html += '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)">' + notes[id] + '</textarea>'
       + '<div class="note-save-row"><span class="note-hint">已保存于本地</span>'
@@ -1178,7 +1165,7 @@ function mockKp(q) {
 }
 function renderKp(kps) {
   var html = '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-7">⌗</span><span class="name">相关知识点</span><span class="seq">7</span></div>'
+    + '<div class="sec-head"><span class="ico ico-7">⌗</span><span class="name">相关知识点</span></div>'
     + '<div class="kp-cloud">';
   kps.forEach(function(k) {
     html += '<span class="kp-tag" onclick="showToast(\'知识点：' + k + '（v5.0 接知识图谱）\')">' + k + '</span>';
@@ -1195,7 +1182,7 @@ function mockVideos(q) {
 }
 function renderVideos(vids) {
   var html = '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-8">▶</span><span class="name">视频解析</span><span class="seq">8</span></div>';
+    + '<div class="sec-head"><span class="ico ico-8">▶</span><span class="name">视频解析</span></div>';
   vids.forEach(function(v) {
     html += '<div class="video-card" onclick="showToast(\'播放：' + v.title + '（v5.0 接视频库）\')">'
       + '<div class="video-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg><span class="v-dur">' + v.dur + '</span></div>'
@@ -1213,7 +1200,7 @@ function renderTiming(q) {
   var avgQ = 45;  /* mock 全站平均 45s/题 */
   var pct = Math.min(100, Math.round(perQ / avgQ * 100));
   var html = '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-9">◷</span><span class="name">答题时间·耗时分析</span><span class="seq">9</span></div>'
+    + '<div class="sec-head"><span class="ico ico-9">◷</span><span class="name">答题时间·耗时分析</span></div>'
     + '<div class="timing-row">'
     + '<div class="timing-cell"><div class="t-lbl">本题耗时</div><div class="t-val">' + fmtMMSS(perQ) + '</div><div class="t-sub">本轮第 ' + (idx + 1) + ' 题</div></div>'
     + '<div class="timing-cell"><div class="t-lbl">全场耗时</div><div class="t-val">' + fmtMMSS(curSec) + '</div><div class="t-sub">共 ' + total + ' 题</div></div>'
