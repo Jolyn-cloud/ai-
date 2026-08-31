@@ -108,6 +108,20 @@ body{
 .option.correct .checkbox::after{ content:"✓"; color:#fff; font-size:12px; font-weight:bold; }
 .option.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
 .option.wrong .radio, .option.wrong .checkbox{ border-color:var(--danger); background:var(--danger); }
+/* 选项文本占满中间，标签贴右 */
+.option .opt-body{ flex:1; min-width:0; }
+/* ===== 选项标签：易错（红）/ 易漏选（橙）—— 数据埋点统计口径，v5.0 接数据层 =====
+   - hot-wrong：该选项为错选项 + 埋点高频错选 → 标「易错」（刺眼红）
+   - hot-miss ：该选项为正确项 + 埋点高频漏选 → 标「易漏选」（醒目橙）
+   同一选项互斥（错选项不可能是正确项），优先级：易错 > 易漏选 */
+.opt-flag{
+  flex-shrink:0; align-self:center;
+  font-size:10px; font-weight:700; line-height:1;
+  padding:3px 7px; border-radius:8px;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.opt-flag.hot-wrong{ background:#EF4444; color:#fff; box-shadow:0 2px 6px rgba(239,68,68,.3); }
+.opt-flag.hot-miss { background:#F28B3D; color:#fff; box-shadow:0 2px 6px rgba(242,139,61,.3); }
 .option.wrong .radio::after{ content:"×"; color:#fff; font-size:11px; font-weight:bold; }
 .option.wrong .checkbox::after{ content:"×"; color:#fff; font-size:12px; font-weight:bold; }
 .option.answer{ border-color:var(--success); background:#F0FBF4; }
@@ -467,6 +481,7 @@ var QUESTIONS = {
     {
       type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'中',
       stubborn:true,
+      hotWrong:0,         /* 埋点：Delete 被高频错选（学生忘记加 Shift） */
       stem:'在 Windows 10 中，要永久删除文件而不放入回收站，应使用的快捷键是（ ）。',
       options:['Delete','Shift+Delete','Ctrl+Delete','Alt+Delete'],
       answer:1,
@@ -476,6 +491,8 @@ var QUESTIONS = {
     {
       type:'multi', chapter:'第3章 操作系统', concept:'进程与线程', difficulty:'中',
       stubborn:false,
+      hotWrong:4,         /* 埋点：封闭性被高频错选（看似合理但不是 OS 特征） */
+      hotMiss:[2,3],      /* 埋点：虚拟性、异步性易漏选（学生只想到并发/共享） */
       stem:'操作系统的主要特征包括（ ）。',
       options:['并发性','共享性','虚拟性','异步性','封闭性'],
       answer:[0,1,2,3],
@@ -520,6 +537,7 @@ var QUESTIONS = {
     {
       type:'single', chapter:'第1章 计算机基础', concept:'操作系统概述', difficulty:'中',
       stubborn:false,
+      hotWrong:1,         /* 埋点：「提供用户界面」被高频错选（学生以为是应用层功能） */
       stem:'操作系统的作用不包括（ ）。',
       options:['管理硬件资源','提供用户界面','编译源程序','管理软件资源'],
       answer:2,
@@ -711,9 +729,19 @@ function renderOptions(q, ans, reveal) {
       if (correctArr.indexOf(i) >= 0) cls = ' correct';
       else if (selArr.indexOf(i) >= 0) cls = ' wrong';
     } else if (selArr.indexOf(i) >= 0) cls = ' selected';
+    /* 易错/易漏选标签：互斥，易错优先（数据来源 = 埋点统计；演示期手写模拟） */
+    var flagHtml = '';
+    if (q.hotWrong !== undefined && q.hotWrong === i) {
+      flagHtml = '<span class="opt-flag hot-wrong">易错</span>';
+    } else if (q.hotMiss !== undefined) {
+      var missArr = Array.isArray(q.hotMiss) ? q.hotMiss : [q.hotMiss];
+      if (missArr.indexOf(i) >= 0) flagHtml = '<span class="opt-flag hot-miss">易漏选</span>';
+    }
     html += '<div class="option' + cls + '" onclick="onSelectOption(' + i + ')">'
       + '<span class="' + (isMulti ? 'checkbox' : 'radio') + '"></span>'
-      + '<span><span class="opt-label">' + LETTERS[i] + '.</span>' + opt + '</span></div>';
+      + '<span class="opt-body"><span class="opt-label">' + LETTERS[i] + '.</span>' + opt + '</span>'
+      + flagHtml
+      + '</div>';
   });
   return html + '</div>';
 }
