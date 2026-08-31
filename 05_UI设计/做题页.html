@@ -148,12 +148,149 @@ body{
 .analysis-area{ background:#F5F6FA; padding:0 12px 16px; flex-shrink:0; display:none; }
 .analysis-area.show{ display:block; }
 .analysis-card{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
-.analysis-card .card-title{ font-size:14px; font-weight:700; margin-bottom:10px; }
+.analysis-card .card-title{ font-size:14px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.analysis-card .card-title .ico{
+  width:22px; height:22px; border-radius:6px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1;
+}
+.analysis-card .card-title .seq{
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+  background:#F0F1F6; border-radius:6px; padding:2px 7px; margin-left:auto;
+}
 .answer-line{ font-size:14px; font-weight:700; color:var(--success); margin-bottom:8px; }
 .answer-line.wrong-ans{ color:var(--danger); }
 .analysis-text{ font-size:13px; color:#555; line-height:1.7; }
 .analysis-text b{ color:#333; }
 .step-list{ font-size:13px; color:#666; line-height:1.8; margin-top:8px; padding-top:8px; border-top:1px dashed #EDEFF3; }
+
+/* ===== 九节解析（PM 2026-08-31 拍板顺序） =====
+   1 答题结果 / 2 系统判断 / 3 解析 / 4 考点对比 / 5 举一反三
+   6 我的笔记 / 7 相关知识点 / 8 视频解析 / 9 答题时间·耗时分析 */
+.ana-sec{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
+.ana-sec .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.ana-sec .sec-head .ico{
+  width:22px; height:22px; border-radius:7px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1;
+}
+.ana-sec .sec-head .ico svg{ width:14px; height:14px; }
+.ana-sec .sec-head .name{ font-size:14px; font-weight:700; color:var(--text-primary); }
+.ana-sec .sec-head .seq{
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+  background:#F0F1F6; border-radius:6px; padding:2px 7px; margin-left:auto;
+}
+.ana-sec .sec-body{ font-size:13px; color:#555; line-height:1.7; }
+.ana-sec .sec-body b{ color:#333; }
+/* 节图标配色 */
+.ico-1{ background:linear-gradient(135deg,#EF4444,#F87171); color:#fff; }      /* 答题结果 红 */
+.ico-2{ background:linear-gradient(135deg,#5B72F5,#4358D7); color:#fff; }      /* 系统判断 蓝 */
+.ico-3{ background:linear-gradient(135deg,#3FA98B,#5BC29B); color:#fff; }     /* 解析 绿 */
+.ico-4{ background:linear-gradient(135deg,#F28B3D,#FBA460); color:#fff; }      /* 考点对比 橙 */
+.ico-5{ background:linear-gradient(135deg,#722ED1,#9B6BD9); color:#fff; }     /* 举一反三 紫 */
+.ico-6{ background:linear-gradient(135deg,#FA8C16,#FFA940); color:#fff; }      /* 我的笔记 黄橙 */
+.ico-7{ background:linear-gradient(135deg,#13C2C2,#36CFC9); color:#fff; }     /* 相关知识点 青 */
+.ico-8{ background:linear-gradient(135deg,#5B72F5,#3FA98B); color:#fff; }      /* 视频解析 蓝绿 */
+.ico-9{ background:linear-gradient(135deg,#8A90A8,#B0B6CA); color:#fff; }     /* 答题时间 灰 */
+
+/* 系统判断：标签行 */
+.verdict-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+.verdict-tag{
+  font-size:11px; font-weight:600; padding:3px 9px; border-radius:8px;
+  display:flex; align-items:center; gap:4px;
+}
+.verdict-tag.right{ background:#E8F8F0; color:#1F7A4D; }
+.verdict-tag.wrong{ background:#FEECEC; color:#C0392B; }
+.verdict-tag.partial{ background:#FFF7E6; color:#B66B0A; }
+
+/* 考点对比：左右双栏 */
+.compare-box{ display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch; }
+.compare-col{
+  border:1px solid #EEF0F6; border-radius:10px; padding:10px 12px;
+  background:#FBFCFE;
+}
+.compare-col .col-t{ font-size:11px; font-weight:600; color:var(--text-tertiary); margin-bottom:6px; }
+.compare-col .col-name{ font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+.compare-col .col-list{ font-size:12px; color:#666; line-height:1.8; }
+.compare-col .col-list li{ list-style:none; padding-left:14px; position:relative; }
+.compare-col .col-list li::before{ content:'·'; position:absolute; left:4px; color:var(--primary); font-weight:700; }
+.compare-col.is-cur{ border-color:var(--primary); background:var(--primary-light); }
+.compare-col.is-cur .col-name{ color:var(--primary-dark); }
+.compare-mid{
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+}
+.compare-mid svg{ width:18px; height:18px; }
+
+/* 举一反三：变式题卡 */
+.variant-card{
+  border:1px solid #EEF0F6; border-radius:10px; padding:12px; margin-bottom:8px;
+  cursor:pointer; transition:transform .12s ease, border-color .15s;
+}
+.variant-card:active{ transform:scale(.99); border-color:var(--primary); }
+.variant-card .v-stem{ font-size:13px; color:#333; line-height:1.6; margin-bottom:6px; }
+.variant-card .v-meta{ font-size:11px; color:var(--text-tertiary); display:flex; gap:10px; }
+.variant-card .v-meta .v-type{ color:var(--primary-dark); background:var(--primary-light); border-radius:6px; padding:1px 6px; }
+
+/* 我的笔记：可编辑 textarea + 状态 */
+.note-ta{
+  width:100%; min-height:64px; padding:10px 12px; box-sizing:border-box;
+  border:1px solid #E3E8F2; border-radius:10px; background:#FBFBFE;
+  font-size:13px; color:var(--text-primary); line-height:1.5;
+  font-family:inherit; outline:none; resize:vertical;
+  transition:border-color .15s;
+}
+.note-ta:focus{ border-color:var(--primary); background:#fff; }
+.note-empty{ font-size:12px; color:var(--text-tertiary); padding:8px 0; }
+.note-save-row{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.note-hint{ font-size:11px; color:var(--text-tertiary); }
+.note-save-btn{
+  border:none; background:var(--primary-light); color:var(--primary-dark);
+  font-size:12px; font-weight:600; padding:5px 14px; border-radius:8px; cursor:pointer;
+}
+.note-save-btn:active{ background:var(--primary); color:#fff; }
+
+/* 相关知识点：标签云 */
+.kp-cloud{ display:flex; flex-wrap:wrap; gap:8px; }
+.kp-tag{
+  font-size:12px; padding:5px 11px; border-radius:14px;
+  background:#F5F6FA; color:var(--text-secondary); border:1px solid #EEF0F6;
+  cursor:pointer; transition:all .12s;
+}
+.kp-tag:active{ background:var(--primary-light); color:var(--primary-dark); border-color:var(--primary); }
+
+/* 视频解析：视频卡 */
+.video-card{
+  display:flex; gap:10px; align-items:center;
+  border:1px solid #EEF0F6; border-radius:10px; padding:10px; cursor:pointer;
+  transition:transform .12s ease, border-color .15s;
+}
+.video-card:active{ transform:scale(.99); border-color:var(--primary); }
+.video-thumb{
+  width:64px; height:48px; border-radius:8px; flex-shrink:0;
+  background:linear-gradient(135deg,#5B72F5,#3FA98B);
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.video-thumb svg{ width:22px; height:22px; color:#fff; }
+.video-thumb .v-dur{
+  position:absolute; bottom:2px; right:4px;
+  font-size:9px; color:#fff; background:rgba(0,0,0,.5); padding:1px 4px; border-radius:3px;
+}
+.video-info .v-title{ font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+.video-info .v-sub{ font-size:11px; color:var(--text-tertiary); }
+
+/* 答题时间·耗时分析：双行 */
+.timing-row{ display:flex; gap:10px; margin-bottom:8px; }
+.timing-cell{
+  flex:1; border:1px solid #EEF0F6; border-radius:10px; padding:10px 12px; background:#FBFCFE;
+}
+.timing-cell .t-lbl{ font-size:11px; color:var(--text-tertiary); margin-bottom:4px; }
+.timing-cell .t-val{ font-size:18px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.timing-cell .t-sub{ font-size:11px; color:var(--text-secondary); margin-top:2px; }
+.timing-bar-wrap{ margin-top:10px; }
+.timing-bar-t{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-tertiary); margin-bottom:5px; }
+.timing-bar{ height:6px; background:#EDEFF3; border-radius:3px; overflow:hidden; }
+.timing-bar-fill{ height:100%; background:linear-gradient(90deg,var(--primary),#62CFA9); border-radius:3px; transition:width .3s; }
 
 /* ===== 底部操作栏：收藏 / 标记 / 分享 + 交卷（上一题/下一题改手势滑动） ===== */
 .bottom-bar{
@@ -880,15 +1017,214 @@ function renderSubOptions(sub, subAns, reveal, subIdx) {
   });
   return html + '</div>';
 }
+/* ---------- 九节解析（PM 2026-08-31 拍板顺序） ----------
+   1 答题结果 / 2 系统判断 / 3 解析 / 4 考点对比 / 5 举一反三
+   6 我的笔记 / 7 相关知识点 / 8 视频解析 / 9 答题时间·耗时分析
+   每题独立组装；演示期 4/5/7/8 mock，6 笔记本地存，9 接会话计时。 */
 function renderAnalysis(q, ans, reveal) {
-  var correct = reveal ? checkAnswer(q, ans) : null;
-  var line;
-  if (correct === true) line = '<div class="answer-line">✅ 回答正确　正确答案：' + formatAnswer(q) + '</div>';
-  else if (correct === false) line = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + formatUserAnswer(q, ans) + '　正确答案：' + formatAnswer(q) + '</div>';
-  else line = '<div class="answer-line">正确答案：' + formatAnswer(q) + '</div>';
+  if (!reveal) return '';
+  var correct = checkAnswer(q, ans);
+  var html = '';
+
+  /* ① 答题结果 */
+  var resultLine;
+  if (correct === true) resultLine = '<div class="answer-line">✅ 回答正确　正确答案：' + formatAnswer(q) + '</div>';
+  else if (correct === false) resultLine = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + formatUserAnswer(q, ans) + '　正确答案：' + formatAnswer(q) + '</div>';
+  else resultLine = '<div class="answer-line">正确答案：' + formatAnswer(q) + '</div>';
+  html += '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span><span class="seq">1</span></div>'
+    + resultLine + '</div>';
+
+  /* ② 系统判断（对该题掌握度的系统判定） */
+  var verdict = '部分掌握';
+  var vCls = 'partial';
+  if (correct === true) { verdict = '已掌握'; vCls = 'right'; }
+  else if (correct === false) { verdict = '未掌握'; vCls = 'wrong'; }
+  var stubbornTag = q.stubborn ? '<span class="verdict-tag wrong">顽固题</span>' : '';
+  html += '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-2">⚖</span><span class="name">系统判断</span><span class="seq">2</span></div>'
+    + '<div class="verdict-tags">'
+    + '<span class="verdict-tag ' + vCls + '">' + verdict + '</span>'
+    + stubbornTag
+    + '<span class="verdict-tag partial">难度·' + (q.difficulty || '中') + '</span>'
+    + '</div></div>';
+
+  /* ③ 解析（答案解析 + 解题步骤） */
   var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
-  return '<div class="analysis-card"><div class="card-title">📖 答案解析</div>' + line
+  html += '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span><span class="seq">3</span></div>'
     + '<div class="analysis-text">' + q.analysis + '</div>' + steps + '</div>';
+
+  /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
+  var compare = q.compare || mockCompare(q);
+  html += renderCompare(compare);
+
+  /* ⑤ 举一反三（同类变式题）— mock */
+  var variants = q.variants || mockVariants(q);
+  html += renderVariants(variants);
+
+  /* ⑥ 我的笔记（本地存 localStorage，按题 id） */
+  html += renderNote(q);
+
+  /* ⑦ 相关知识点 — mock */
+  var kps = q.kp || mockKp(q);
+  html += renderKp(kps);
+
+  /* ⑧ 视频解析 — mock */
+  var vids = q.videos || mockVideos(q);
+  html += renderVideos(vids);
+
+  /* ⑨ 答题时间·耗时分析（接会话计时） */
+  html += renderTiming(q);
+
+  return html;
+}
+
+/* ④ 考点对比 mock 生成器：按当前 concept 推一个易混考点 */
+function mockCompare(q) {
+  var MAP = {
+    '进程与线程': { name: '操作系统四大功能', list: ['处理机管理','存储管理','设备管理','文件管理'] },
+    '文件管理': { name: '文件系统层次', list: ['目录管理','存储空间管理','文件存储','文件共享'] },
+    '操作系统概述': { name: '操作系统目标', list: ['方便性','有效性','可扩充性','开放性'] }
+  };
+  var m = MAP[q.concept];
+  if (m) return { curName: q.concept + '（本考点）', curList: parseCurList(q), vsName: m.name, vsList: m.list };
+  return { curName: q.concept || '本考点', curList: ['要点一','要点二'], vsName: '相似考点', vsList: ['对照项一','对照项二'] };
+}
+function parseCurList(q) {
+  /* 从 analysis 里提取要点（demo：按顿号/逗号分） */
+  var t = q.analysis.replace(/<[^>]+>/g, '');
+  var arr = t.split(/[、，,；;]/).map(function(s){ return s.trim(); }).filter(function(s){ return s && s.length < 12; });
+  return arr.slice(0, 5);
+}
+function renderCompare(c) {
+  var curItems = c.curList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
+  var vsItems = c.vsList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
+  return '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-4">⇄</span><span class="name">考点对比</span><span class="seq">4</span></div>'
+    + '<div class="compare-box">'
+    + '<div class="compare-col is-cur"><div class="col-t">本考点</div><div class="col-name">' + c.curName + '</div><ul class="col-list">' + curItems + '</ul></div>'
+    + '<div class="compare-mid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h8m0 0l-3-3m3 3l-3 3"/><path d="M16 17H8m0 0l3 3m-3-3l3-3"/></svg></div>'
+    + '<div class="compare-col"><div class="col-t">易混考点</div><div class="col-name">' + c.vsName + '</div><ul class="col-list">' + vsItems + '</ul></div>'
+    + '</div></div>';
+}
+
+/* ⑤ 举一反三 mock 生成器：同 concept 变式题 */
+function mockVariants(q) {
+  return [
+    { stem: '【变式一】关于' + (q.concept || '该考点') + '，下列说法正确的是？', type: '单选题', difficulty: '中' },
+    { stem: '【变式二】下列关于' + (q.concept || '该考点') + '的描述，错误的是？', type: '多选题', difficulty: '高' }
+  ];
+}
+function renderVariants(vs) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-5">①</span><span class="name">举一反三</span><span class="seq">5</span></div>';
+  vs.forEach(function(v) {
+    html += '<div class="variant-card">'
+      + '<div class="v-stem">' + v.stem + '</div>'
+      + '<div class="v-meta"><span class="v-type">' + v.type + '</span><span>难度·' + v.difficulty + '</span></div>'
+      + '</div>';
+  });
+  html += '<div class="sec-body" style="font-size:11px;color:var(--text-tertiary);">点击变式题进入练习（v5.0 接题库）</div>';
+  return html + '</div>';
+}
+
+/* ⑥ 我的笔记：localStorage 按题 id 存取 */
+var NOTE_KEY = 'zsb_practice_notes_v1';
+function getNoteId(q) { return q.id || (ENTRY + '-' + idx); }
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveNotes(obj) {
+  try { localStorage.setItem(NOTE_KEY, JSON.stringify(obj)); } catch(e) {}
+}
+function renderNote(q) {
+  var id = getNoteId(q);
+  var notes = loadNotes();
+  var has = !!notes[id];
+  var html = '<div class="ana-sec" id="noteSec">'
+    + '<div class="sec-head"><span class="ico ico-6">✎</span><span class="name">我的笔记</span><span class="seq">6</span></div>';
+  if (has) {
+    html += '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)">' + notes[id] + '</textarea>'
+      + '<div class="note-save-row"><span class="note-hint">已保存于本地</span>'
+      + '<button class="note-save-btn" onclick="saveNote()">更新</button></div>';
+  } else {
+    html += '<div class="note-empty">还没有笔记，记下你的理解、易错点或记忆口诀吧</div>'
+      + '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)"></textarea>'
+      + '<div class="note-save-row"><span class="note-hint">本地保存，仅你可见</span>'
+      + '<button class="note-save-btn" onclick="saveNote()">保存笔记</button></div>';
+  }
+  return html + '</div>';
+}
+var _noteDraft = '';
+function onNoteInput(v) { _noteDraft = v; }
+function saveNote() {
+  var q = QUESTIONS[idx] || {};
+  var id = getNoteId(q);
+  var notes = loadNotes();
+  if (_noteDraft && _noteDraft.trim()) notes[id] = _noteDraft.trim();
+  else delete notes[id];
+  saveNotes(notes);
+  showToast(_noteDraft && _noteDraft.trim() ? '笔记已保存' : '笔记已清空');
+  renderQuestion();
+}
+
+/* ⑦ 相关知识点 mock */
+function mockKp(q) {
+  var base = (q.chapter || '').replace(/^第\d+章\s*/, '');
+  return [base + ' 概述', q.concept || '核心概念', q.concept + ' 的应用', q.concept + ' 易错点', '相关真题题型'];
+}
+function renderKp(kps) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-7">⌗</span><span class="name">相关知识点</span><span class="seq">7</span></div>'
+    + '<div class="kp-cloud">';
+  kps.forEach(function(k) {
+    html += '<span class="kp-tag" onclick="showToast(\'知识点：' + k + '（v5.0 接知识图谱）\')">' + k + '</span>';
+  });
+  return html + '</div></div>';
+}
+
+/* ⑧ 视频解析 mock */
+function mockVideos(q) {
+  return [
+    { title: (q.concept || '该考点') + ' 精讲 · 15 分钟吃透', dur: '15:20', sub: '张老师 · 系统精讲' },
+    { title: '操作系统四大特征动画演示', dur: '06:48', sub: '动画解析 · 易混辨析' }
+  ];
+}
+function renderVideos(vids) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-8">▶</span><span class="name">视频解析</span><span class="seq">8</span></div>';
+  vids.forEach(function(v) {
+    html += '<div class="video-card" onclick="showToast(\'播放：' + v.title + '（v5.0 接视频库）\')">'
+      + '<div class="video-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg><span class="v-dur">' + v.dur + '</span></div>'
+      + '<div class="video-info"><div class="v-title">' + v.title + '</div><div class="v-sub">' + v.sub + '</div></div>'
+      + '</div>';
+  });
+  return html + '</div>';
+}
+
+/* ⑨ 答题时间·耗时分析：接会话计时 */
+function renderTiming(q) {
+  var curSec = (finalSec !== null) ? Math.floor((Date.now() - startAt) / 1000) : Math.floor((Date.now() - startAt) / 1000);
+  /* 本题耗时 mock：按总耗时分摊到题数（演示） */
+  var perQ = total > 0 ? Math.floor(curSec / total) : 0;
+  var avgQ = 45;  /* mock 全站平均 45s/题 */
+  var pct = Math.min(100, Math.round(perQ / avgQ * 100));
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-9">◷</span><span class="name">答题时间·耗时分析</span><span class="seq">9</span></div>'
+    + '<div class="timing-row">'
+    + '<div class="timing-cell"><div class="t-lbl">本题耗时</div><div class="t-val">' + fmtMMSS(perQ) + '</div><div class="t-sub">本轮第 ' + (idx + 1) + ' 题</div></div>'
+    + '<div class="timing-cell"><div class="t-lbl">全场耗时</div><div class="t-val">' + fmtMMSS(curSec) + '</div><div class="t-sub">共 ' + total + ' 题</div></div>'
+    + '</div>';
+  if (finalSec !== null) {
+    html += '<div class="timing-bar-wrap">'
+      + '<div class="timing-bar-t"><span>本题耗时 / 全站平均</span><span>' + perQ + 's / ' + avgQ + 's</span></div>'
+      + '<div class="timing-bar"><div class="timing-bar-fill" style="width:' + pct + '%"></div></div>'
+      + '</div>';
+  } else {
+    html += '<div class="sec-body" style="font-size:11px;color:var(--text-tertiary);">交卷后展示本题耗时与全站平均对比</div>';
+  }
+  return html + '</div>';
 }
 
 /* ---------- 答题交互 ---------- */
