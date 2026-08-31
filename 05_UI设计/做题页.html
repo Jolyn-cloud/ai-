@@ -24,7 +24,7 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* ===== 顶部导航 ===== */
+/* ===== 顶部导航：模式切换左 / 计时中 / 答题卡右 ===== */
 .practice-nav{
   flex-shrink:0; height:52px;
   position:relative;
@@ -33,21 +33,37 @@ body{
   border-bottom:1px solid #F0F1F6;
 }
 /* .nav-back 已删（2026-08-31）：内部退出按钮由总壳 appbar 接管，避免重复 */
-.mode-switch{ display:flex; background:#F0F1F6; border-radius:16px; padding:2px; margin:0 auto; }
+.mode-switch{ display:flex; background:#F0F1F6; border-radius:16px; padding:2px; }
 .mode-btn{
   padding:5px 14px; font-size:12px; border-radius:13px; border:none;
   background:none; color:var(--text-secondary); cursor:pointer; font-weight:500;
 }
 .mode-btn.active{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-.nav-progress{
-  position:absolute; right:12px; top:50%; transform:translateY(-50%);
-  font-size:12px; color:var(--text-secondary); white-space:nowrap;
+/* 中央计时：等宽数字，避免跳动 */
+.nav-timer{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-size:14px; font-weight:600; color:var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
 }
+/* 右侧答题卡入口 */
+.nav-sheet-btn{
+  margin-left:auto;
+  display:flex; align-items:center; gap:4px;
+  border:none; background:none; cursor:pointer;
+  color:var(--text-secondary); font-size:12px; font-weight:500;
+  padding:6px 10px; border-radius:10px;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-sheet-btn:active{ background:#F0F1F6; color:var(--primary-dark); }
+.nav-sheet-btn svg{ width:16px; height:16px; }
 
 /* ===== 进度条 ===== */
 .progress-wrap{ padding:6px 16px 10px; background:#fff; border-bottom:1px solid #F0F1F6; flex-shrink:0; }
 .progress-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary); margin-bottom:5px; }
 .progress-top .q-num{ color:var(--primary); font-weight:600; }
+.progress-top .q-pos{ color:var(--text-tertiary); }
+.progress-top .q-pos #navProgress{ color:var(--primary); font-weight:600; }
 .progress-bar{ height:3px; background:#EDEFF3; border-radius:2px; overflow:hidden; }
 .progress-fill{ height:100%; background:linear-gradient(90deg,var(--primary),#62CFA9); border-radius:2px; transition:width .2s; }
 
@@ -234,6 +250,75 @@ body{
 .modal-btn.cancel{ background:#F5F6FA; color:var(--text-secondary); }
 .modal-btn.ok{ background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff; }
 
+/* ===== 答题卡：上滑遮罩浮窗 ===== */
+.sheet-mask{
+  position:fixed; inset:0; background:rgba(22,27,46,.45); z-index:110;
+  opacity:0; visibility:hidden; transition:opacity .22s ease, visibility .22s;
+}
+.sheet-mask.show{ opacity:1; visibility:visible; }
+.sheet-panel{
+  position:absolute; left:0; right:0; bottom:0;
+  background:#fff; border-radius:18px 18px 0 0;
+  padding:14px 16px 22px;
+  max-height:70%; display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,.35,1);
+}
+.sheet-mask.show .sheet-panel{ transform:translateY(0); }
+.sheet-grab{
+  width:42px; height:4px; border-radius:2px; background:#E3E6F0;
+  margin:0 auto 14px;
+}
+.sheet-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.sheet-title{ font-size:15px; font-weight:700; color:var(--text-primary); }
+.sheet-close{
+  width:28px; height:28px; border:none; background:none; cursor:pointer;
+  color:var(--text-tertiary); font-size:22px; line-height:1; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.sheet-close:active{ background:#F0F1F6; }
+/* 图例：已答 / 未答 / 已标记 */
+.sheet-legend{
+  display:flex; gap:14px; padding:8px 4px 12px; border-bottom:1px solid #F0F1F6;
+  font-size:11px; color:var(--text-secondary);
+}
+.sheet-legend .lg{ display:flex; align-items:center; gap:5px; }
+.sheet-legend .lg i{
+  width:14px; height:14px; border-radius:4px; display:inline-block; flex-shrink:0;
+  border:1px solid transparent;
+}
+.sheet-legend .lg-done i{ background:var(--primary); }
+.sheet-legend .lg-todo i{ background:#fff; border-color:#C9CEDA; }
+.sheet-legend .lg-mark i{ background:#FFF7E6; border-color:#FA8C16; position:relative; }
+.sheet-legend .lg-mark i::after{
+  content:''; position:absolute; right:1px; top:1px; width:5px; height:5px; border-radius:50%; background:#FA8C16;
+}
+/* 题号网格 */
+.sheet-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(46px, 1fr));
+  gap:10px; padding:14px 4px 6px; overflow-y:auto;
+}
+.sheet-cell{
+  position:relative;
+  aspect-ratio:1; border-radius:10px; border:1.5px solid #C9CEDA;
+  background:#fff; color:var(--text-primary);
+  font-size:14px; font-weight:600;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:transform .12s ease, border-color .15s, background .15s;
+}
+.sheet-cell:active{ transform:scale(.94); }
+.sheet-cell.done{
+  background:var(--primary); border-color:var(--primary); color:#fff;
+}
+.sheet-cell.mark::after{
+  content:''; position:absolute; right:4px; top:4px; width:6px; height:6px; border-radius:50%; background:#FA8C16;
+}
+.sheet-cell.done.mark::after{ background:#FFD66B; }
+.sheet-cell.current{
+  box-shadow:0 0 0 2px var(--primary-light), 0 0 0 3.5px var(--primary);
+}
+
 /* ===== 成绩结果弹窗 ===== */
 .result-mask{ position:fixed; inset:0; background:rgba(22,27,46,.45); display:none; align-items:center; justify-content:center; z-index:120; }
 .result-mask.show{ display:flex; }
@@ -251,18 +336,28 @@ body{
 </head>
 <body>
 
-<!-- 顶部导航：内部 ✕ 已删除（2026-08-31 PM 拍板），统一走总壳 appbar 的「退出」返回 -->
+<!-- 顶部导航：模式切换 左 | 计时 中 | 答题卡 右；内部 ✕ 已删（2026-08-31），统一走总壳 appbar -->
 <div class="practice-nav">
   <div class="mode-switch">
     <span class="mode-btn active" id="modeExam" onclick="setMode('exam')">做题</span>
     <span class="mode-btn" id="modeStudy" onclick="setMode('study')">背题</span>
   </div>
-  <span class="nav-progress" id="navProgress">1/5</span>
+  <span class="nav-timer" id="navTimer" title="本次答题用时">00:00</span>
+  <button class="nav-sheet-btn" id="navSheetBtn" onclick="openSheet()" aria-label="答题卡">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </svg>
+    <span>答题卡</span>
+  </button>
 </div>
 
-<!-- 进度条 -->
+<!-- 进度条：左 = 第 X 题；右 = Y/Z 进度 + 共 N 题 -->
 <div class="progress-wrap">
-  <div class="progress-top"><span class="q-num" id="qNum">第 1 题</span><span id="qTotal">共 5 题</span></div>
+  <div class="progress-top">
+    <span class="q-num" id="qNum">第 1 题</span>
+    <span class="q-pos"><span id="navProgress">1/5</span> · <span id="qTotal">共 5 题</span></span>
+  </div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
 </div>
 
@@ -289,6 +384,23 @@ body{
   <button class="btn-submit" id="btnSubmit" onclick="openSubmit()">交卷</button>
 </div>
 
+<!-- 答题卡：上滑遮罩浮窗（已答 / 未答 / 已标记 三态；点题号跳转） -->
+<div class="sheet-mask" id="sheetMask" onclick="if(event.target===this) closeSheet()">
+  <div class="sheet-panel">
+    <div class="sheet-grab"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">答题卡</div>
+      <button class="sheet-close" onclick="closeSheet()" aria-label="关闭">×</button>
+    </div>
+    <div class="sheet-legend">
+      <span class="lg lg-done"><i></i>已答 <b id="lgDone">0</b></span>
+      <span class="lg lg-todo"><i></i>未答 <b id="lgTodo">0</b></span>
+      <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
+    </div>
+    <div class="sheet-grid" id="sheetGrid"></div>
+  </div>
+</div>
+
 <!-- 交卷确认弹窗 -->
 <div class="modal-mask" id="submitModal">
   <div class="modal-panel">
@@ -310,6 +422,7 @@ body{
       <div><b id="statRight">0</b>答对</div>
       <div><b id="statWrong">0</b>答错</div>
       <div><b id="statSkip">0</b>未答</div>
+      <div><b id="statTime">00:00</b>用时</div>
     </div>
     <div class="result-btns">
       <button class="result-btn exit" onclick="closePractice()">退出</button>
@@ -571,6 +684,8 @@ function renderQuestion() {
   document.getElementById('navProgress').textContent = (idx+1) + '/' + total;
   document.getElementById('progressFill').style.width = ((idx+1)/total*100) + '%';
   updateBottomBar();
+  /* 答题卡开着时实时刷新已答/标记状态（否则关闭时状态会过期） */
+  if (document.getElementById('sheetMask').classList.contains('show')) renderSheet();
 }
 
 function renderBody(q, ans, reveal) {
@@ -751,9 +866,75 @@ function openSubmit() {
 function hideSubmit() {
   document.getElementById('submitModal').classList.remove('show');
 }
+/* ---------- 答题计时（会话级；进入即起，交卷即停，结果页记录耗时） ----------
+   起算点：脚本初始化即 startAt = Date.now()；切换模式（做题/背题）不清零。
+   显示：分:秒（MM:SS，不足 1 分钟补 0）；交卷后定格，结果页 statTime 同步展示。
+   v5.0 接数据层时，finalSec 作为「本次做题耗时」字段一并上报。 */
+var startAt = Date.now();
+var timerId = null;
+var finalSec = null;          /* 交卷时定格秒数 */
+function fmtMMSS(sec) {
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+function tickTimer() {
+  var sec = (finalSec !== null) ? finalSec : Math.floor((Date.now() - startAt) / 1000);
+  var el = document.getElementById('navTimer');
+  if (el) el.textContent = fmtMMSS(sec);
+}
+function startTimer() {
+  if (timerId) return;
+  timerId = setInterval(tickTimer, 1000);
+  tickTimer();
+}
+function stopTimer() {
+  if (finalSec === null) finalSec = Math.floor((Date.now() - startAt) / 1000);
+  if (timerId) { clearInterval(timerId); timerId = null; }
+  tickTimer();
+}
+
+/* ---------- 答题卡（已答/未答/已标记 三态 + 点题号跳转） ---------- */
+function openSheet() {
+  renderSheet();
+  document.getElementById('sheetMask').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('sheetMask').classList.remove('show');
+}
+function renderSheet() {
+  var grid = document.getElementById('sheetGrid');
+  var done = 0, mark = 0;
+  var html = '';
+  for (var i = 0; i < total; i++) {
+    var isDone = getAnswered(QUESTIONS[i], answers[i]);
+    var isMark = !!marked[i];
+    if (isDone) done++;
+    if (isMark) mark++;
+    var cls = 'sheet-cell';
+    if (isDone) cls += ' done';
+    if (isMark) cls += ' mark';
+    if (i === idx) cls += ' current';
+    html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('lgDone').textContent = done;
+  document.getElementById('lgTodo').textContent = total - done;
+  document.getElementById('lgMark').textContent = mark;
+}
+function jumpTo(i) {
+  if (i < 0 || i >= total) return;
+  clearAutoNext();
+  idx = i;
+  resetOp();
+  renderQuestion();
+  closeSheet();
+}
+
 function doSubmit() {
   hideSubmit();
   submitted = true;
+  stopTimer();
+  document.getElementById('statTime').textContent = fmtMMSS(finalSec);
   renderQuestion();
   showResult();
 }
@@ -888,6 +1069,7 @@ function showToast(msg) {
 }
 
 /* ---------- 初始化 ---------- */
+startTimer();              /* 进入即起表（会话级计时） */
 renderQuestion();
 </script>
 </body>
