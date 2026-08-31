@@ -800,13 +800,16 @@ function renderOptions(q, ans, reveal) {
       if (correctArr.indexOf(i) >= 0) cls = ' correct';
       else if (selArr.indexOf(i) >= 0) cls = ' wrong';
     } else if (selArr.indexOf(i) >= 0) cls = ' selected';
-    /* 易错/易漏选标签：互斥，易错优先（数据来源 = 埋点统计；演示期手写模拟） */
+    /* 易错/易漏选标签：仅答案出现后显示（交卷 / 背题已答），答题期间不显示，避免泄露正误；
+       互斥，易错优先（数据来源 = 埋点统计；演示期手写模拟） */
     var flagHtml = '';
-    if (q.hotWrong !== undefined && q.hotWrong === i) {
-      flagHtml = '<span class="opt-flag hot-wrong">易错</span>';
-    } else if (q.hotMiss !== undefined) {
-      var missArr = Array.isArray(q.hotMiss) ? q.hotMiss : [q.hotMiss];
-      if (missArr.indexOf(i) >= 0) flagHtml = '<span class="opt-flag hot-miss">易漏选</span>';
+    if (reveal) {
+      if (q.hotWrong !== undefined && q.hotWrong === i) {
+        flagHtml = '<span class="opt-flag hot-wrong">易错</span>';
+      } else if (q.hotMiss !== undefined) {
+        var missArr = Array.isArray(q.hotMiss) ? q.hotMiss : [q.hotMiss];
+        if (missArr.indexOf(i) >= 0) flagHtml = '<span class="opt-flag hot-miss">易漏选</span>';
+      }
     }
     html += '<div class="option' + cls + '" onclick="onSelectOption(' + i + ')">'
       + '<span class="' + (isMulti ? 'checkbox' : 'radio') + '"></span>'
