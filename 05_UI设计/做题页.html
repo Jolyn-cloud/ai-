@@ -27,24 +27,22 @@ body{
 /* ===== 顶部导航 ===== */
 .practice-nav{
   flex-shrink:0; height:52px;
+  position:relative;
   display:flex; align-items:center; gap:10px;
   padding:0 12px; background:#fff;
   border-bottom:1px solid #F0F1F6;
 }
-.nav-back{
-  width:36px; height:36px; flex-shrink:0;
-  border:none; background:none; cursor:pointer;
-  font-size:20px; color:#333;
-  display:flex; align-items:center; justify-content:center; border-radius:50%;
-}
-.nav-back:active{ background:#F0F1F6; }
+/* .nav-back 已删（2026-08-31）：内部退出按钮由总壳 appbar 接管，避免重复 */
 .mode-switch{ display:flex; background:#F0F1F6; border-radius:16px; padding:2px; margin:0 auto; }
 .mode-btn{
   padding:5px 14px; font-size:12px; border-radius:13px; border:none;
   background:none; color:var(--text-secondary); cursor:pointer; font-weight:500;
 }
 .mode-btn.active{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-.nav-progress{ font-size:12px; color:var(--text-secondary); white-space:nowrap; }
+.nav-progress{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  font-size:12px; color:var(--text-secondary); white-space:nowrap;
+}
 
 /* ===== 进度条 ===== */
 .progress-wrap{ padding:6px 16px 10px; background:#fff; border-bottom:1px solid #F0F1F6; flex-shrink:0; }
@@ -253,9 +251,8 @@ body{
 </head>
 <body>
 
-<!-- 顶部导航 -->
+<!-- 顶部导航：内部 ✕ 已删除（2026-08-31 PM 拍板），统一走总壳 appbar 的「退出」返回 -->
 <div class="practice-nav">
-  <button class="nav-back" id="navBack" onclick="closePractice()">✕</button>
   <div class="mode-switch">
     <span class="mode-btn active" id="modeExam" onclick="setMode('exam')">做题</span>
     <span class="mode-btn" id="modeStudy" onclick="setMode('study')">背题</span>
