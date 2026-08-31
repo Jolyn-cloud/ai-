@@ -3,190 +3,366 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>题库 · 占位</title>
+<title>题库 · 首页</title>
 <style>
 :root{
-  --primary: #5B72F5;
-  --primary-dark: #4358D7;
+  --primary: #6B5CF6;
+  --primary-dark: #5445D8;
   --primary-light: #EEF1FF;
-  --text-primary: #202533;
-  --text-secondary: #6E778B;
-  --text-tertiary: #98A0B2;
-  --card-radius: 17px;
+  --text-primary: #1A1A2E;
+  --text-secondary: #666;
+  --text-tertiary: #999;
+  --card-radius: 16px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { width: 100%; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
-  background: #F8F9FC;
+  background: #F5F6FA;
   -webkit-overflow-scrolling: touch;
 }
-.content { max-width: 430px; margin: 0 auto; padding: 22px 18px 30px; }
+.content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; }
 
-.page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.page-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
-
-/* 顶部统计卡 */
-.stat-card {
-  background: linear-gradient(135deg, #5572F6 0%, #596CE8 100%);
-  border-radius: var(--hero-radius, 22px);
-  padding: 18px 20px;
+/* ===== 顶部 Hero：倒计时头（对齐甲方 demo 抬头，无多余行） ===== */
+.hero {
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  padding: 24px 20px 40px;
   color: #fff;
-  margin-bottom: 18px;
-  box-shadow: 0 14px 32px rgba(76,99,221,0.25);
 }
-.stat-card .stat-row { display: flex; justify-content: space-between; align-items: flex-end; }
-.stat-card .stat-label { font-size: 12px; opacity: .85; margin-bottom: 6px; }
-.stat-card .stat-num { font-size: 30px; font-weight: 700; line-height: 1; }
-.stat-card .stat-extra { display: flex; gap: 18px; margin-top: 14px; }
-.stat-card .stat-extra div { font-size: 12px; opacity: .9; }
+.hero .countdown { display: flex; align-items: baseline; gap: 8px; }
+.hero .num { font-size: 46px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+.hero .unit { font-size: 15px; opacity: .85; }
+.hero .label { font-size: 12px; opacity: .78; margin-top: 6px; }
 
-/* 功能区 grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.grid-item {
-  background: rgba(255,255,255,0.92);
-  border-radius: var(--card-radius);
-  padding: 16px 12px;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  box-shadow: 0 5px 18px rgba(54,66,108,0.055);
-  cursor: pointer;
-  border: none;
-}
-.grid-item .icon {
-  width: 42px; height: 42px; border-radius: 13px;
-  background: var(--primary-light);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--primary);
-}
-.grid-item .icon svg { width: 22px; height: 22px; }
-.grid-item .label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.grid-item .sub { font-size: 11px; color: var(--text-tertiary); }
-.grid-item:active { transform: scale(0.97); }
+/* ===== 主体（负 margin 叠上 hero 底部） ===== */
+.body { padding: 0 16px; margin-top: -24px; }
 
-/* 区块标题 */
-.section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.section-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--primary); }
-
-/* 错题/收藏列表 */
-.list-card {
+/* ===== AI 今日任务主卡（每日一练已并入/取消，单一功能） ===== */
+.ai-card {
   background: #fff;
-  border-radius: var(--card-radius);
-  padding: 4px 16px;
-  box-shadow: 0 5px 18px rgba(54,66,108,0.055);
-  margin-bottom: 14px;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(99,102,241,.15);
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
 }
-.list-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid #F1F3F9;
-  cursor: pointer;
+.ai-card::before {
+  content: ''; position: absolute; top:0; left:0; right:0; height:4px;
+  background: linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899);
 }
-.list-row:last-child { border-bottom: none; }
-.list-row .txt { font-size: 14px; font-weight: 600; }
-.list-row .meta { font-size: 12px; color: var(--text-tertiary); margin-top: 3px; }
-.list-row .count { font-size: 13px; color: var(--primary); font-weight: 700; }
-.list-row .arrow { color: #C6CADE; }
+.ai-task-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.ai-badge {
+  background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+  font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px;
+  display:flex; align-items:center; gap:4px;
+}
+.ai-badge svg { width:12px; height:12px; }
+.ai-task-title { font-size:11px; color:#999; }
+.ai-empty-title { font-size:15px; font-weight:600; margin-bottom:6px; }
+.ai-empty-desc { font-size:12px; color:#666; line-height:1.6; margin-bottom:14px; }
+.ai-task-chapter { font-size:18px; font-weight:700; margin-bottom:4px; }
+.ai-task-section { font-size:13px; color:#666; margin-bottom:12px; }
+.ai-task-meta { display:flex; gap:16px; margin-bottom:14px; }
+.meta-item { display:flex; align-items:center; gap:4px; font-size:12px; color:#666; }
+.meta-item svg { width:14px; height:14px; color:#8b5cf6; }
+.ai-reason {
+  background:#f0f0ff; border-radius:10px; padding:10px 12px;
+  font-size:12px; color:#6366f1; line-height:1.5; margin-bottom:16px;
+  display:flex; align-items:flex-start; gap:6px;
+}
+.ai-reason svg { width:14px; height:14px; flex-shrink:0; margin-top:1px; }
+.start-btn {
+  width:100%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+  border:none; border-radius:14px; padding:14px; font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  box-shadow:0 4px 16px rgba(99,102,241,.35);
+  transition: transform .15s, box-shadow .15s;
+}
+.start-btn:active { transform:scale(.97); box-shadow:0 2px 8px rgba(99,102,241,.3); }
+.start-btn svg { width:18px; height:18px; }
+.start-btn.ghost {
+  background:#fff; color:#6366f1; border:1.5px solid #c4b5fd;
+  box-shadow:none; border-radius:12px; padding:12px; font-size:14px;
+}
+.start-btn.ghost:active { background:#faf5ff; }
 
-/* 占位提示 */
-.placeholder {
-  margin-top: 8px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  font-size: 13px;
-  line-height: 1.7;
+/* ===== 区块标题（自主入口） ===== */
+.section-title {
+  font-size:14px; font-weight:700; margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+.section-title::before {
+  content:''; width:3px; height:14px; border-radius:2px;
+  background:linear-gradient(180deg,#6366f1,#8b5cf6);
+}
+
+/* ===== 自主入口 2×2 ===== */
+.entry-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.entry-card {
+  background:#fff; border-radius:14px; padding:14px; cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.04); display:flex; flex-direction:column; gap:6px;
+  border:none; text-align:left;
+}
+.entry-card:active { transform:scale(.96); }
+.entry-icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; margin-bottom:4px;
+}
+.entry-icon svg { width:20px; height:20px; color:#fff; }
+.entry-icon.blue { background:linear-gradient(135deg,#3b82f6,#60a5fa); }
+.entry-icon.orange { background:linear-gradient(135deg,#f97316,#fb923c); }
+.entry-icon.purple { background:linear-gradient(135deg,#8b5cf6,#a78bfa); }
+.entry-icon.green { background:linear-gradient(135deg,#10b981,#34d399); }
+.entry-name { font-size:14px; font-weight:600; }
+.entry-desc { font-size:11px; color:#999; }
+
+/* ===== 快捷行 ===== */
+.quick-row { display:flex; gap:8px; margin-bottom:16px; }
+.quick-item {
+  flex:1; background:#fff; border-radius:12px; padding:12px 8px; text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.03); cursor:pointer; border:none; transition:transform .15s;
+}
+.quick-item:active { transform:scale(.96); }
+.quick-item .q-icon { width:24px; height:24px; margin:0 auto 4px; display:flex; align-items:center; justify-content:center; }
+.quick-item .q-icon svg { width:22px; height:22px; color:#6366f1; }
+.quick-item .q-name { font-size:11px; color:#666; }
+
+/* ===== Toast ===== */
+#toast {
+  position:fixed; top:44px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.78); color:#fff; padding:10px 20px; border-radius:8px;
+  font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:86%;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 </style>
 </head>
 <body>
+
 <div class="content">
 
-  <div class="page-title">题库</div>
-  <div class="page-sub">按章节刷题 · 沉淀数据</div>
-
-  <!-- 刷题数据统计 -->
-  <div class="stat-card">
-    <div class="stat-row">
-      <div>
-        <div class="stat-label">今日刷题</div>
-        <div class="stat-num">0</div>
-      </div>
-      <div>
-        <div class="stat-label">累计正确率</div>
-        <div class="stat-num">--%</div>
-      </div>
+  <!-- Hero：考试倒计时头（对齐甲方 demo） -->
+  <div class="hero">
+    <div class="countdown">
+      <span class="num" id="cdDays">--</span>
+      <span class="unit">天</span>
     </div>
-    <div class="stat-extra">
-      <div>📅 已连续 <b>0</b> 天</div>
-      <div>🏆 本周 <b>0</b> 题</div>
-    </div>
+    <div class="label" id="cdLabel">距离山东专升本考试</div>
   </div>
 
-  <!-- 刷题模式（4宫格） -->
-  <div class="grid">
-    <button class="grid-item">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-      <div class="label">章节刷题</div>
-      <div class="sub">按教材章节</div>
-    </button>
-    <button class="grid-item">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-      <div class="label">每日一练</div>
-      <div class="sub">10题/天 打卡</div>
-    </button>
-    <button class="grid-item">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
-      <div class="label">历年真题</div>
-      <div class="sub">计时模考</div>
-    </button>
-    <button class="grid-item">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 12h6"/><path d="M9 16h4"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg></div>
-      <div class="label">模拟考试</div>
-      <div class="sub">全真模拟</div>
-    </button>
-  </div>
+  <div class="body">
 
-  <!-- 错题/收藏 -->
-  <div class="section-title">我的沉淀</div>
-  <div class="list-card">
-    <div class="list-row">
-      <div>
-        <div class="txt">全部错题</div>
-        <div class="meta">自动收录 + 手动录入</div>
-      </div>
-      <span class="count">0</span>
-      <span class="arrow">›</span>
-    </div>
-    <div class="list-row">
-      <div>
-        <div class="txt">收藏本</div>
-        <div class="meta">收藏的题目</div>
-      </div>
-      <span class="count">0</span>
-      <span class="arrow">›</span>
-    </div>
-    <div class="list-row">
-      <div>
-        <div class="txt">笔记本</div>
-        <div class="meta">题目/章节/自由笔记</div>
-      </div>
-      <span class="arrow">›</span>
-    </div>
-  </div>
+    <!-- AI 今日任务卡（单一主卡，内容按 STATE / 任务数据动态渲染） -->
+    <div class="ai-card" id="aiCard"></div>
 
-  <!-- 占位说明 -->
-  <div class="placeholder">
-    ⏳ 题库模块为首期占位。<br />
-    章节刷题 / 每日一练 / 真题 / 错题 / 收藏 / 笔记将在二期接入计算机核心考点数据（499 个考点已就绪）。
-  </div>
+    <!-- 自主学习（逃生口） -->
+    <div class="section-title">自主学习</div>
+    <div class="entry-grid">
+      <button class="entry-card" onclick="showToast('章节刷题（v5.0 待做）')">
+        <div class="entry-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="entry-name">章节刷题</div>
+        <div class="entry-desc">按章节系统练习</div>
+      </button>
+      <button class="entry-card" onclick="showToast('模拟考试：全真模拟考场')">
+        <div class="entry-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="entry-name">模拟考试</div>
+        <div class="entry-desc">全真模拟考场</div>
+      </button>
+      <button class="entry-card" onclick="showToast('历年真题：2010-2025 真题')">
+        <div class="entry-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </div>
+        <div class="entry-name">历年真题</div>
+        <div class="entry-desc">2010-2025年真题</div>
+      </button>
+      <button class="entry-card" onclick="showToast('错题本：专攻你的错题')">
+        <div class="entry-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div class="entry-name">错题本</div>
+        <div class="entry-desc">专攻你的错题</div>
+      </button>
+    </div>
 
+    <!-- 快捷行 -->
+    <div class="quick-row">
+      <button class="quick-item" onclick="showToast('收藏本')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="q-name">收藏本</div>
+      </button>
+      <button class="quick-item" onclick="showToast('拍照搜题')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="q-name">拍照搜题</div>
+      </button>
+      <button class="quick-item" onclick="showToast('成绩录入')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="q-name">成绩录入</div>
+      </button>
+      <button class="quick-item" onclick="showToast('笔记本')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <div class="q-name">笔记本</div>
+      </button>
+    </div>
+
+  </div>
 </div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   题库首页 v4.0（2026-08-31）
+   - 结构对齐甲方 demo：倒计时头 → AI 今日任务(单卡) → 自主学习2×2 → 快捷行
+   - 每日一练已并入 AI 卡，不单列
+   - 薄弱/顽固规则见函数 identifyWeakPoints() 注释（与逻辑面板口径一致）
+   - STATE 由总壳（AI伴学_小程序.html）postMessage 广播，题库页消费
+   - 本轮为展示原型：题库数据 mock，不接刷题数据层（v5.0 接）
+   ============================================================ */
+
+/* ---------- 考试日集中维护（山东统招：每年 3 月最后周日，PRD §四.4） ---------- */
+var EXAM_DATES = [
+  { y: 2026, m: '2026-03-29' },   /* 3月最后周日=29日 */
+  { y: 2027, m: '2027-03-28' },   /* PRD 发布 */
+  { y: 2028, m: '2028-03-26' },   /* PRD 发布 */
+  { y: 2029, m: '2029-03-25' }    /* PRD 发布 */
+];
+
+/* 演示锚点：今天。正式接入后改为 new Date() */
+var today = new Date(2026, 7, 31);
+
+var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
+
+/* ---------- 薄弱/顽固判定（口径与逻辑面板一致） ----------
+   四级知识点 = 最后一级，每知识点对应多道考题。
+   顽固判定（PM 2026-08-31 拍板）：
+     ① 错误率 = 该考点下错过的考题数 ÷ 该考点考题总数，错误率 ≥ 50% → 考点顽固
+     ② 答错 ≥ 3 次也触发顽固（新旧叠加）
+     顽固考点内 错过的考题 标记「顽固」；顽固必进今日任务，插队最前。
+   薄弱判定（PM 拍板）：
+     正确率 < 60% 且答题样本 ≥ 5 题 → 薄弱；纯薄弱度(1-正确率)降序抽题，不结合考频。
+   今日任务题量：目标 15-20 道；字段顽空 → 补抽正常考点；不足 → 收缩为实际可用题量。 */
+
+/* 四级考点数据（演示常量）：id / 名称 / 考题总数 / 已答 / 答错（错误/总数 计算率）
+   demo：考点A 40% 顽固、考点B 55% 薄弱、考点C 正常 */
+var WEAK_POINTS = [
+  { id: 'p1', name: '文件管理',      total: 10, answered: 10, wrong: 4 },  /* 40% 顽固 */
+  { id: 'p2', name: '进程与线程',    total: 8,  answered: 6,  wrong: 3 }   /* 50% 顽固 */
+];
+
+/* 今日任务组装（当前演示：直接返回 mock 数据；v5.0 由 identifyWeakPoints() 真算） */
+function buildTodayTask() {
+  return {
+    chapter: '第3章 操作系统',
+    section: '文件管理 · 进程与线程',
+    count: 18,            /* 15-20 目标 */
+    minutes: 12,
+    reason: '「文件管理」考点正确率仅 40%（顽固），近5年考 8 次，建议优先攻克。',
+    flag: '顽固'
+  };
+}
+
+/* ---------- 倒计时 ---------- */
+function diffDays(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  var t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((d - t) / 86400000);
+}
+function getCountdownTarget() {
+  var u = (SHELL_STATE && SHELL_STATE.user) || null;
+  if (u && u.month) {
+    var d = diffDays(u.month);
+    if (d >= 0) return { labelYear: u.month.slice(0, 4), days: d };
+  }
+  /* 未画像 / 已过 → 顺延最近一届未过期（永不显示负数和待更新） */
+  for (var i = 0; i < EXAM_DATES.length; i++) {
+    if (diffDays(EXAM_DATES[i].m) >= 0) return { labelYear: EXAM_DATES[i].y, days: diffDays(EXAM_DATES[i].m) };
+  }
+  var last = EXAM_DATES[EXAM_DATES.length - 1];
+  return { labelYear: last.y, days: diffDays(last.m) };
+}
+function renderCountdown() {
+  var t = getCountdownTarget();
+  document.getElementById('cdDays').textContent = t.days;
+  document.getElementById('cdLabel').textContent = '距离' + t.labelYear + '年山东专升本考试';
+}
+
+/* ---------- AI 今日任务卡（三态） ---------- */
+function renderAiCard() {
+  var box = document.getElementById('aiCard');
+  var s = SHELL_STATE || { profileLevel: 'none' };
+  var done = s.profileLevel === 'done';
+
+  /* ① 未画像 → 引导 */
+  if (!done) {
+    box.innerHTML = ''
+      + '<div class="ai-task-header">'
+      +   '<span class="ai-badge">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>'
+      +     'AI为你定制'
+      +   '</span>'
+      +   '<span class="ai-task-title">今日学习任务</span>'
+      + '</div>'
+      + '<div class="ai-empty-title">完善学习资料后，为你定制今日任务</div>'
+      + '<div class="ai-empty-desc">填写备考年份与专业，AI 将根据你的薄弱点和考试日程，自动生成每天最该练的题。</div>'
+      + '<button class="start-btn ghost" onclick="showToast(\'完善学习资料（学习页入口）\')">完善资料</button>';
+    return;
+  }
+
+  var t = buildTodayTask();
+  box.innerHTML = ''
+    + '<div class="ai-task-header">'
+    +   '<span class="ai-badge">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>'
+    +     'AI为你定制'
+    +   '</span>'
+    +   '<span class="ai-task-title">今日学习任务</span>'
+    + '</div>'
+    + '<div class="ai-task-chapter">' + t.chapter + '</div>'
+    + '<div class="ai-task-section">' + t.section + ' — 继续上次进度</div>'
+    + '<div class="ai-task-meta">'
+    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + t.count + '道题</div>'
+    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>约' + t.minutes + '分钟</div>'
+    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + t.flag + '</div>'
+    + '</div>'
+    + '<div class="ai-reason">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    +   '<span>' + t.reason + '</span>'
+    + '</div>'
+    + '<button class="start-btn" onclick="showToast(\'开始今日学习（刷题页 v5.0 待做）\')">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    +   '开始今日学习（' + t.count + '道）'
+    + '</button>';
+  /* ② 今日已刷完 → 空态已完成（本轮 demo 恒未刷，仅预留分支） */
+}
+
+/* ---------- Toast ---------- */
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+}
+
+/* ---------- 消费总壳 STATE 广播 ---------- */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'STATE') return;
+  SHELL_STATE = d.state || null;
+  renderCountdown();
+  renderAiCard();
+});
+
+/* ---------- 冷启动渲染（无 STATE 兜底空态） ---------- */
+renderCountdown();
+renderAiCard();
+</script>
 </body>
 </html>
