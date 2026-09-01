@@ -50,8 +50,7 @@ body::before {
 /* ===== 顶部 header（抄闪卡首页口径，2026-09-02 PM 拍板：与闪卡一致）
    同款问候语 + 内联倒计时（图标+文案+天数+天）+ 右上角头像 */
 .header {
-  padding-top: 48px;
-  padding-bottom: 20px;
+  padding: 48px 16px 20px;   /* 左右留白，与手机框拉开距离（2026-09-02 PM 拍的版） */
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -92,8 +91,8 @@ body::before {
 }
 .avatar svg { width: 25px; height: 25px; stroke: var(--primary); }
 
-/* ===== 主体 ===== */
-.body { padding: 0 6px; }
+/* ===== 主体（左右同 header 留白，视觉对齐） ===== */
+.body { padding: 0 16px; }
 
 /* ===== AI 今日任务主卡（白色主体漂浮在环境光中，2026-09-01 PM 拍板）
    周围保留非常轻微的蓝紫光晕（低透明度，无边框/无玻璃拟态），自然嵌入过渡区。
