@@ -175,17 +175,18 @@ body {
   pointer-events: none; white-space: nowrap;
 }
 
-/* ===== 拍照录入入口按钮（右上角，避开 appbar） ===== */
+/* ===== 拍照录入入口按钮（右下角悬浮球，主题色 + 线性相机图标，~18px 边距） ===== */
 .camera-fab {
-  position: fixed; right: 16px; top: 92px; z-index: 96;
-  width: 48px; height: 48px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--brand-mid));
-  color: #fff; font-size: 21px; line-height: 1;
-  box-shadow: 0 6px 16px rgba(91,114,245,.35);
+  position: fixed; right: 18px; bottom: 18px; z-index: 96;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(91,114,245,.38);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; border: none; outline: none;
   transition: transform .15s ease;
 }
+.camera-fab svg { width: 23px; height: 23px; }
 .camera-fab:active { transform: scale(.92); }
 
 /* ===== 上传题卡片（图片占位 / 拍照标签） ===== */
@@ -208,18 +209,38 @@ body {
   color: #fff;
 }
 .cam-topbar {
-  height: 64px; flex-shrink: 0;
+  height: 60px; flex-shrink: 0; position: relative;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 18px; padding-top: env(safe-area-inset-top);
   font-size: 15px; font-weight: 600;
 }
 .cam-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 6px; }
-.cam-hint { opacity: .7; font-weight: 500; font-size: 13px; }
+.cam-close.placeholder { visibility: hidden; }
+/* 顶部模式切换：搜题 / 错题录入 */
+.cam-mode {
+  flex: 1; display: flex; justify-content: center;
+}
+.cam-mode-inner {
+  display: flex; gap: 2px;
+  background: rgba(255,255,255,.12);
+  border-radius: 999px; padding: 3px;
+}
+.cam-mode-btn {
+  border: none; background: none; color: rgba(255,255,255,.72);
+  font-size: 13px; font-weight: 600; padding: 5px 15px; border-radius: 999px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cam-mode-btn.active { background: #fff; color: var(--primary); }
 .cam-viewport {
   flex: 1; position: relative; overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(255,255,255,.08) 0%, transparent 60%),
     linear-gradient(160deg, #1a2030 0%, #2a3450 55%, #1c2438 100%);
+}
+.cam-hint {
+  position: absolute; left: 0; right: 0; top: 18px; text-align: center;
+  opacity: .8; font-weight: 500; font-size: 12.5px;
+  letter-spacing: .5px; z-index: 99;
 }
 .cam-frame {
   position: absolute; left: 50%; top: 46%;
@@ -239,31 +260,31 @@ body {
   position: absolute; left: 0; right: 0; top: 74%; text-align: center;
   font-size: 12.5px; color: rgba(255,255,255,.75); letter-spacing: .5px;
 }
-.cam-fab-in {
-  position: absolute; right: 18px; bottom: 120px; z-index: 99;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35);
-  color: #fff; font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.cam-fab-in.active { background: rgba(255,230,120,.22); }
 .cam-shade { position: absolute; inset: 0; background: rgba(2,6,18,.5); z-index: 98; pointer-events: none; }
-.cam-fab-in.dim .icon { opacity: .35; }
 
 .cam-bottombar {
-  flex-shrink: 0; height: 148px;
-  display: flex; align-items: center; justify-content: center; gap: 26px;
-  padding-bottom: env(safe-area-inset-bottom);
+  flex-shrink: 0; height: 140px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 34px; padding-bottom: env(safe-area-inset-bottom);
 }
-.cam-album { background:none; border:none; cursor:pointer; color:rgba(255,255,255,.85); display:flex; flex-direction:column; gap:4px; align-items:center; font-size:11px; }
-.cam-album .ico { font-size: 20px; }
+/* 底栏图标按钮（线性图标） */
+.cam-side {
+  width: 60px; display: flex; flex-direction: column; gap: 5px; align-items: center;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.88); font-size: 11px;
+}
+.cam-side svg { width: 24px; height: 24px; }
+.cam-side:active { opacity: .7; }
+/* 手电筒激活态（亮=高亮） */
+.cam-torch { color: rgba(255,255,255,.88); }
+.cam-torch.active { color: #FFD666; }
+.cam-torch.dim { color: rgba(255,255,255,.4); }
 .cam-shutter {
   width: 66px; height: 66px; border-radius: 50%;
   background: #fff; border: 4px solid rgba(255,255,255,.4);
-  cursor: pointer; position: relative;
+  cursor: pointer; position: relative; flex-shrink: 0;
 }
 .cam-shutter:active { transform: scale(.94); }
-.cam-right { width: 48px; }
 
 /* ===== OCR 动画 ===== */
 .cam-ocr {
@@ -320,6 +341,11 @@ body {
 .result-btnbar .cancel2 { background: #fff; color: var(--text-secondary); border: 1px solid #E5E8F0; }
 .result-oa { width: 100%; min-height: 96px; resize: vertical; border: 1.5px solid #D9DEEF; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.6; font-family: inherit; background: #fff; color: var(--text-primary); outline: none; }
 .result-oa:focus { border-color: var(--primary); }
+/* AI 题型 / 知识点（可编辑输入，AI 预填可改） */
+.result-airow { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12.5px; color: var(--text-tertiary); }
+.result-airow label { flex-shrink: 0; font-weight: 600; }
+.ai-input { flex: 1; min-width: 0; border: 1.5px solid #D9DEEF; border-radius: 9px; padding: 7px 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: var(--text-primary); outline: none; }
+.ai-input:focus { border-color: var(--primary); }
 .result-preview { font-size: 12.5px; color: var(--text-tertiary); margin-top: 10px; }
 .result-preview b { color: var(--primary); }
 
@@ -364,29 +390,45 @@ body {
 
 <div class="toast" id="toast"></div>
 
-<button class="camera-fab" onclick="openCam()" title="拍照录入错题">📷</button>
+<button class="camera-fab" onclick="openCam()" title="拍照录入">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+</button>
 
 <!-- 拍照录入 mask -->
 <div class="cam-mask" id="camMask" style="display:none">
   <div class="cam-topbar">
     <button class="cam-close" onclick="closeCam()">✕</button>
-    <span class="cam-hint" id="camHint">对准题目纸，保持光线充足</span>
-    <span class="cam-close" id="camSwitch" style="visibility:hidden"></span>
+    <div class="cam-mode">
+      <div class="cam-mode-inner">
+        <button class="cam-mode-btn" id="modeSearch" onclick="setCamMode('search')">搜题</button>
+        <button class="cam-mode-btn active" id="modeCapture" onclick="setCamMode('capture')">错题录入</button>
+      </div>
+    </div>
+    <button class="cam-close placeholder">✕</button>
   </div>
   <div class="cam-viewport">
+    <div class="cam-hint" id="camHint">对准题目纸，保持光线充足</div>
     <div class="cam-frame"></div>
     <div class="cam-guide">将题目及四个选项完整拍进框内</div>
     <div class="cam-shade" id="camShade" style="display:none"></div>
-    <button class="cam-fab-in" id="camFlash" onclick="toggleFlash()" title="手电筒">
-      <span class="icon">🔦</span>
-    </button>
   </div>
   <div class="cam-bottombar">
-    <button class="cam-album" onclick="camAlert('从相册导入（演示）')">
-      <span class="ico">🖼️</span>相册
+    <button class="cam-side" onclick="camAlert('从相册导入（演示）')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>相册
     </button>
     <button class="cam-shutter" onclick="takePhoto()"></button>
-    <div class="cam-right"></div>
+    <button class="cam-side cam-torch" id="camTorch" onclick="toggleFlash()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18l6-12H10L6 21h6l5-15"/>
+      </svg>手电筒
+    </button>
   </div>
 
   <!-- OCR 动画 -->
@@ -404,13 +446,15 @@ body {
     </div>
     <div class="result-body">
       <textarea class="result-oa" id="resultTxt" placeholder="识别出的题干，可手动修改">请检查识别文字</textarea>
+      <div class="result-airow"><label>题型</label><input class="ai-input" id="resultType" placeholder="AI 题型" /></div>
+      <div class="result-airow"><label>知识点</label><input class="ai-input" id="resultConcept" placeholder="AI 知识点" /></div>
       <div class="result-tagbar" id="resultTags"></div>
       <div id="resultImgWrap"></div>
       <div class="result-preview" id="resultPreview"></div>
     </div>
     <div class="result-btnbar">
-      <button class="cancel2" onclick="closeResult()">取消</button>
-      <button class="save" onclick="saveUpload()">保存到错题本</button>
+      <button class="cancel2" onclick="closeResult()">返回</button>
+      <button class="save" id="saveBtnBottom" onclick="saveUpload()">保存到错题本</button>
     </div>
   </div>
 </div>
@@ -655,6 +699,8 @@ function toggleChapter(mi) {
                   记忆/口诀/背诵/顺序 → memory；默认 confusion */
 var CAM_FLASH = false;
 var CAM_SHOTS = 0;
+/* 拍照录入模式：capture 错题录入（存错题本）/ search 搜题（存章节刷题「我的上传」） */
+var CAM_MODE = 'capture';
 
 function openCam() {
   var m = document.getElementById('camMask');
@@ -672,6 +718,16 @@ function resetCamState() {
   document.getElementById('camOcr').classList.remove('on');
   document.getElementById('camResult').classList.remove('on');
 }
+/* 顶部模式切换：搜题 / 错题录入（默认错题录入）
+   保存去向随之变：错题录入 → 错题本「我的上传」；搜题 → 章节刷题「我的上传」 */
+function setCamMode(mode) {
+  CAM_MODE = mode;
+  document.getElementById('modeSearch').classList.toggle('active', mode === 'search');
+  document.getElementById('modeCapture').classList.toggle('active', mode === 'capture');
+  document.getElementById('camHint').textContent =
+    mode === 'search' ? '拍下题目，AI 搜索题库匹配' : '对准题目纸，保持光线充足';
+  closeResult();
+}
 /* 手电筒亮/暗 toggle：暗色盖层 + 图标降透明度 */
 function toggleFlash() {
   setFlash(!CAM_FLASH);
@@ -679,10 +735,9 @@ function toggleFlash() {
 function setFlash(on) {
   CAM_FLASH = on;
   var sh = document.getElementById('camShade');
-  var fl = document.getElementById('camFlash');
+  var torch = document.getElementById('camTorch');
   sh.style.display = on ? 'none' : 'block';
-  fl.classList.toggle('active', on);
-  fl.classList.toggle('dim', !on);
+  if (torch) torch.classList.toggle('active', on);
 }
 /* 相册导入（演示 toast） */
 function camAlert(msg) {
@@ -703,16 +758,49 @@ function takePhoto() {
   }, 1000);
 }
 
+var TYPE_NAME = { single:'单选', multi:'多选', judge:'判断', fill:'填空', image:'图片' };
+var CONCEPT_CATS = [
+  { kw:/操作系统|文件系统|进程|线程|内存|磁盘|死锁|调度/, label:'操作系统' },
+  { kw:/网络|IP|域名|TCP|UDP|OSI|协议|浏览器|网址/, label:'计算机网络' },
+  { kw:/Word|文档|段落|字体|页眉|页脚|分栏|样式/, label:'Word 文档处理' },
+  { kw:/Excel|函数|单元格|公式|工作表|SUM|VLOOKUP|筛选/, label:'Excel 电子表格' },
+  { kw:/PPT|PowerPoint|演示文稿|幻灯片|动画|母版/, label:'PowerPoint' },
+  { kw:/数据库|SQL|表|查询|主键|范式/, label:'数据库' },
+  { kw:/信息安全|病毒|木马|防火墙|加密|黑客/, label:'信息安全' },
+  { kw:/人工智能|机器学习|大数据|云计算|物联网|区块链|算法|大模型/, label:'新一代信息技术' },
+  { kw:/冯·诺依曼|计算机组成|CPU|存储器|二进制|数制|数据单位/, label:'计算机基础' }
+];
+function suggestType(text) {
+  var t = String(text || '');
+  if (/哪些|多选|以下.*几项|多于一项/.test(t)) return 'multi';
+  if (/是否正确|对不对|对或错|判断|是否正确说法/.test(t)) return 'judge';
+  if (/____|___|______|　_/.test(t)) return 'fill';
+  return 'single';
+}
+function suggestConcept(text) {
+  var t = String(text || '');
+  for (var i = 0; i < CONCEPT_CATS.length; i++) {
+    if (CONCEPT_CATS[i].kw.test(t)) return CONCEPT_CATS[i].label;
+  }
+  return '待归类';
+}
+
 function showResult(ok) {
   var res = document.getElementById('camResult');
   res.classList.add('on');
   if (ok) {
-    /* 成功：AI 推荐标签 + 可编辑题干 */
-    var mockTxt = '下列选项属于文件系统管理功能的是（ ）。';
+    /* 成功：AI 推荐题型 + 知识点 + 错题标签 + 可编辑题干 */
+    var mockTxt = CAM_MODE === 'search'
+      ? '以下选项中，Excel 中可以进行单元格引用的运算符是（ ）。'
+      : '下列选项属于文件系统管理功能的是（ ）。';
     document.getElementById('resultTitle').textContent = '识别成功';
     document.getElementById('resultTxt').value = mockTxt;
     document.getElementById('resultTxt').style.display = 'block';
     document.getElementById('resultImgWrap').innerHTML = '';
+    var type = suggestType(mockTxt);
+    var concept = suggestConcept(mockTxt);
+    document.getElementById('resultType').value = TYPE_NAME[type];
+    document.getElementById('resultConcept').value = concept;
     var tag = suggestTag(mockTxt);
     renderTagPills(tag);
     document.getElementById('resultPreview').innerHTML =
@@ -722,6 +810,8 @@ function showResult(ok) {
     document.getElementById('resultTitle').textContent = '未识别出文字';
     document.getElementById('resultTxt').value = '';
     document.getElementById('resultTxt').style.display = 'none';
+    document.getElementById('resultType').value = '图片';
+    document.getElementById('resultConcept').value = '待归类';
     document.getElementById('resultImgWrap').innerHTML =
       '<div class="result-thumb-img">📷 未识别出文字，已保存为图片</div>';
     renderTagPills('confusion');
@@ -759,31 +849,53 @@ function selectTag(btn, k) {
 }
 var CURRENT_UPLOAD_TAG = 'confusion';
 
-/* 保存到错题本 */
+/* 保存：按当前模式分流
+   - 错题录入（capture）→ 错题本 WRONG_DATA.uploads（本地渲染）
+   - 搜题（search）→ 章节刷题「我的上传」SHARE_DATA.uploads（经 localStorage 中转，章节刷题页读取合并） */
 function saveUpload() {
   var txt = document.getElementById('resultTxt').value;
   var mode = txt ? 'text' : 'image';
+  var typeTxt = document.getElementById('resultType').value;
+  var concept = document.getElementById('resultConcept').value;
+  var typeKey = { '单选':'single', '多选':'multi', '判断':'judge', '填空':'fill', '图片':'image' }[typeTxt] || 'single';
   var now = new Date();
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   var createdAt = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
     + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-  /* qid 前缀 U，数字递增 */
+  var item = {
+    qid: '', source: 'upload',
+    mode: mode,
+    path: '我的上传 → 拍照录入',
+    type: typeKey,
+    title: mode === 'text' ? txt : '',
+    img: '', ocr: txt, tag: CURRENT_UPLOAD_TAG,
+    concept: concept,
+    createdAt: createdAt, wrongCount: 1, status: 'pending', stubborn: false
+  };
+  if (CAM_MODE === 'search') {
+    /* 搜题：存章节刷题「我的上传」（localStorage 中转，qid 前缀 S） */
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem('zsb_share_uploads_v1') || '[]'); } catch(e) {}
+    var maxS = 0;
+    arr.forEach(function(u) {
+      var n = parseInt((u.qid || '').replace('S', ''), 10);
+      if (!isNaN(n) && n > maxS) maxS = n;
+    });
+    item.qid = 'S' + pad(maxS + 1).slice(-2);
+    arr.unshift(item);
+    try { localStorage.setItem('zsb_share_uploads_v1', JSON.stringify(arr)); } catch(e) {}
+    closeCam();
+    showToast('已保存到章节刷题「我的上传」');
+    return;
+  }
+  /* 错题录入：存错题本（qid 前缀 U，数字递增） */
   var maxU = 0;
   (WRONG_DATA.uploads || []).forEach(function(u) {
     var n = parseInt((u.qid || '').replace('U', ''), 10);
     if (!isNaN(n) && n > maxU) maxU = n;
   });
-  var qid = 'U' + pad(maxU + 1).slice(-2);
+  item.qid = 'U' + pad(maxU + 1).slice(-2);
   /* 新上传：错 1 次、待攻克，默认不进顽固 */
-  var item = {
-    qid: qid, source: 'upload',
-    mode: mode,
-    path: '我的上传 → 拍照录入',
-    type: mode === 'text' ? 'single' : 'image',
-    title: mode === 'text' ? txt : '',
-    img: '', ocr: txt, tag: CURRENT_UPLOAD_TAG,
-    createdAt: createdAt, wrongCount: 1, status: 'pending', stubborn: false
-  };
   if (!WRONG_DATA.uploads) WRONG_DATA.uploads = [];
   WRONG_DATA.uploads.push(item);
   /* 刷新统计（renderOverview 内已重算）+ 刷新列表 + chips */

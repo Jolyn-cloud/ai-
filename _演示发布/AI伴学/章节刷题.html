@@ -286,6 +286,46 @@ body {
 }
 .l4-total { color: var(--text-tertiary); }
 
+/* ===== 我的上传（搜题导入） ===== */
+.upload-section {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 14px 15px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 6px 16px rgba(91,114,245,.06);
+  margin-bottom: 10px;
+}
+.upload-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.upload-title { font-size: 14px; font-weight: 700; }
+.upload-tip { font-size: 11px; color: var(--text-tertiary); }
+.up-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid #F0F1F7;
+}
+.up-card:first-of-type { border-top: none; }
+.up-thumb {
+  width: 44px; height: 44px; border-radius: 9px; flex-shrink: 0;
+  background: #F3F5FC; border: 1px dashed #C7CEE4;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary); font-size: 18px;
+}
+.up-body { flex: 1; min-width: 0; }
+.up-title {
+  font-size: 12.5px; line-height: 1.45; font-weight: 500;
+  color: var(--text-primary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.up-ocr-tip { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
+.up-meta { margin-top: 5px; display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-tertiary); }
+.up-meta .tag-pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; background: #E9F7F3; color: var(--brand-teal); }
+.up-meta .tag-pill.concept { background: #E8F3FF; color: #2F6FED; }
+.up-btn {
+  flex-shrink: 0; height: 28px; padding: 0 13px; border-radius: 14px;
+  background: var(--primary); color: #fff; border: none;
+  font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.up-btn:active { transform: scale(.95); }
+
 /* ===== 空态（整章未做过） ===== */
 .chapter-card.fresh .chapter-rate-big { color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
 .chapter-card.fresh .chapter-progress { display: none; }
@@ -315,6 +355,9 @@ body {
   <button class="chip" data-filter="wrong" onclick="setFilter('wrong')">
     只看错题 <span class="chip-count" id="cntWrong"></span>
   </button>
+  <button class="chip" data-filter="upload" onclick="setFilter('upload')">
+    我的上传 <span class="chip-count" id="cntUpload"></span>
+  </button>
 </div>
 
 <!-- 章节列表 -->
@@ -337,6 +380,25 @@ body {
      rate    正确率 = done? right/done : null
    颜色档：<60% low红 / 60-80% mid橙 / ≥80% high绿 / 未做 null灰
    ============================================================ */
+
+/* ===== 「我的上传」搜题数据（source=upload）
+   预设 U01 演示；错题本页面搜题模式保存的题目经 localStorage 中转，
+   页面加载时读取合并（key: zsb_share_uploads_v1，qid 前缀 S）。
+   点击「去刷」→ 进做题页 entry=upload，qid 定位该题 */
+var SHARE_DATA = {
+  uploads: [
+    { qid:'U01', source:'upload', mode:'text', path:'我的上传 → 拍照录入', type:'single',
+      title:'以下选项中，Excel 中可以进行单元格引用的运算符是（ ）。',
+      tag:'operation', concept:'Excel 电子表格', createdAt:'2026-08-31 15:20' }
+  ]
+};
+(function(){
+  try {
+    var arr = JSON.parse(localStorage.getItem('zsb_share_uploads_v1') || '[]');
+    if (arr.length) SHARE_DATA.uploads = arr.concat(SHARE_DATA.uploads);
+  } catch(e) {}
+})();
+
 var CHAPTERS = [
   { id:1, name:"信息与计算机基础知识", icon:"monitor", ici:"ici-1",
     total:120, done:96, right:69, wrong:27,
@@ -843,6 +905,17 @@ var currentFilter = 'all';
 function renderChapters(){
   var list = document.getElementById('chapterList');
   var html = '';
+  // 「我的上传」区块：搜题导入题（除只看未做/只看错题外恒显示）
+  if (currentFilter !== 'todo' && currentFilter !== 'wrong') {
+    var ups = SHARE_DATA.uploads || [];
+    if (ups.length > 0) {
+      html += '<div class="upload-section">'
+        + '<div class="upload-head"><span class="upload-title">我的上传</span>'
+        + '<span class="upload-tip">搜题导入 · ' + ups.length + ' 道</span></div>';
+      ups.forEach(function(q) { html += uploadCard(q); });
+      html += '</div>';
+    }
+  }
   CHAPTERS.forEach(function(ch, idx){
     var r = rateOf(ch.done, ch.right);
     var rc = rateClass(r);
@@ -851,6 +924,7 @@ function renderChapters(){
     // 筛选：只看未做 → 隐藏 done>=total 的章；只看错题 → 隐藏 wrong=0 的章（按章级聚合判断）
     if(currentFilter==='todo' && todo===0) return;
     if(currentFilter==='wrong' && ch.wrong===0) return;
+    if(currentFilter==='upload') return;   // 我的上传：只看搜题导入区，隐藏章节
 
     html += '<div class="chapter-card'+(fresh?' fresh':'')+'" data-cid="'+ch.id+'">';
     html += '<div class="chapter-head" onclick="toggleChapter(this)">';
@@ -962,6 +1036,27 @@ function renderChapters(){
   updateChipCounts();
 }
 
+/* 「我的上传」卡片渲染 */
+function uploadCard(q) {
+  var tagCls = (q.tag === 'confusion' || q.tag === 'memory' || q.tag === 'operation') ? q.tag : 'confusion';
+  var body = (q.mode === 'image')
+    ? '<div class="up-ocr-tip">OCR 未识别 · 图片题</div>'
+    : '<div class="up-title">' + (q.title || '') + '</div>';
+  var metaHtml = '';
+  metaHtml += '<span class="tag-pill">📷 拍照</span>';
+  if (q.tag) metaHtml += '<span class="tag-pill">AI:' + (TAG_NAME[q.tag] || q.tag) + '</span>';
+  if (q.concept) metaHtml += '<span class="tag-pill concept">' + q.concept + '</span>';
+  if (q.createdAt) metaHtml += '<span>' + q.createdAt + '</span>';
+  return '<div class="up-card" data-qid="' + q.qid + '">'
+    + '<div class="up-thumb">' + (q.mode === 'image' ? '📷' : '📄') + '</div>'
+    + '<div class="up-body">' + body
+    +   '<div class="up-meta">' + metaHtml + '</div>'
+    + '</div>'
+    + '<button class="up-btn" onclick="goUpload(\'' + q.qid + '\')">去刷</button>'
+    + '</div>';
+}
+var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
+
 function escapeName(s){ return s.replace(/'/g,"\\'"); }
 
 /* ===== 展开/收起（CSS class 控 max-height，展开态 9999px 不被父级卡，嵌套级联自动） ===== */
@@ -993,6 +1088,17 @@ function updateChipCounts(){
   });
   document.getElementById('cntTodo').textContent = todoChap? '('+todoChap+')' : '';
   document.getElementById('cntWrong').textContent = wrongChap? '('+wrongChap+')' : '';
+  var uploads = SHARE_DATA.uploads ? SHARE_DATA.uploads.length : 0;
+  document.getElementById('cntUpload').textContent = uploads? '('+uploads+')' : '';
+}
+
+/* ===== 搜题导入题：去刷 ===== */
+function goUpload(qid){
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{ entry:'upload', qid: qid || '', name:'我的上传 · 已搜题目' } }, '*');
+  } catch(e){
+    showToast('请从总壳进入，开始刷题');
+  }
 }
 
 /* ===== 进入做题页 =====
