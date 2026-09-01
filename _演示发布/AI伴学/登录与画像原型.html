@@ -497,7 +497,7 @@ body {
 .onboard-caps.inline .onboard-cap .ob-cap-arrow { display: none; }
 .onboard-caps.inline .ob-cap-ic { font-size: 14px; }
 
-/* 通用 primary 按钮（无效：未登录「登录并保存我的画像」；已登录隐藏） */
+/* 通用 primary 按钮（无效：未登录「登录后开始你的学习之旅」；已登录隐藏） */
 .ob-btn-primary {
   width: 100%; height: 44px; border: none; border-radius: 14px;
   background: linear-gradient(135deg, var(--primary) 0%, #5A8BF5 100%);
@@ -642,11 +642,10 @@ body {
                   <div class="onboard-lock" id="obLock">
                     <div class="onboard-msg assistant">
                       <div class="onboard-av">AI</div>
-                      <div class="onboard-bubble">好的，记住啦～ 你的学习画像已经完成。
-之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>
+                      <div class="onboard-bubble">好的，记住啦～之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>
                     </div>
                     <div class="onboard-done" id="obDone">
-                      <button class="ob-btn-primary" id="obFinishBtn">登录并保存我的画像</button>
+                      <button class="ob-btn-primary" id="obFinishBtn">登录后开始你的学习之旅</button>
                     </div>
                   </div>
 
@@ -939,7 +938,7 @@ function obNext(payload, lbl) {
     obStep = total;
   }
   if (obStep >= total) {
-    /* 画像已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
+    /* 画像已完成 → 完成反馈原位展开（按钮：未登录显示「登录后开始你的学习之旅」；已登录隐藏，仅留 AI 文字反馈） */
     obRerender();
     document.getElementById('obLock').classList.add('open');
     document.getElementById('obDone').classList.toggle('show', !LOGGED);
@@ -993,7 +992,7 @@ window.addEventListener('message', function(evt) {
   obRerender();
 });
 
-/* 按钮（未登录可见）：「登录并保存我的画像」→ 引导登录；已登录无按钮 */
+/* 按钮（未登录可见）：「登录后开始你的学习之旅」→ 引导登录；已登录无按钮 */
 function onObFinish() {
   if (!LOGGED) {
     /* 引导登录（强调保存画像）；不登录不清空已填（草稿保留） */
@@ -1002,7 +1001,7 @@ function onObFinish() {
       var homeScroll = document.getElementById('chatScroll');
       var tip = document.createElement('div');
       tip.className = 'msg assistant';
-      tip.innerHTML = '<div class="msg-avatar">AI</div><div class="msg-bubble">✓ 登录成功\n好的，记住啦～你的学习画像已经保存。</div>';
+      tip.innerHTML = '<div class="msg-avatar">AI</div><div class="msg-bubble">✓ 登录成功\n好的，记住啦～之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>';
       /* 放到首条之前，保持 AI 对话语义连贯 */
       homeScroll.insertBefore(tip, homeScroll.firstChild);
       showView('view-home');
