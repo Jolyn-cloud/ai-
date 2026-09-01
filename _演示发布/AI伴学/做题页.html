@@ -40,12 +40,12 @@ body{
   background:none; color:var(--text-secondary); cursor:pointer; font-weight:500;
 }
 .mode-btn.active{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-/* 中央计时：等宽数字，避免跳动 */
+/* 右侧计时：偏右、不加重、字号小、灰色——弱化存在感，避免给学生压力 */
 .nav-timer{
-  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-  font-size:14px; font-weight:600; color:var(--text-primary);
+  margin-left:auto;
+  font-size:11px; font-weight:400; color:var(--text-tertiary);
   font-variant-numeric: tabular-nums;
-  letter-spacing: .5px;
+  letter-spacing:.3px;
 }
 /* 右侧答题卡入口 */
 .nav-sheet-btn{
@@ -1062,7 +1062,7 @@ function renderQuestion() {
 
   /* 标签 */
   var tags = '<span class="tag type">' + (TYPE_NAME[q.type] || '题目') + '</span>'
-    + '<span class="tag concept">📍 ' + q.chapter + ' → ' + q.concept + '</span>'
+    + '<span class="tag concept">📍 ' + (q.concept || '') + '</span>'
     + '<span class="tag difficulty">难度:' + q.difficulty + '</span>';
   if (q.stubborn) tags += '<span class="tag stubborn">顽固</span>';
   if (marked[idx]) tags += '<span class="tag marked">标记过</span>';
