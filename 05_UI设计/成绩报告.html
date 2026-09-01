@@ -227,8 +227,8 @@ function render() {
   document.getElementById('rScore').textContent = r.score || 0;
   document.getElementById('rTotal').textContent = '/' + (r.fullScore || 0);
   document.getElementById('rLabel').textContent = (r.label || '本次考试') + '得分';
-  document.getElementById('rRank').textContent = r.rank ? (r.rank + '<span class="unit">名</span>') : '--';
-  document.getElementById('rBeat').textContent = r.beat || '--';
+  document.getElementById('rRank').innerHTML = r.rank ? (r.rank + '<span class="unit">名</span>') : '--';
+  document.getElementById('rBeat').innerHTML = r.beat || '--';
 
   /* 题型概况 */
   var ts = document.getElementById('typeStats');
