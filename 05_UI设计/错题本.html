@@ -29,6 +29,8 @@
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 html, body { width: 100%; height: 100%; }
+/* 页面 x 轴锁定：整体不可横向移动，仅筛选行内部左右滑动 */
+html, body { overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
@@ -71,12 +73,18 @@ body {
   cursor: pointer; transition: transform .12s ease;
 }
 .practice-btn:active { transform: scale(.97); }
-/* ===== 筛选 chip 行 ===== */
+/* ===== 筛选 chip 行（横向滑动，页面 x 锁定） ===== */
 .filter-row {
   display: flex; gap: 8px;
   padding: 12px 16px 4px;
   position: relative; z-index: 4;
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
 }
+.filter-row::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.filter-row .chip { scroll-snap-align: start; }
 .chip {
   flex-shrink: 0;
   padding: 7px 14px;
@@ -342,7 +350,7 @@ body {
     待攻克 <span class="chip-count" id="cntPending"></span>
   </button>
   <button class="chip" data-filter="stubborn" onclick="setFilter('stubborn')">
-    顽固错题 <span class="chip-count" id="cntStubborn"></span>
+    顽固 <span class="chip-count" id="cntStubborn"></span>
   </button>
   <button class="chip" data-filter="solved" onclick="setFilter('solved')">
     已攻克 <span class="chip-count" id="cntSolved"></span>
