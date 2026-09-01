@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>登录与画像原型 · 流程演示</title>
+<style>
+/* ============================================================
+   Design Token（与 05_UI设计/设计Token.md 对齐）
+   ============================================================ */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+
+  --text-primary: #202533;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+
+  --success: #20A866;
+  --success-light: #E8F8F0;
+  --warning: #F28B3D;
+  --warning-light: #FFF1E6;
+  --danger: #EF4444;
+  --danger-light: #FEECEC;
+
+  --card-radius: 17px;
+  --hero-radius: 22px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background: #EDEFF7;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* ========================= 手机壳区 ========================= */
+.main { flex: 1; min-height: 0; display: flex; align-items: stretch; }
+.phone-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(91,114,245,0.07) 0%, transparent 50%),
+    #EDEFF7;
+}
+.phone {
+  position: relative;
+  flex-shrink: 0;
+  width: 390px;
+  height: clamp(640px, calc(100vh - 48px), 900px);
+  background: #1E2130;
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px rgba(30,33,48,0.12),
+    0 20px 60px rgba(30,33,48,0.28),
+    inset 0 0 0 2px rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
+}
+.phone-screen {
+  flex: 1; min-height: 0;
+  border-radius: 33px;
+  background: #FFFFFF;
+  overflow: hidden;
+  position: relative;
+}
+/* 手机状态栏 */
+.phone-statusbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 34px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  font-size: 13px; font-weight: 600; color: #1E2130;
+}
+.phone-statusbar .status-time { letter-spacing: 0.4px; }
+.phone-statusbar .status-icons { display: flex; align-items: center; gap: 8px; }
+.phone-statusbar .status-icons svg { width: 16px; height: 12px; color: #1E2130; display: block; }
+.phone-statusbar .status-icons .wifi { transform: translateY(1px); }
+
+/* ========================= 视图容器 ========================= */
+.views { position: absolute; inset: 0; overflow: hidden; }
+.view { position: absolute; inset: 0; display: none; overflow: hidden; }
+.view.active { display: block; }
+
+.page { width: 100%; height: 100%; position: relative; background: var(--bg-bottom, #F8F9FC); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* 遮罩（用于闪屏后的首页氛围） */
+.bottom-mask {
+  position: absolute; left: 0; right: 0; top: 320px; bottom: 0;
+  background: linear-gradient(180deg,
+    rgba(248,249,252,0) 0%,
+    rgba(248,249,252,0.55) 18%,
+    rgba(248,249,252,0.92) 44%,
+    #F8F9FC 100%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   视图：品牌闪屏
+   说明：甲方素材图为"上部留白 + 下部品牌主体"的品牌页，
+         不整铺 cover（会把下部主体裁出屏），改为内容层展示。
+   ============================================================ */
+.splash {
+  position: relative;
+  background: #F8F9FC;
+  display: flex; align-items: flex-end;
+  overflow: hidden;
+}
+.splash-brand {
+  width: 100%;
+  padding-bottom: 40px;
+  display: flex; justify-content: center;
+}
+.splash-brand img {
+  width: 100%;
+  height: auto;
+  max-height: 72%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ============================================================
+   视图：首页（AI 对话）
+   ============================================================ */
+.home-ai {
+  display: flex; flex-direction: column;
+  height: 100%;
+  background:
+    radial-gradient(1200px 520px at 50% -12%, rgba(91,114,245,0.10) 0%, rgba(91,114,245,0) 62%),
+    linear-gradient(180deg, #F5F7FD 0%, #F8F9FC 100%);
+}
+/* 顶部品牌栏（对齐建档页：icon 方块 + 问候标题 + 副标题） */
+.ai-top {
+  padding: 12px 18px 2px;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.ai-logo {
+  width: 36px; height: 36px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+  box-shadow: 0 5px 14px rgba(91,114,245,0.28);
+}
+.ai-logo svg { width: 21px; height: 21px; }
+.ai-title { font-size: 14px; font-weight: 700; letter-spacing: 0.2px; }
+.ai-title-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+/* 对话流（视觉对齐 onboarding：青蓝渐变头像方块 + 统一圆角气泡 + 13px 字号） */
+.chat-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 18px 8px; display: flex; flex-direction: column; gap: 14px; }
+.msg { display: flex; gap: 10px; align-items: flex-start; max-width: 96%; }
+.msg.assistant { align-self: flex-start; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.msg.assistant .msg-avatar {
+  /* 与建档对话头像一致：圆形浅蓝渐变 */
+  background: linear-gradient(135deg, var(--primary-light), #E6F2FF);
+  color: var(--primary);
+}
+.msg.user .msg-avatar { background: #DDE2F5; color: var(--primary-dark); }
+.msg-bubble {
+  padding: 10px 13px; border-radius: 16px;
+  font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.msg.assistant .msg-bubble {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,249,255,0.96));
+  color: var(--text-primary);
+  border: 1px solid #ECEEF7;
+  border-top-left-radius: 5px;
+  box-shadow: 0 3px 10px rgba(91,114,245,0.05);
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, var(--primary), #5A8BF5);
+  color: #fff; border-top-right-radius: 5px;
+}
+.msg-bubble strong { color: var(--primary-dark); font-weight: 600; }
+.msg.user .msg-bubble strong { color: #EAF0FF; }
+
+/* 输入区 */
+.chat-input-bar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px 16px;
+  background: linear-gradient(180deg, rgba(248,249,252,0) 0%, #F8F9FC 30%);
+}
+.chat-input {
+  flex: 1; height: 40px;
+  border: 1px solid #E7EAF3; border-radius: 20px;
+  background: #fff;
+  padding: 0 16px; font-size: 14px;
+  outline: none; color: var(--text-primary);
+}
+.chat-input::placeholder { color: var(--text-tertiary); }
+.chat-send {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: linear-gradient(135deg, var(--primary), #5A8BF5); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.chat-send:active { transform: scale(0.94); }
+.chat-send svg { width: 19px; height: 19px; }
+
+/* ============================================================
+   弹窗：微信一键登录（带隐私协议）
+   ============================================================ */
+.mask {
+  position: absolute; inset: 0; z-index: 300;
+  background: rgba(20,24,38,0.5);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.mask.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 24px 26px;
+  transform: translateY(100%);
+  transition: transform .25s ease;
+}
+.mask.show .sheet { transform: translateY(0); }
+.sheet-handle { width: 42px; height: 4px; border-radius: 2px; background: #E3E6F0; margin: 0 auto 18px; }
+
+.login-title { font-size: 19px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 22px; }
+
+.login-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--primary-light);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px; color: var(--primary);
+}
+.login-avatar svg { width: 34px; height: 34px; }
+
+.btn-phone {
+  width: 100%; height: 50px;
+  border: none; border-radius: 25px;
+  background: linear-gradient(135deg, #09BB07, #0DAF00);
+  color: #fff; font-size: 16px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; margin-bottom: 14px;
+  box-shadow: 0 8px 18px rgba(9,187,7,0.22);
+}
+.btn-phone:active { transform: scale(0.98); }
+.btn-phone svg { width: 20px; height: 20px; }
+.btn-phone.disable { opacity: .5; pointer-events: none; }
+
+.login-agree {
+  display: flex; align-items: center; gap: 8px;
+  justify-content: center;
+  font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px;
+}
+.login-agree button {
+  border: none; background: none; color: var(--primary-dark); font-size: 12px;
+  cursor: pointer; padding: 0;
+}
+.login-other {
+  text-align: center; font-size: 13px; color: var(--text-secondary);
+  margin-top: 6px;
+}
+.login-other a { color: var(--text-secondary); text-decoration: none; }
+
+/* ============================================================
+   弹窗：补充用户画像（轻量，两必填 + 选填）
+   ============================================================ */
+.profile-sheet .sheet { padding-bottom: 30px; }
+.profile-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.profile-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+.form-row { margin-bottom: 16px; }
+.form-label { font-size: 13px; color: var(--text-primary); margin-bottom: 8px; display: block; font-weight: 600; }
+.form-label .req { color: var(--danger); margin-left: 2px; }
+.chip-group { display: flex; flex-wrap: wrap; gap: 9px; }
+.field-chip {
+  padding: 8px 16px;
+  border-radius: 18px;
+  border: 1px solid #E5E8F2;
+  background: #fff; font-size: 13px; color: var(--text-secondary);
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.field-chip.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+.field-chip.multi.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+.field-input {
+  width: 100%; height: 42px;
+  border: 1px solid #E5E8F2; border-radius: 12px;
+  padding: 0 14px; font-size: 14px; outline: none; color: var(--text-primary);
+  background: #FBFBFE;
+}
+.field-input:focus { border-color: var(--primary); background: #fff; }
+.field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%), linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text-secondary);
+}
+.field-select:valid { color: var(--text-primary); }
+.btn-primary {
+  width: 100%; height: 48px; border: none; border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer; margin-top: 6px;
+  box-shadow: 0 10px 22px rgba(91,114,245,0.25);
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary.disable { opacity: .5; pointer-events: none; }
+.profile-other { text-align: center; font-size: 12px; color: var(--text-tertiary); margin-top: 14px; }
+.profile-other a { color: var(--text-tertiary); text-decoration: underline; }
+
+/* ============================================================
+   完成提示（画像已提交，回到对话）
+   ============================================================ */
+.done-tip {
+  position: absolute; left: 50%; bottom: 120px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(30,33,48,0.92); color: #fff;
+  font-size: 12px; padding: 8px 16px; border-radius: 18px;
+  opacity: 0; pointer-events: none;
+  transition: all .25s ease;
+  white-space: nowrap; z-index: 400;
+}
+.done-tip.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================================================
+   VIP 福利弹窗（新用户第一次点功能触发，可关闭）
+   ============================================================ */
+.vip-crown-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.vip-box-title { font-size: 19px; font-weight: 800; text-align: center; color: #4A3200; margin-bottom: 6px; }
+.vip-box-sub { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 16px; }
+.vip-benefit-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-primary);
+  padding: 8px 0;
+  border-bottom: 1px dashed #F0F1F7;
+}
+.vip-benefit-item:last-child { border-bottom: none; }
+.vip-benefit-item .ok { color: var(--success); font-weight: 700; }
+.vip-actions { display: flex; gap: 10px; margin-top: 16px; }
+.vip-btn {
+  flex: 1; height: 46px;
+  border: none; border-radius: 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.vip-btn-secondary { background: #F3F4F8; color: var(--text-secondary); }
+.vip-btn-primary {
+  background: linear-gradient(135deg, #F5B940 0%, #FFD97A 100%);
+  color: #4A3200;
+  box-shadow: 0 8px 18px rgba(240,170,48,0.3);
+}
+.vip-btn-primary:active, .vip-btn-secondary:active { transform: scale(0.98); }
+
+/* ============================================================
+   首次进入 · AI 学习画像建立对话页
+   定位：对话式表单（非传统表单）。AI 主动了解 → 4 项画像逐项问答。
+   视觉：青蓝白体系 + AI气泡浅蓝渐变 + 卡片白色大圆角柔阴影。
+   层级：AI 对话 > 当前问题 > 轻量进度 + 选择卡片。
+   要求：完成画像后不跳页，原地给完成反馈 + 主按钮；未登录点完成 → 引导登录、拒绝不清空。
+   ============================================================ */
+.onboard {
+  display: flex; flex-direction: column; height: 100%;
+  background:
+    radial-gradient(1200px 520px at 50% -12%, rgba(91,114,245,0.10) 0%, rgba(91,114,245,0) 62%),
+    linear-gradient(180deg, #F5F7FD 0%, #F8F9FC 100%);
+}
+.onboard-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 18px 12px; }
+.onboard-msg { display: flex; gap: 10px; align-items: flex-start; max-width: 96%; }
+.onboard-msg.assistant { align-self: flex-start; }
+.onboard-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.onboard-av {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.onboard-msg.assistant .onboard-av {
+  background: linear-gradient(135deg, var(--primary-light), #E6F2FF);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(91,114,245,0.10);
+}
+.onboard-msg.user .onboard-av { background: #DDE2F5; color: var(--primary-dark); }
+.onboard-bubble {
+  padding: 10px 13px; border-radius: 16px;
+  font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.onboard-msg.assistant .onboard-bubble {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,249,255,0.96));
+  color: var(--text-primary);
+  border: 1px solid #ECEEF7;
+  border-top-left-radius: 5px;
+  box-shadow: 0 3px 10px rgba(91,114,245,0.05);
+}
+.onboard-msg.user .onboard-bubble {
+  background: linear-gradient(135deg, var(--primary), #5A8BF5);
+  color: #fff; border-top-right-radius: 5px;
+  box-shadow: 0 4px 12px rgba(91,114,245,0.22);
+}
+.onboard-bubble strong { color: var(--primary-dark); font-weight: 600; }
+.onboard-msg.user .onboard-bubble strong { color: #EAF0FF; }
+
+/* AI 身份区 */
+.onboard-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px 2px; flex-shrink: 0; }
+.onboard-id {
+  width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--primary), #6AA0F5);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  box-shadow: 0 5px 14px rgba(91,114,245,0.28);
+}
+.onboard-id svg { width: 21px; height: 21px; }
+.onboard-id-name { font-size: 14px; font-weight: 700; letter-spacing: 0.2px; }
+.onboard-id-sub {
+  font-size: 11px; color: var(--text-tertiary);
+  margin-top: 2px; display: flex; align-items: center; gap: 4px;
+}
+
+/* 轻量进度提示（非传统进度条：○ ○ ○ ○ + 文本） */
+.ob-progress {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 4px 0; padding: 6px 2px;
+}
+.ob-progress-label { font-size: 12px; color: var(--text-tertiary); }
+.onboard-dots { display: flex; align-items: center; gap: 5px; }
+.onboard-dots i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #DDE2F0; transition: all .25s ease;
+}
+.onboard-dots i.on { background: var(--primary); box-shadow: 0 0 0 2px rgba(91,114,245,0.16); }
+
+/* 两步式选择器：展开的候选列表 */
+.ob-list { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .28s ease, opacity .25s ease; }
+.ob-list.open { max-height: 240px; opacity: 1; overflow-y: auto; }
+.ob-list-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 10px 12px;
+  border: none; border-bottom: 1px solid #F0F2F8;
+  background: #FAFBFE; font-size: 13px; color: var(--text-primary);
+  cursor: pointer; text-align: left;
+}
+.ob-list-item:last-child { border-bottom: none; }
+.ob-list-item:active { background: var(--primary-light); }
+.ob-list-item .ob-cap-ic { font-size: 14px; }
+.ob-open { margin-bottom: 4px; }
+.ob-open .ob-cap-name { color: var(--text-primary); }
+
+/* 选择卡片区（轻量、圆角、动态 appear） */
+.onboard-chip { display: flex; flex-direction: column; margin-top: 12px; }
+.onboard-chip-prompt {
+  font-size: 12px; color: var(--text-tertiary); margin: 0 4px 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.onboard-chip-prompt b { color: var(--text-primary); }
+.onboard-picker {
+  background: #fff; border-radius: var(--card-radius);
+  border: 1px solid #ECEEF7;
+  box-shadow: 0 6px 18px rgba(91,114,245,0.07);
+  padding: 12px;
+}
+.onboard-picker-title {
+  font-size: 14px; font-weight: 700; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 7px; color: var(--text-primary);
+}
+.onboard-picker-hint { font-size: 12px; color: var(--text-tertiary); margin-bottom: 11px; }
+.onboard-caps { display: flex; flex-direction: column; gap: 9px; }
+.onboard-cap {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 13px; border-radius: 14px;
+  background: #F7F8FC; border: 1px solid #ECEEF7;
+  cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .1s ease;
+  text-align: left; font: inherit; color: inherit; width: 100%;
+}
+.onboard-cap:active { transform: scale(0.99); }
+.onboard-cap .ob-cap-ic { font-size: 17px; flex-shrink: 0; }
+.onboard-cap .ob-cap-name {
+  flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.onboard-cap .ob-cap-val {
+  font-size: 12px; color: var(--text-tertiary);
+  max-width: 56%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.onboard-cap .ob-cap-arrow { color: #C3C9D8; flex-shrink: 0; display: flex; }
+.onboard-cap.on { border-color: var(--primary); background: var(--primary-light); }
+.onboard-cap.on .ob-cap-val { color: var(--primary-dark); font-weight: 600; }
+.onboard-caps.inline { flex-direction: row; flex-wrap: wrap; gap: 9px; }
+.onboard-caps.inline .onboard-cap { width: auto; padding: 10px 16px; }
+.onboard-caps.inline .onboard-cap .ob-cap-arrow { display: none; }
+.onboard-caps.inline .ob-cap-ic { font-size: 14px; }
+
+/* 通用 primary 按钮（无效：未登录「登录并保存我的画像」；已登录隐藏） */
+.ob-btn-primary {
+  width: 100%; height: 44px; border: none; border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary) 0%, #5A8BF5 100%);
+  color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+  margin: 10px 0 2px;
+  box-shadow: 0 8px 20px rgba(91,114,245,0.24);
+  transition: transform .1s ease, opacity .15s ease;
+}
+.ob-btn-primary:active { transform: scale(0.98); }
+.ob-btn-primary.disable { opacity: .45; pointer-events: none; }
+
+/* 卡片轮播位移动画（选择4 → 完成反馈） */
+.onboard-lock { max-height: 0; opacity: 0; overflow: hidden; transform: translateY(6px); }
+.onboard-lock.open { margin-top: 12px; max-height: 220px; opacity: 1; transform: translateY(0); transition: max-height .3s ease, opacity .3s ease, transform .3s ease; }
+
+/* 完成反馈区：仅包含登录按钮（已登录时按钮隐藏，仅留 AI 文字反馈） */
+.onboard-done { display: none; }
+.onboard-done.show { display: block; }
+
+/* 底部输入区（与正常 AI 首页保持一致） */
+.onboard-inputbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px 16px;
+  background: linear-gradient(180deg, rgba(248,249,252,0) 0%, #F8F9FC 34%);
+}
+.onboard-input {
+  flex: 1; height: 40px; border: 1px solid #E7EAF3; border-radius: 20px;
+  background: #fff; padding: 0 16px; font-size: 14px; outline: none; color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(91,114,245,0.04);
+}
+.onboard-input::placeholder { color: var(--text-tertiary); }
+.onboard-send {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: linear-gradient(135deg, var(--primary), #5A8BF5); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.onboard-send:active { transform: scale(0.94); }
+.onboard-send svg { width: 19px; height: 19px; }
+
+/* 小屏适配 */
+@media (max-width: 360px) {
+  .ai-top { padding: 12px 14px 2px; }
+  .chat-scroll { padding-left: 14px; padding-right: 14px; }
+  .chat-input-bar { padding-left: 14px; padding-right: 14px; }
+  .sheet { padding-left: 18px; padding-right: 18px; }
+  .onboard-head { padding-left: 14px; padding-right: 14px; }
+  .onboard-scroll { padding-left: 14px; padding-right: 14px; }
+  .onboard-inputbar { padding-left: 14px; padding-right: 14px; }
+}
+</style>
+</head>
+<body>
+
+  <!-- 手机壳交给总壳外层，本页只保留 .views 内容 + 弹窗层 -->
+  <div class="views" id="views">
+
+            <!-- 视图：品牌闪屏 -->
+            <div class="view active" id="view-splash">
+              <div class="page splash">
+                <div class="splash-brand">
+                  <img src="ui切图/闪屏.png" alt="升本智答品牌" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 视图：首次进入 · AI 学习画像建立（对话式表单，非传统表单） -->
+            <div class="view" id="view-onboard">
+                <div class="onboard">
+                <div class="onboard-head">
+                  <div class="onboard-id">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15z"/></svg>
+                  </div>
+                  <div>
+                    <div class="onboard-id-name">👋 嗨，我是你的专升本 AI 助手</div>
+                    <div class="onboard-id-sub">第一次见面，让我先了解一下你～</div>
+                  </div>
+                </div>
+
+                <div class="onboard-scroll" id="obScroll">
+                  <div class="onboard-msg assistant">
+                    <div class="onboard-av">AI</div>
+                    <div class="onboard-bubble">嗨～👋 我是你的专升本 AI 助手。
+我已经知道你准备参加
+<strong>山东省 · 统考专升本 · 计算机考试</strong>
+
+再告诉我一些你的情况，我就能更懂你的备考需求。</div>
+                  </div>
+
+                  <!-- 轻量进度提示：○ ○ ○ ○（非传统进度条，仅告知需完成少量信息） -->
+                  <div class="ob-progress">
+                    <span class="ob-progress-label" id="obProgressLabel">学习画像 · 0/4</span>
+                    <span class="onboard-dots" id="obDots"></span>
+                  </div>
+
+                  <!-- 画像选择区（对话式卡片轮播：4 项依次回答，每步显示一张卡片） -->
+                  <div class="onboard-chip" id="obChip0">
+                    <div class="onboard-chip-prompt" id="obPrompt0"><b>第 1 项 / 4 · 入学年份</b>　告诉我你目前处于哪个入学年份</div>
+                    <div class="onboard-picker" id="obPickerYear">
+                      <div class="onboard-picker-title">🎓 入学年份</div>
+                      <div class="onboard-picker-hint">大一、大二、大三会自动判断考试时间；选「其他」后再选择考试时间</div>
+                      <div class="onboard-caps inline" id="obYearCaps"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip1" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt1"><b>第 2 项 / 4 · 考试时间</b>　选择你的考试时间</div>
+                    <div class="onboard-picker" id="obPickerMonth">
+                      <div class="onboard-picker-title">📅 考试时间</div>
+                      <div class="onboard-picker-hint">考试时间 = 每年 3 月最后一个周日，系统按入学年份判断。<b>大三 2027-03-28 / 大二 2028-03-26 / 大一 2029-03-25</b></div>
+                      <button class="onboard-cap ob-open" onclick="obToggleList('obMonthList', this, '选择考试时间')">
+                        <span class="ob-cap-ic">📅</span><span class="ob-cap-name">选择考试时间 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obMonthList"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip2" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt2"><b>第 3 项 / 4 · 所在院校</b>　告诉我你在哪所学校</div>
+                    <div class="onboard-picker" id="obPickerSchool">
+                      <div class="onboard-picker-title">🎓 所在院校</div>
+                      <div class="onboard-picker-hint">选择院校，AI 可以帮你查本校的招录政策</div>
+                      <button class="onboard-cap ob-open" id="obSchoolOpen" onclick="obToggleList('obSchoolList', this, '选择一个院校')">
+                        <span class="ob-cap-ic">🎓</span><span class="ob-cap-name">选择院校 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obSchoolList"></div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-chip" id="obChip3" style="display:none">
+                    <div class="onboard-chip-prompt" id="obPrompt3"><b>第 4 项 / 4 · 所属专业</b>　告诉我你的在读专业</div>
+                    <div class="onboard-picker" id="obPickerMajor">
+                      <div class="onboard-picker-title">📚 所属专业</div>
+                      <div class="onboard-picker-hint">选择专业，AI 可以帮你推荐对口可报本科专业</div>
+                      <button class="onboard-cap ob-open" id="obMajorOpen" onclick="obToggleList('obMajorList', this, '选择一个专业')">
+                        <span class="ob-cap-ic">📚</span><span class="ob-cap-name">选择专业 ＞</span>
+                      </button>
+                      <div class="ob-list" id="obMajorList"></div>
+                    </div>
+                  </div>
+
+                  <!-- 完成反馈（不跳页，原位由 AI 轻反馈 + 主按钮） -->
+                  <div class="onboard-lock" id="obLock">
+                    <div class="onboard-msg assistant">
+                      <div class="onboard-av">AI</div>
+                      <div class="onboard-bubble">好的，记住啦～ 你的学习画像已经完成。
+之后我会根据你的情况，帮你制定更适合你的学习计划和备考建议。</div>
+                    </div>
+                    <div class="onboard-done" id="obDone">
+                      <button class="ob-btn-primary" id="obFinishBtn">登录并保存我的画像</button>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="onboard-inputbar">
+                  <input class="onboard-input" id="obInput" placeholder="输入你的问题…" onkeydown="onObKey(event)" />
+                  <button class="onboard-send" id="obSend" onclick="obSendQuote()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 视图：首页（AI 对话） -->
+            <div class="view" id="view-home">
+              <div class="home-ai">
+                <div class="ai-top">
+                  <div class="ai-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15z"/></svg>
+                  </div>
+                  <div>
+                    <div class="ai-title">👋 你好，我是你的升本 AI 助手</div>
+                    <div class="ai-title-sub">有备考问题随时问我，也可以帮你做题讲题</div>
+                  </div>
+                </div>
+
+                <div class="chat-scroll" id="chatScroll">
+                  <div class="msg assistant">
+                    <div class="msg-avatar">AI</div>
+                    <div class="msg-bubble">同学你好，我是你的升本备考助手 👋
+这里是计算机大类专属，可以问我考点、政策、分数线，也可以做题讲题。</div>
+                  </div>
+                </div>
+
+                <div class="chat-input-bar">
+                  <input class="chat-input" id="chatInput" placeholder="输入你的问题…" onkeydown="onChatKey(event)" />
+                  <button class="chat-send" id="chatSendBtn" onclick="sendQuote()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 弹窗：微信一键登录 -->
+          <div class="mask" id="loginMask">
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <h3 class="login-title">登录升本智答</h3>
+              <p class="login-sub">登录后保存学习进度，自由使用全部功能</p>
+              <div class="login-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"/></svg>
+              </div>
+              <button class="btn-phone" onclick="doLogin()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 4.5a1 1 0 0 0-1.4.2 11 11 0 0 0 0 14.6 1 1 0 1 0 1.5-1.3 9 9 0 0 1 0-12 .9.9 0 0 0-.1-1.5zM16.9 2.7a1 1 0 1 0-1.5 1.3 9 9 0 0 1 0 12l.1.1a1 1 0 0 0 1.7-.7 9 9 0 0 0-.3-2.4 9 9 0 0 0 0-7.6zM10.7 6a1 1 0 0 0-1.4.3 7 7 0 0 0 0 7.5 1 1 0 0 0 1.7-1.1 5 5 0 0 1 0-5.3 1 1 0 0 0-.3-1.4z"/></svg>
+                微信一键登录
+              </button>
+              <div class="login-agree">
+                <label><input type="checkbox" id="agreeBox" checked onclick="syncLoginBtn()" />同意</label>
+                <button onclick="event.stopPropagation()">《用户协议》</button>
+                <span>/</span>
+                <button onclick="event.stopPropagation()">《隐私政策》</button>
+              </div>
+              <div class="login-other"><a href="javascript:void(0)" onclick="skipLogin()">暂不登录，先逛逛</a></div>
+            </div>
+          </div>
+
+          <!-- 弹窗：补充用户画像 -->
+          <div class="mask" id="profileMask">
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <h3 class="profile-title">帮你把 AI 调得再准一点</h3>
+              <p class="profile-desc">选两项带星号的，其他选填</p>
+
+              <div class="form-row">
+                <label class="form-label">考试科目<span class="req">*</span></label>
+                <div class="chip-group" id="subjectGroup">
+                  <button class="field-chip on" data-v="计算机基础">计算机基础</button>
+                  <button class="field-chip" data-v="高等数学">高等数学</button>
+                  <button class="field-chip" data-v="大学英语">大学英语</button>
+                  <button class="field-chip" data-v="大学语文">大学语文</button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <label class="form-label">入学年份<span class="req">*</span></label>
+                <div class="chip-group" id="yearGroup">
+                  <button class="field-chip field-chip-enroll" data-v="大一">大一</button>
+                  <button class="field-chip field-chip-enroll" data-v="大二">大二</button>
+                  <button class="field-chip field-chip-enroll" data-v="大三">大三</button>
+                  <button class="field-chip field-chip-enroll" data-v="其他">其他</button>
+                </div>
+              </div>
+
+              <div class="form-row" id="profileExamRow" style="display:none">
+                <label class="form-label">考试时间<span class="req">*</span></label>
+                <select class="field-input field-select" id="examTimeSelect">
+                  <option value="">请选择考试时间</option>
+                  <option value="2027-03-28">2027-03-28</option>
+                  <option value="2028-03-26">2028-03-26</option>
+                  <option value="2029-03-25">2029-03-25</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <label class="form-label">所在院校</label>
+                <input class="field-input" id="schoolInput" placeholder="选填，用于查本校招录政策" />
+              </div>
+
+              <div class="form-row">
+                <label class="form-label">所在专业</label>
+                <input class="field-input" id="majorInput" placeholder="选填，用于推荐对口升本专业" />
+              </div>
+
+              <button class="btn-primary" id="profileSave" onclick="doSaveProfile()">保存并开始使用</button>
+              <div class="profile-other"><a href="javascript:void(0)" onclick="closeProfile()">稍后再说</a></div>
+            </div>
+          </div>
+
+          <!-- 弹窗：新用户 VIP 福利（第一次点功能触发，可关闭） -->
+          <div class="mask" id="vipMask">
+            <div class="sheet">
+              <div class="sheet-handle"></div>
+              <div class="vip-crown-icon">👑</div>
+              <div class="vip-box-title">新用户专享 VIP</div>
+              <div class="vip-box-sub">登录立即领取，满屏权益免费解锁</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> AI 答疑无限次</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> VIP 押题全解锁</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> 视频课程完整观看</div>
+              <div class="vip-benefit-item"><span class="ok">✓</span> 闪卡无限制</div>
+              <div class="vip-actions">
+                <button class="vip-btn vip-btn-secondary" onclick="skipVip()">暂不需要</button>
+                <button class="vip-btn vip-btn-primary" onclick="takeVip()">立即领取 👑</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 完成轻提示 -->
+          <div class="done-tip" id="doneTip">画像已保存 ✅</div>
+
+<script>
+/* ============================================================
+   登录与画像原型 —— 流程演示脚本
+   ============================================================ */
+
+/* 视图切换 */
+function showView(id) {
+  document.querySelectorAll('.view').forEach(function(v) {
+    v.classList.toggle('active', v.id === id);
+  });
+}
+
+/* ============================================================
+   （新）首次进入 · AI 学习画像建立（对话式表单）
+   ============================================================ */
+/* 预置数据 */
+var OB_SCHOOLS = ['日照职业技术学院', '山东商业职业技术学院', '青岛职业技术学院', '济南职业学院', '山东科技职业学院', '威海职业学院', '淄博职业学院', '烟台职业学院', '潍坊职业学院', '临沂职业学院'];
+var OB_MAJORS  = ['计算机应用技术', '软件技术', '计算机网络技术', '大数据技术', '人工智能技术应用', '数字媒体技术', '云计算技术应用'];
+var OB_YEARS   = ['大一', '大二', '大三', '其他'];
+var OB_MONTHS  = ['2027-03-28', '2028-03-26', '2029-03-25'];
+/* 考试时间=每年3月最后一个周日（系统判断）：大三→毕业当年2027，大二→2028，大一→2029（修正映射：学位毕业当年3月考） */
+var OB_MONTH_AUTO = { '大一': '2029-03-25', '大二': '2028-03-26', '大三': '2027-03-28' };
+
+var obStep = 0;               /* 已填项序号 0..3 */
+var obDraft = {};             /* {year, month, school, major} 完成稿/草稿（未登录也保留） */
+var obValues = {};            /* 当前已选 */
+var obListOpen = {};          /* 某 picker 是否展开其列表 */
+var obPendingLogin = false;   /* 完成画像后待登录：登录成功（STATE.logged=true）→ 收尾进首页 */
+
+var obScroll = document.getElementById('obScroll');
+function obVisibleIndex(progress) {
+  /* 根据已完成步数返回当前应展示的卡片下标（0-3）。
+     0=入学年份，1=考试时间(仅其他)，2=所在院校，3=所属专业
+     项数动态：其他=4项，大一/二/三=3项（跳过考试时间，因自动判断）。obStep 以「已答项数」计 */
+  if (progress >= obVisibleNum()) return 4;       /* 完成态：不再显示卡片 */
+  if (progress === 0) return 0;                   /* 第1步：入学年份 */
+  if (progress === 1) return obValues.year === '其他' ? 1 : 2;  /* 第2步：其他→考试时间，否则院校 */
+  if (progress === 2) return obValues.year === '其他' ? 2 : 3;  /* 第3步：其他→院校，否则专业 */
+  return 3;                                       /* 第4步(其他)：专业 */
+}
+function obVisibleNum() {
+  /* 实际展示给用户的总项数：选其他=4 项，选大一/大二/大三=3 项；未确定前按 4 展示 */
+  if (obValues.year && obValues.year !== '其他') return 3;
+  return 4;
+}
+function obUpdatePromptTexts() {
+  var visibleIdx = obVisibleIndex(obStep);
+  var total = obVisibleNum();
+  ['obPrompt0','obPrompt1','obPrompt2','obPrompt3'].forEach(function(id, idx) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var names = ['入学年份', '考试时间', '所在院校', '所属专业'];
+    var tpl = {
+      0: '告诉我你目前处于哪个入学年份',
+      1: '选择你的考试时间',
+      2: '告诉我你在哪所学校',
+      3: '告诉我你的在读专业'
+    }[idx];
+    var num = idx === 0 ? 1
+      : (idx === 1 && obValues.year !== '其他') ? 2
+      : (idx === 1) ? 2
+      : (idx === 2) ? (obValues.year && obValues.year !== '其他' ? 2 : 3)
+      : (idx === 3) ? (obValues.year && obValues.year !== '其他' ? 3 : 4)
+      : idx + 1;
+    el.innerHTML = '<b>第 ' + num + ' 项 / ' + total + ' · ' + names[idx] + '</b>　' + tpl;
+  });
+}
+function obProgressLabel() {
+  return '学习画像 · ' + Math.min(obStep, obVisibleNum()) + '/' + obVisibleNum();
+}
+function obRerender() {
+  obUpdatePromptTexts();
+  /* 进度圆点数量 = 动态总项数（其他=4，大一/二/三=3），与「已有 N/总数」对应，不写死 4 个 */
+  var count = obVisibleNum();
+  var dotsWrap = document.getElementById('obDots');
+  if (dotsWrap) {
+    while (dotsWrap.children.length > count) dotsWrap.removeChild(dotsWrap.lastChild);
+    while (dotsWrap.children.length < count) {
+      var dotEl = document.createElement('i');
+      dotsWrap.appendChild(dotEl);
+    }
+  }
+  var visibleIdx = obVisibleIndex(obStep);
+  /* 已填项点亮（i < obStep） */
+  var dots = document.querySelectorAll('.onboard-dots i');
+  dots.forEach(function(d, i) { d.classList.toggle('on', i < obStep); });
+  var label = document.getElementById('obProgressLabel');
+  if (label) label.textContent = obProgressLabel();
+  /* 轮播：只显示当前执行项卡片 */
+  ['obChip0','obChip1','obChip2','obChip3'].forEach(function(id, i) {
+    var el = document.getElementById(id);
+    var show = (visibleIdx !== 4 && i === visibleIdx);
+    if (el) el.style.display = show ? '' : 'none';
+  });
+  obScroll.scrollTop = obScroll.scrollHeight;
+}
+
+/* 两步式选择器：点击「选择 XX ＞」→ 展开/收起该项候选列表 */
+function obToggleList(listId, btn, emptyLabel) {
+  var list = document.getElementById(listId);
+  var open = !obListOpen[listId];
+  obListOpen[listId] = open;
+  /* 收起其他列表 */
+  Object.keys(obListOpen).forEach(function(k) {
+    if (k !== listId && obListOpen[k]) {
+      obListOpen[k] = false;
+      var el = document.getElementById(k);
+      if (el) el.classList.remove('open');
+    }
+  });
+  if (open) {
+    list.classList.add('open');
+  } else {
+    list.classList.remove('open');
+  }
+}
+
+function obFillList(listId, items, onPick) {
+  /* 渲染候选列表（纵向）。items 元素可为字符串或 {v,lbl} */
+  var list = document.getElementById(listId);
+  list.innerHTML = '';
+  items.forEach(function(it) {
+    var v = (typeof it === 'object' && it) ? it.v : it;
+    var lbl = (typeof it === 'object' && it) ? it.lbl : it;
+    var b = document.createElement('button');
+    b.className = 'ob-list-item';
+    b.innerHTML = '<span class="ob-cap-ic">' + (typeof it === 'object' && it._ic || '') + '</span><span>' + escapeHtml(lbl) + '</span>';
+    b.addEventListener('click', function() { onPick(v, lbl); });
+    list.appendChild(b);
+  });
+}
+
+function obNext(payload, lbl) {
+  /* 记录答案 + 前进一步 */
+  Object.assign(obValues, payload);
+  if (lbl) obValues[Object.keys(payload)[0] + '_lbl'] = lbl;
+  /* 入学年份：大一/大二/大三 自动判断考试时间；选「其他」后进入考试时间步骤 */
+  if (payload.year && OB_MONTH_AUTO[payload.year]) {
+    obValues.month = OB_MONTH_AUTO[payload.year];
+  }
+  obDraft = Object.assign({}, obValues);
+  postToShell('PROFILE', { user: { year: obValues.year, month: obValues.month, school: obValues.school, major: obValues.major, subject: '计算机基础' } });
+  /* 步进按动态总项数：其他=4 项，大一/二/三=3 项（自动判考试时间跳过该步） */
+  var total = obVisibleNum();
+  if (obStep < total) {
+    obStep++;
+  } else {
+    obStep = total;
+  }
+  if (obStep >= total) {
+    /* 画像已完成 → 完成反馈原位展开（按钮：未登录显示「登录并保存我的画像」；已登录隐藏，仅留 AI 文字反馈） */
+    obRerender();
+    document.getElementById('obLock').classList.add('open');
+    document.getElementById('obDone').classList.toggle('show', !LOGGED);
+    obScroll.scrollTop = obScroll.scrollHeight;
+    return;
+  }
+  obRerender();
+}
+
+function obInit() {
+  /* 入学年份：直接点选 inline 胶囊列表 */
+  var yearCaps = document.getElementById('obYearCaps');
+  yearCaps.innerHTML = '';
+  OB_YEARS.forEach(function(y) {
+    var b = document.createElement('button');
+    b.className = 'onboard-cap inline';
+    b.setAttribute('data-v', y);
+    b.innerHTML = '<span class="ob-cap-name">' + escapeHtml(y) + '</span>';
+    b.addEventListener('click', function() { obNext({ year: y }); });
+    yearCaps.appendChild(b);
+  });
+  /* 所在院校 */
+  var schools = OB_SCHOOLS.map(function(s) { return { v: s, lbl: s, _ic: '🎓' }; });
+  obFillList('obSchoolList', schools, function(v) { obNext({ school: v }); });
+  /* 所属专业 */
+  var majors = OB_MAJORS.map(function(m) { return { v: m, lbl: m, _ic: '📚' }; });
+  obFillList('obMajorList', majors, function(v) { obNext({ major: v }); });
+  /* 考试时间：仅「其他」进入本步时使用，选项为 3 月最后一个周日 */
+  obFillList('obMonthList', OB_MONTHS, function(v) { obNext({ month: v }); });
+}
+function obStart() {
+  showView('view-onboard');
+  obInit();
+  obRerender();
+}
+
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'ONBOARDING_RESTART') return;
+  /* 完成画像后重进首页 → 重置为新对话但保留草稿 */
+  obDraft = Object.assign({}, SHELL_STATE.user || {});
+  obValues = {};
+  obStep = 0;
+  var lock = document.getElementById('obLock');
+  lock.classList.remove('open');
+  document.getElementById('obDone').classList.remove('show');
+  obRerender();
+  obScroll.scrollTop = 0;
+  showView('view-onboard');
+  obInit();
+  obRerender();
+});
+
+/* 按钮（未登录可见）：「登录并保存我的画像」→ 引导登录；已登录无按钮 */
+function onObFinish() {
+  if (!LOGGED) {
+    /* 引导登录（强调保存画像）；不登录不清空已填（草稿保留） */
+    postToShell('PROFILE', { user: { year: obValues.year, month: obValues.month, school: obValues.school, major: obValues.major } });
+    pendingLoginFinish = function() {
+      var homeScroll = document.getElementById('chatScroll');
+      var tip = document.createElement('div');
+      tip.className = 'msg assistant';
+      tip.innerHTML = '<div class="msg-avatar">AI</div><div class="msg-bubble">✓ 登录成功\n好的，记住啦～你的学习画像已经保存。</div>';
+      /* 放到首条之前，保持 AI 对话语义连贯 */
+      homeScroll.insertBefore(tip, homeScroll.firstChild);
+      showView('view-home');
+    };
+    ensureLogin(pendingLoginFinish, 'onboarding');   /* 画像线：登录成功 toast「学习画像已保存」 */
+    return;
+  }
+  /* 已登录：直接进入正常 AI 首页 */
+  showView('view-home');
+}
+document.getElementById('obFinishBtn').addEventListener('click', onObFinish);
+
+/* 底部 AI 输入框（与正常首页一致，发消息后模拟 AI 回复） */
+function obSendQuote() {
+  var input = document.getElementById('obInput');
+  var txt = input.value.trim();
+  if (!txt) return;
+  appendAiMsg('user', txt);
+  input.value = '';
+  setTimeout(function() {
+    appendAiMsg('assistant', getObAnswer(txt));
+  }, 650);
+}
+function onObKey(e) { if (e.key === 'Enter') obSendQuote(); }
+function appendAiMsg(role, text) {
+  var box = document.getElementById('obScroll');
+  var div = document.createElement('div');
+  div.className = 'onboard-msg ' + role;
+  var av = role === 'assistant' ? 'AI' : '我';
+  div.innerHTML = '<div class="onboard-av">' + av + '</div><div class="onboard-bubble">' + escapeHtml(text) + '</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+function getObAnswer(q) {
+  if (/年份|入学|大一|大二|大三|其他/.test(q) || /第一|刚|刚开始/.test(q)) return '你填的入学年份我记下啦～结合「入学年份」，会自动判断考试时间，给你更贴合阶段的备考建议。继续点下面的卡片，把画像补完吧～';
+  return '收到～你可以边填写下面的「学习画像」卡片，边问我问题，我会认真记住你的情况。';
+}
+
+/* ---------- 新用户 VIP 福利（第一次点功能触发，可关；领取后不再弹） ---------- */
+var LOGGED = false;          /* 登录态：由总壳 STATE 广播同步 */
+var VIP_SHOWN = false;       /* 本次会话已弹过 */
+var VIP_CLAIMED = false;     /* 已领取 */
+var VIP_PENDING = null;      /* 暂不领取后要继续的动作 */
+
+function openProfile() {
+  /* 规则②④：登录不是画像的前置条件，未登录也可填画像；登录统一走总壳 Sheet（A） */
+  document.getElementById('profileMask').classList.add('show');
+}
+
+/* 「暂不需要」→ 关弹窗，继续原功能 */
+function skipVip() {
+  document.getElementById('vipMask').classList.remove('show');
+  VIP_SHOWN = true;
+  var next = VIP_PENDING;
+  VIP_PENDING = null;
+  if (next) next();
+}
+
+/* 「立即领取」→ 跳 VIP 领取层（总壳）或独立打开 VIP 页 */
+function takeVip() {
+  VIP_SHOWN = true;          /* 领取过 → 本会话不再弹第二次 VIP 福利 */
+  var claim = window.parent && window.parent.openVip;
+  if (claim) {
+    document.getElementById('vipMask').classList.remove('show');
+    window.parent.openVip();
+    return;
+  }
+  /* 独立运行时：直接打开 VIP 领取页 */
+  document.getElementById('vipMask').classList.remove('show');
+  window.location.href = 'VIP领取页.html';
+}
+
+/* 手机状态栏时钟（去壳后状态栏在总壳，此处保留以防独立打开） */
+(function initStatusbar() {
+  var t = document.getElementById('statusTime');
+  if (!t) return;
+  function tick() {
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    t.textContent = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+
+/* 流程：闪屏 → 2.5s → 首页
+   在总壳 iframe 内（embedded）→ 跳过自身闪屏，直接进首页（闪屏由总壳统一控制） */
+var EMBEDDED = (function() {
+  if (window.parent === window.self) return false;
+  var p;
+  try { p = decodeURIComponent(window.parent.location.pathname); } catch(e) { p = null; }
+  if (!p) {
+    /* 跨源 frame（file:// 下 iframe 与父页视为不同源）读不到 parent.location：
+       只要身处 iframe，即按嵌入总壳处理 —— postMessage 跨源可用，通信不受影响 */
+    return true;
+  }
+  return /小程序总壳\.html$/.test(p);
+})();
+if (EMBEDDED) {
+  showView('view-home');
+  /* 嵌入总壳：主动订阅状态（总壳靠 SUBREADY 回发 STATE，错过广播会拿不到登录/VIP 状态） */
+  try { window.parent.postMessage({ type: 'SUBREADY' }, '*'); } catch(e) {}
+  /* 首次进入（未登录 + 无画像）→「AI 学习画像建立」对话页；已画像 → 正常首页。
+     总壳 STATE 首个广播到达后判定（s.logged=false 即首次进入） */
+  window.addEventListener('message', function obFirstState(evt) {
+    var d = evt.data;
+    if (!d || d.type !== 'STATE') return;
+    window.removeEventListener('message', obFirstState);
+    var s = d.state || {};
+    /* 首次进入 = 画像未完成（profileLevel !== 'done'）→ 进入「学习画像建立」对话页
+       含：未登录+无画像 / 已登录+无画像 / 部分完成（补完剩余项），完成/登录后回正常首页 */
+    if (s.profileLevel !== 'done') {
+      obStart();
+    }
+  });
+} else {
+  setTimeout(function() { showView('view-home'); }, 2500);
+}
+
+/* 上报总壳状态中枢（跨 tab 联动） */
+function postToShell(type, data) {
+  try { window.parent.postMessage({ type: type, data: data || {} }, '*'); } catch(e) {}
+}
+/* 接收总壳广播的最新状态 */
+var SHELL_STATE = {};        /* 总壳 STATE 快照（onboarding 重进时取画像草稿） */
+var pendingLoginFinish = null;  /* 登录成功后要执行的收尾（onboarding → 首页） */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'STATE') {
+    var s = d.state || {};
+    SHELL_STATE = s;
+    if (typeof s.logged === 'boolean') LOGGED = s.logged;
+    if (s.vipClaimed) { VIP_CLAIMED = true; VIP_SHOWN = true; }
+    /* 完成画像后引导登录：登录成功广播 → 收尾进首页（嵌入总壳时 ensureLogin 的 next 不执行） */
+    if (pendingLoginFinish && LOGGED) {
+      var fin = pendingLoginFinish;
+      pendingLoginFinish = null;
+      fin();
+    }
+    return;
+  }
+  /* 其他 tab 转发过来的请求（我的页 → 总壳 → 本页） */
+  if (d.type === 'REQ_LOGIN') { ensureLogin(); return; }
+  if (d.type === 'OPEN_PROFILE') {
+    openProfile();
+    return;
+  }
+});
+
+function ensureLogin(next, from) {
+  /* 登录归属唯一：总壳登录 Sheet（规则A）。未登录 → 向总壳发 REQ_LOGIN，由总壳弹登录
+     from：onboarding=画像线（学习页 onboarding 完成画像后登录）；其他=普通登录
+     已登录 → 直接执行 next（登录态：由总壳 STATE 广播同步到 LOGGED） */
+  if (LOGGED) { if (next) next(); return; }
+  /* 嵌入总壳：向父壳请求弹登录 Sheet（附来源，决定登录成功 toast 文案） */
+  try {
+    if (EMBEDDED) {
+      window.parent.postMessage({ type: 'REQ_LOGIN', data: { from: from || 'general' } }, '*');
+      return;
+    }
+  } catch(e) {}
+  /* 独立运行时兜底：本地弹登录弹窗 */
+  openAfterLogin = next || null;
+  document.getElementById('loginMask').classList.add('show');
+}
+
+function syncLoginBtn() {
+  var box = document.getElementById('agreeBox');
+  var btn = document.querySelector('.btn-phone');
+  btn.classList.toggle('disable', !box.checked);
+}
+
+function doLogin() {
+  var box = document.getElementById('agreeBox');
+  if (!box.checked) return;
+  LOGGED = true;
+  document.getElementById('loginMask').classList.remove('show');
+  /* 上报总壳 → 广播到我的/VIP等所有 tab */
+  postToShell('LOGGED', { user: { nick: '团团酱', year: '大三', month: '2027-03-28', major: '计算机大类' } });
+  var next = openAfterLogin;
+  openAfterLogin = null;
+  if (next) next();
+}
+/* 先进后登：暂不登录 → 关弹窗留首页，不拦截 */
+function skipLogin() {
+  var next = openAfterLogin;
+  openAfterLogin = null;
+  document.getElementById('loginMask').classList.remove('show');
+  if (next) { /* 游客继续用功能（弱提示即可） */ }
+}
+function closeProfile() {
+  document.getElementById('profileMask').classList.remove('show');
+}
+
+/* 入学年份/科目选择（单选） + 年份联动考试时间 */
+document.querySelectorAll('.field-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    var group = chip.parentElement;
+    group.querySelectorAll('.field-chip').forEach(function(c) { c.classList.remove('on'); });
+    chip.classList.add('on');
+    if (group.id === 'yearGroup') {
+      var examRow = document.getElementById('profileExamRow');
+      var examSel = document.getElementById('examTimeSelect');
+      var v = chip.getAttribute('data-v');
+      if (v === '其他') {
+        examRow.style.display = '';
+        examSel.setAttribute('required', 'required');
+      } else {
+        examRow.style.display = 'none';
+        examSel.removeAttribute('required');
+        examSel.value = OB_MONTH_AUTO[v] || '';
+      }
+    }
+  });
+});
+
+/* 保存画像：登录/未登录都可保存（规则②④）
+   已登录 → 直接上报落库；未登录 → 存本地草稿 + 引导登录，登录成功自动用草稿 */
+function doSaveProfile() {
+  var school = document.getElementById('schoolInput').value.trim();
+  var major  = document.getElementById('majorInput').value.trim();
+  var year   = document.querySelector('#yearGroup .field-chip.on')
+    ? document.querySelector('#yearGroup .field-chip.on').getAttribute('data-v') : '';
+  var examSel = document.getElementById('examTimeSelect');
+  var examTime = examSel.value;
+  var month = examTime || OB_MONTH_AUTO[year] || '';
+  if (!year || (year === '其他' && !month)) {
+    showDoneTip('请先选择入学年份和考试时间');
+    return;
+  }
+  var subj   = document.querySelector('#subjectGroup .field-chip.on')
+    ? document.querySelector('#subjectGroup .field-chip.on').getAttribute('data-v') : '计算机基础';
+  closeProfile();
+
+  if (!LOGGED) {
+    /* 未登录：画像草稿直接上报总壳（总壳存草稿，登录成功自动合并落库）；
+       引导登录（总壳登录 Sheet）；用户拒绝登录 → 草稿保留，不再弹（规则C + 补充） */
+    postToShell('PROFILE', { user: { year: year, month: month, school: school, major: major, subject: subj } });
+    showDoneTip('画像已暂存，登录后自动保存 ✅');
+    try {
+      if (EMBEDDED) {
+        window.parent.postMessage({ type: 'REQ_LOGIN' }, '*');
+        return;
+      }
+    } catch(e) {}
+    /* 独立运行时兜底 */
+    ensureLogin(null);
+    return;
+  }
+  /* 已登录：直接保存 + 上报总壳 */
+  showDoneTip('画像已保存 ✅');
+  postToShell('PROFILE', { user: { year: year, month: month, school: school, major: major, subject: subj } });
+}
+function showDoneTip(txt) {
+  var tip = document.getElementById('doneTip');
+  tip.textContent = txt;
+  tip.classList.add('show');
+  setTimeout(function() { tip.classList.remove('show'); }, 1800);
+}
+
+/* 对话：发送/回复模拟 */
+function onChatKey(e) {
+  if (e.key === 'Enter') sendQuote();
+}
+function sendQuote() {
+  var input = document.getElementById('chatInput');
+  var txt = input.value.trim();
+  if (!txt) return;
+  appendMsg('user', txt);
+  input.value = '';
+  setTimeout(function() {
+    appendMsg('assistant', getSimAnswer(txt));
+  }, 700);
+}
+function appendMsg(role, text) {
+  var box = document.getElementById('chatScroll');
+  var div = document.createElement('div');
+  div.className = 'msg ' + role;
+  var avatar = role === 'assistant'
+    ? '<div class="msg-avatar">AI</div>'
+    : '<div class="msg-avatar">我</div>';
+  div.innerHTML = avatar + '<div class="msg-bubble">' + escapeHtml(text) + '</div>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function getSimAnswer(q) {
+  if (/专业|跨考/.test(q)) return '统招专升本部分专业允许跨考。计算机大类通常可跨考：软件工程、数据科学与大数据技术、人工智能、网络工程等。是否受限以当年山东招考院专业对照目录为准。\n\n你填了专业更方便我精确回答，可点上方「补全资料」。';
+  if (/分数线|多少分/.test(q)) return '分数线按年检索。以 2025 年山东统招专升本为例：计算机类最低投档线约 153 分（具体以招考院公布为准）。你是哪一专业、哪一届？我按你的情况算更准。';
+  return '这个问题我还在学习中。您可以在 AI 问答里补充学校 / 专业 / 入学年份，我答得更准。';
+}
+</script>
+</body>
+</html>

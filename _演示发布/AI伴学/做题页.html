@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>做题页 · 统一做题</title>
+<style>
+/* ============================================================
+   统一做题页（题库做题唯一页面）
+   入口：?entry=today(今日学习) | wrong(错题本) | chapter(章节练习)
+   模式：做题=全部答完交卷统一显示答案解析；背题=每答一题立即显示答案解析
+   题型：单选/多选/判断/填空/操作/分析/综合运用/简答（操作/分析/综合运用=一个题干答多个子题）
+   ============================================================ */
+:root{
+  --primary:#5B72F5; --primary-dark:#4358D7; --primary-light:#EEF1FF;
+  --text-primary:#1E2130; --text-secondary:#6E778B; --text-tertiary:#98A0B2;
+  --success:#20A866; --danger:#EF4444; --warning:#F28B3D;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; }
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#F6F7FB; color:var(--text-primary);
+  display:flex; flex-direction:column;
+  height:100%; overflow:hidden;             /* body 不滚，由内部 question-area 统一滚动 */
+}
+
+/* ===== 顶部导航：模式切换左 / 计时中 / 答题卡右 ===== */
+.practice-nav{
+  flex-shrink:0; height:52px;
+  position:relative;                 /* 给 .nav-timer absolute 提供定位基准，否则跑到 viewport 中央 */
+  display:flex; align-items:center; gap:10px;
+  padding:0 12px; background:#fff;
+  border-bottom:1px solid #F0F1F6;
+}
+/* .nav-back 已删（2026-08-31）：内部退出按钮由总壳 appbar 接管，避免重复 */
+.mode-switch{ display:flex; background:#F0F1F6; border-radius:16px; padding:2px; }
+.mode-btn{
+  padding:5px 14px; font-size:12px; border-radius:13px; border:none;
+  background:none; color:var(--text-secondary); cursor:pointer; font-weight:500;
+}
+.mode-btn.active{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+/* 中央计时：等宽数字，避免跳动 */
+.nav-timer{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-size:14px; font-weight:600; color:var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+}
+/* 右侧答题卡入口 */
+.nav-sheet-btn{
+  margin-left:auto;
+  display:flex; align-items:center; gap:4px;
+  border:none; background:none; cursor:pointer;
+  color:var(--text-secondary); font-size:12px; font-weight:500;
+  padding:6px 10px; border-radius:10px;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-sheet-btn:active{ background:#F0F1F6; color:var(--primary-dark); }
+.nav-sheet-btn svg{ width:16px; height:16px; }
+
+/* ===== 进度条 ===== */
+.progress-wrap{ padding:6px 16px 10px; background:#fff; border-bottom:1px solid #F0F1F6; flex-shrink:0; }
+.progress-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary); margin-bottom:5px; }
+.progress-top .q-num{ color:var(--primary); font-weight:600; }
+.progress-top .q-pos{ color:var(--text-tertiary); }
+.progress-top .q-pos #navProgress{ color:var(--primary); font-weight:600; }
+.progress-bar{ height:3px; background:#EDEFF3; border-radius:2px; overflow:hidden; }
+.progress-fill{ height:100%; background:linear-gradient(90deg,var(--primary),#62CFA9); border-radius:2px; transition:width .2s; }
+
+/* ===== 标签区 ===== */
+.tag-area{ display:flex; gap:6px; padding:8px 16px; flex-wrap:wrap; flex-shrink:0; background:#fff; }
+.tag{ font-size:11px; padding:3px 9px; border-radius:6px; white-space:nowrap; }
+.tag.type{ background:var(--primary-light); color:var(--primary-dark); }
+.tag.concept{ background:#F9F0FF; color:#722ED1; }
+.tag.difficulty{ background:#FFF7E6; color:#FA8C16; }
+.tag.stubborn{ background:#FFF1F0; color:#CF1322; font-weight:600; }
+
+/* ===== 题目区（独立滚动，承载题干→选项→反馈→解析，PM 2026-08-31） ===== */
+.question-area{ flex:1; overflow-y:auto; background:#fff; -webkit-overflow-scrolling:touch; }
+.stem-wrap{ padding:12px 16px 10px; }
+.stem{ font-size:15px; line-height:1.7; color:#333; }
+.stem .q-num{ color:var(--primary); font-weight:600; margin-right:4px; }
+.sub-q{ margin:10px 0; padding:10px 12px; background:#FAFBFF; border-radius:10px; }
+.sub-q .sub-label{ font-size:11px; font-weight:700; color:var(--primary); margin-bottom:6px; }
+.sub-q .sub-stem{ font-size:13px; line-height:1.6; margin-bottom:8px; color:#333; }
+.options{ padding:0 16px 12px; display:flex; flex-direction:column; gap:8px; }
+.option{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 12px; border:1.5px solid #E8EAF1; border-radius:10px;
+  cursor:pointer; font-size:14px; color:#333; line-height:1.5; transition:all .12s;
+}
+.option:active{ transform:scale(.99); }
+.option .radio, .option .checkbox{
+  width:18px; height:18px; flex-shrink:0; margin-top:1px;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid #C9CEDA; background:#fff;
+}
+.option .radio{ border-radius:50%; }
+.option .checkbox{ border-radius:4px; }
+.option.selected{ border-color:var(--primary); background:var(--primary-light); }
+.option.selected .radio{ border-color:var(--primary); background:var(--primary); }
+.option.selected .radio::after{ content:""; width:6px; height:6px; border-radius:50%; background:#fff; }
+.option.selected .checkbox{ border-color:var(--primary); background:var(--primary); }
+.option.selected .checkbox::after{ content:"✓"; color:#fff; font-size:12px; font-weight:bold; }
+.option.correct{ border-color:var(--success); background:#F0FBF4; color:#1F7A4D; }
+.option.correct .radio, .option.correct .checkbox{ border-color:var(--success); background:var(--success); }
+.option.correct .radio::after{ content:""; width:6px; height:6px; border-radius:50%; background:#fff; }
+.option.correct .checkbox::after{ content:"✓"; color:#fff; font-size:12px; font-weight:bold; }
+.option.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
+.option.wrong .radio, .option.wrong .checkbox{ border-color:var(--danger); background:var(--danger); }
+/* 选项文本占满中间，标签贴右 */
+.option .opt-body{ flex:1; min-width:0; }
+/* ===== 选项标签：易错（红）/ 易漏选（橙）—— 数据埋点统计口径，v5.0 接数据层 =====
+   - hot-wrong：该选项为错选项 + 埋点高频错选 → 标「易错」（刺眼红）
+   - hot-miss ：该选项为正确项 + 埋点高频漏选 → 标「易漏选」（醒目橙）
+   同一选项互斥（错选项不可能是正确项），优先级：易错 > 易漏选 */
+.opt-flag{
+  flex-shrink:0; align-self:center;
+  font-size:10px; font-weight:700; line-height:1;
+  padding:3px 7px; border-radius:8px;
+  letter-spacing:.3px; white-space:nowrap;
+}
+.opt-flag.hot-wrong{ background:#EF4444; color:#fff; box-shadow:0 2px 6px rgba(239,68,68,.3); }
+.opt-flag.hot-miss { background:#F28B3D; color:#fff; box-shadow:0 2px 6px rgba(242,139,61,.3); }
+.option.wrong .radio::after{ content:"×"; color:#fff; font-size:11px; font-weight:bold; }
+.option.wrong .checkbox::after{ content:"×"; color:#fff; font-size:12px; font-weight:bold; }
+.option.answer{ border-color:var(--success); background:#F0FBF4; }
+.opt-label{ font-weight:600; margin-right:4px; }
+/* 填空 */
+.fill-wrap{ padding:0 16px 12px; }
+.fill-input{
+  width:100%; height:44px; border:1.5px solid #E8EAF1; border-radius:10px;
+  padding:0 14px; font-size:14px; outline:none; background:#fff; color:#333;
+}
+.fill-input:focus{ border-color:var(--primary); }
+.fill-input.correct{ border-color:var(--success); background:#F0FBF4; color:#1F7A4D; }
+.fill-input.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
+/* 简答 */
+.essay-wrap{ padding:0 16px 12px; }
+.essay-textarea{
+  width:100%; min-height:90px; border:1.5px solid #E8EAF1; border-radius:10px;
+  padding:10px 12px; font-size:14px; font-family:inherit; outline:none;
+  resize:vertical; background:#fff; color:#333; line-height:1.6;
+}
+.essay-textarea:focus{ border-color:var(--primary); }
+
+/* ===== 解析区 ===== */
+.analysis-area{ background:#F5F6FA; padding:0 12px 16px; flex-shrink:0; display:none; }
+.analysis-area.show{ display:block; }
+.analysis-card{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
+.analysis-card .card-title{ font-size:14px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.analysis-card .card-title .ico{
+  width:22px; height:22px; border-radius:6px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1;
+}
+.analysis-card .card-title .seq{
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+  background:#F0F1F6; border-radius:6px; padding:2px 7px; margin-left:auto;
+}
+.answer-line{ font-size:14px; font-weight:700; color:var(--success); margin-bottom:8px; }
+.answer-line.wrong-ans{ color:var(--danger); }
+.analysis-text{ font-size:13px; color:#555; line-height:1.7; }
+.analysis-text b{ color:#333; }
+.step-list{ font-size:13px; color:#666; line-height:1.8; margin-top:8px; padding-top:8px; border-top:1px dashed #EDEFF3; }
+
+/* ===== 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） =====
+   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
+   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
+   注：ico-2/verdict-* 为系统判断节遗留样式，已不用（PM 2026-08-31 删） */
+.ana-sec{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
+.ana-sec .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.ana-sec .sec-head .ico{
+  width:22px; height:22px; border-radius:7px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1;
+}
+.ana-sec .sec-head .ico svg{ width:14px; height:14px; }
+.ana-sec .sec-head .name{ font-size:14px; font-weight:700; color:var(--text-primary); }
+.ana-sec .sec-head .seq{
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+  background:#F0F1F6; border-radius:6px; padding:2px 7px; margin-left:auto;
+}
+.ana-sec .sec-body{ font-size:13px; color:#555; line-height:1.7; }
+.ana-sec .sec-body b{ color:#333; }
+/* 节图标配色 */
+.ico-1{ background:linear-gradient(135deg,#EF4444,#F87171); color:#fff; }      /* 答题结果 红 */
+.ico-2{ background:linear-gradient(135deg,#5B72F5,#4358D7); color:#fff; }      /* 系统判断 蓝 */
+.ico-3{ background:linear-gradient(135deg,#3FA98B,#5BC29B); color:#fff; }     /* 解析 绿 */
+.ico-4{ background:linear-gradient(135deg,#F28B3D,#FBA460); color:#fff; }      /* 考点对比 橙 */
+.ico-5{ background:linear-gradient(135deg,#722ED1,#9B6BD9); color:#fff; }     /* 举一反三 紫 */
+.ico-6{ background:linear-gradient(135deg,#FA8C16,#FFA940); color:#fff; }      /* 我的笔记 黄橙 */
+.ico-7{ background:linear-gradient(135deg,#13C2C2,#36CFC9); color:#fff; }     /* 相关知识点 青 */
+.ico-8{ background:linear-gradient(135deg,#5B72F5,#3FA98B); color:#fff; }      /* 视频解析 蓝绿 */
+.ico-9{ background:linear-gradient(135deg,#8A90A8,#B0B6CA); color:#fff; }     /* 答题时间 灰 */
+
+/* 系统判断：标签行 */
+.verdict-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+.verdict-tag{
+  font-size:11px; font-weight:600; padding:3px 9px; border-radius:8px;
+  display:flex; align-items:center; gap:4px;
+}
+.verdict-tag.right{ background:#E8F8F0; color:#1F7A4D; }
+.verdict-tag.wrong{ background:#FEECEC; color:#C0392B; }
+.verdict-tag.partial{ background:#FFF7E6; color:#B66B0A; }
+
+/* 考点对比：左右双栏 */
+.compare-box{ display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch; }
+.compare-col{
+  border:1px solid #EEF0F6; border-radius:10px; padding:10px 12px;
+  background:#FBFCFE;
+}
+.compare-col .col-t{ font-size:11px; font-weight:600; color:var(--text-tertiary); margin-bottom:6px; }
+.compare-col .col-name{ font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+.compare-col .col-list{ font-size:12px; color:#666; line-height:1.8; }
+.compare-col .col-list li{ list-style:none; padding-left:14px; position:relative; }
+.compare-col .col-list li::before{ content:'·'; position:absolute; left:4px; color:var(--primary); font-weight:700; }
+.compare-col.is-cur{ border-color:var(--primary); background:var(--primary-light); }
+.compare-col.is-cur .col-name{ color:var(--primary-dark); }
+.compare-mid{
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; color:var(--text-tertiary);
+}
+.compare-mid svg{ width:18px; height:18px; }
+
+/* 举一反三：变式题卡 */
+.variant-card{
+  border:1px solid #EEF0F6; border-radius:10px; padding:12px; margin-bottom:8px;
+  cursor:pointer; transition:transform .12s ease, border-color .15s;
+}
+.variant-card:active{ transform:scale(.99); border-color:var(--primary); }
+.variant-card .v-stem{ font-size:13px; color:#333; line-height:1.6; margin-bottom:6px; }
+.variant-card .v-meta{ font-size:11px; color:var(--text-tertiary); display:flex; gap:10px; }
+.variant-card .v-meta .v-type{ color:var(--primary-dark); background:var(--primary-light); border-radius:6px; padding:1px 6px; }
+
+/* 我的笔记：可编辑 textarea + 状态 */
+.note-ta{
+  width:100%; min-height:64px; padding:10px 12px; box-sizing:border-box;
+  border:1px solid #E3E8F2; border-radius:10px; background:#FBFBFE;
+  font-size:13px; color:var(--text-primary); line-height:1.5;
+  font-family:inherit; outline:none; resize:vertical;
+  transition:border-color .15s;
+}
+.note-ta:focus{ border-color:var(--primary); background:#fff; }
+.note-empty{ font-size:12px; color:var(--text-tertiary); padding:8px 0; }
+.note-save-row{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+.note-hint{ font-size:11px; color:var(--text-tertiary); }
+.note-save-btn{
+  border:none; background:var(--primary-light); color:var(--primary-dark);
+  font-size:12px; font-weight:600; padding:5px 14px; border-radius:8px; cursor:pointer;
+}
+.note-save-btn:active{ background:var(--primary); color:#fff; }
+
+/* 相关知识点：标签云 */
+.kp-cloud{ display:flex; flex-wrap:wrap; gap:8px; }
+.kp-tag{
+  font-size:12px; padding:5px 11px; border-radius:14px;
+  background:#F5F6FA; color:var(--text-secondary); border:1px solid #EEF0F6;
+  cursor:pointer; transition:all .12s;
+}
+.kp-tag:active{ background:var(--primary-light); color:var(--primary-dark); border-color:var(--primary); }
+
+/* 视频解析：视频卡 */
+.video-card{
+  display:flex; gap:10px; align-items:center;
+  border:1px solid #EEF0F6; border-radius:10px; padding:10px; cursor:pointer;
+  transition:transform .12s ease, border-color .15s;
+}
+.video-card:active{ transform:scale(.99); border-color:var(--primary); }
+.video-thumb{
+  width:64px; height:48px; border-radius:8px; flex-shrink:0;
+  background:linear-gradient(135deg,#5B72F5,#3FA98B);
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.video-thumb svg{ width:22px; height:22px; color:#fff; }
+.video-thumb .v-dur{
+  position:absolute; bottom:2px; right:4px;
+  font-size:9px; color:#fff; background:rgba(0,0,0,.5); padding:1px 4px; border-radius:3px;
+}
+.video-info .v-title{ font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+.video-info .v-sub{ font-size:11px; color:var(--text-tertiary); }
+
+/* 答题时间·耗时分析：双行 */
+.timing-row{ display:flex; gap:10px; margin-bottom:8px; }
+.timing-cell{
+  flex:1; border:1px solid #EEF0F6; border-radius:10px; padding:10px 12px; background:#FBFCFE;
+}
+.timing-cell .t-lbl{ font-size:11px; color:var(--text-tertiary); margin-bottom:4px; }
+.timing-cell .t-val{ font-size:18px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.timing-cell .t-sub{ font-size:11px; color:var(--text-secondary); margin-top:2px; }
+.timing-bar-wrap{ margin-top:10px; }
+.timing-bar-t{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-tertiary); margin-bottom:5px; }
+.timing-bar{ height:6px; background:#EDEFF3; border-radius:3px; overflow:hidden; }
+.timing-bar-fill{ height:100%; background:linear-gradient(90deg,var(--primary),#62CFA9); border-radius:3px; transition:width .3s; }
+
+/* ===== 底部操作栏：收藏 / 标记 / 分享 + 交卷 ===== */
+.bottom-bar{
+  flex-shrink:0; display:flex; align-items:center; gap:6px;
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+  background:#fff; border-top:1px solid #F0F1F6;
+}
+.tool-btn{
+  flex:1; height:46px; border:none; background:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  border-radius:10px; color:var(--text-secondary); transition:background .12s;
+}
+.tool-btn:active{ background:#F0F1F6; }
+.tool-btn .ico{ font-size:17px; line-height:1; }
+.tool-btn .lbl{ font-size:10px; }
+.tool-btn.on{ color:var(--primary); }
+.tool-btn.on .ico{ color:#FA8C16; }
+.btn-submit{
+  flex:0 0 92px; height:44px; border:none; border-radius:22px;
+  background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff;
+  font-size:14px; font-weight:600; cursor:pointer;
+  box-shadow:0 8px 18px rgba(91,114,245,.22); transition:transform .12s;
+}
+.btn-submit:active{ transform:scale(.97); }
+
+/* ===== 页面轻提示（收藏/标记/分享反馈） ===== */
+.practice-toast{
+  position:fixed; top:64px; left:50%; transform:translateX(-50%);
+  background:rgba(22,27,46,.82); color:#fff; padding:9px 16px; border-radius:8px;
+  font-size:12px; z-index:200; opacity:0; pointer-events:none;
+  transition:opacity .25s; max-width:86%; white-space:nowrap;
+}
+.practice-toast.show{ opacity:1; }
+
+/* ===== 分享弹窗（自动生成分享卡片，分享至朋友圈） ===== */
+.share-mask{
+  position:fixed; inset:0; background:rgba(22,27,46,.5);
+  display:none; align-items:center; justify-content:center; z-index:180;
+}
+.share-mask.show{ display:flex; }
+.share-panel{ width:82%; max-width:320px; text-align:center; }
+.share-card{
+  background:#fff; border-radius:16px; padding:20px 18px; margin-bottom:12px;
+  box-shadow:0 16px 40px rgba(22,27,46,.18); text-align:left;
+}
+.share-brand{
+  display:inline-block; font-size:11px; font-weight:700; color:#fff;
+  background:linear-gradient(100deg,#7169ED,#62CFA9); border-radius:99px; padding:3px 10px; margin-bottom:10px;
+}
+.share-qnum{ font-size:11px; color:var(--text-secondary); margin-bottom:8px; }
+.share-stem{ font-size:14px; color:#333; line-height:1.7; margin-bottom:10px; }
+.share-answer{ font-size:13px; font-weight:700; color:var(--success); }
+.share-desc{ font-size:11px; color:#fff; opacity:.9; margin-bottom:12px; }
+.share-btn{
+  width:100%; height:44px; border:none; border-radius:22px;
+  background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff;
+  font-size:14px; font-weight:600; cursor:pointer; margin-bottom:8px;
+}
+.share-cancel{
+  width:100%; height:42px; border:none; border-radius:21px;
+  background:rgba(255,255,255,.92); color:var(--text-secondary);
+  font-size:13px; font-weight:600; cursor:pointer;
+}
+/* 标记过标签 */
+.tag.marked{ background:#FFF7E6; color:#FA8C16; font-weight:600; }
+
+/* ===== 操作/分析/综合运用题：题干背景 + 选项浮窗（轻度黑色遮罩） ===== */
+.op-view{ position:relative; min-height:100%; }
+.op-bg{ padding:16px; }
+.op-stem-text{ font-size:15px; line-height:1.8; color:#333; margin-bottom:14px; }
+.op-img{
+  min-height:200px; border-radius:12px;
+  background:linear-gradient(135deg,#EEF1FF,#E4FBF5);
+  border:1px dashed #B9C4F0;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
+  color:#5B72F5; font-size:13px;
+}
+.op-img .op-img-ico{ font-size:32px; }
+.op-swipe-hint{
+  margin-top:16px; text-align:center; font-size:12px; color:#98A0B2;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.op-swipe-hint .up-arrow{ font-size:16px; }
+/* 轻度黑色遮罩：能看清题干文字 */
+.op-mask{ position:absolute; inset:0; background:rgba(0,0,0,0.45); }
+/* 选项浮窗：fixed 贴屏底，高度随内容自适应（上限70%），去除下方空白（PM 2026-09-02 拍板） */
+.op-sheet{
+  position:fixed; left:0; right:0; bottom:0;
+  background:#fff; border-radius:20px 20px 0 0;
+  padding:8px 16px 14px;
+  box-shadow:0 -8px 24px rgba(22,27,46,.15);
+  max-height:70%; overflow-y:auto;
+  z-index:30;
+}
+.op-handle{ width:42px; height:4px; border-radius:2px; background:#E3E6F0; margin:0 auto 12px; }
+.op-sub-progress{ font-size:12px; color:var(--primary); font-weight:600; margin-bottom:8px; }
+.op-sub-stem{ font-size:14px; line-height:1.7; color:#333; margin-bottom:10px; }
+
+
+
+/* ===== 交卷确认弹窗 ===== */
+.modal-mask{ position:fixed; inset:0; background:rgba(22,27,46,.45); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal-mask.show{ display:flex; }
+.modal-panel{ width:78%; max-width:320px; background:#fff; border-radius:16px; padding:22px 18px; text-align:center; }
+.modal-title{ font-size:16px; font-weight:700; margin-bottom:8px; }
+.modal-desc{ font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:18px; }
+.modal-btns{ display:flex; gap:10px; }
+.modal-btn{ flex:1; height:42px; border:none; border-radius:21px; font-size:14px; font-weight:600; cursor:pointer; }
+.modal-btn.cancel{ background:#F5F6FA; color:var(--text-secondary); }
+.modal-btn.ok{ background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff; }
+
+/* ===== 反馈入口：选项下方居中，不显眼 ===== */
+.feedback-entry{
+  padding:6px 16px 14px; background:#fff; text-align:center; flex-shrink:0;
+}
+.feedback-link{
+  border:none; background:none; cursor:pointer;
+  font-size:11px; color:var(--text-tertiary); line-height:1;
+  padding:4px 8px; border-radius:6px;
+  text-decoration:underline; text-decoration-color:rgba(152,160,178,.4); text-underline-offset:3px;
+  transition:color .15s ease;
+}
+.feedback-link:active{ color:var(--primary); }
+
+/* ===== 反馈弹窗（复用 .modal-mask 容器） ===== */
+.feedback-panel{ width:84%; max-width:340px; text-align:left; }
+.feedback-panel .modal-title{ text-align:center; margin-bottom:14px; }
+.feedback-sec{ margin-bottom:14px; }
+.feedback-sec-t{
+  font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;
+}
+.feedback-sec-t .req{ color:var(--danger); margin-left:2px; }
+/* 错误类型多选（chips 流式排列） */
+.feedback-opts{ display:flex; flex-wrap:wrap; gap:8px; }
+.fb-chip{
+  padding:6px 12px; border-radius:14px; border:1px solid #E3E8F2;
+  background:#F7F9FC; color:var(--text-secondary);
+  font-size:12px; cursor:pointer; transition:all .12s ease;
+}
+.fb-chip.on{
+  background:var(--primary-light); border-color:var(--primary); color:var(--primary-dark); font-weight:600;
+}
+.feedback-ta{
+  width:100%; min-height:74px; padding:10px 12px; box-sizing:border-box;
+  border:1px solid #E3E8F2; border-radius:10px; background:#FBFBFE;
+  font-size:13px; color:var(--text-primary); line-height:1.5;
+  font-family:inherit; outline:none; resize:none;
+  transition:border-color .15s ease;
+}
+.feedback-ta:focus{ border-color:var(--primary); background:#fff; }
+
+/* ===== 答题卡：上滑遮罩浮窗 ===== */
+.sheet-mask{
+  position:fixed; inset:0; background:rgba(22,27,46,.45); z-index:110;
+  opacity:0; visibility:hidden; transition:opacity .22s ease, visibility .22s;
+}
+.sheet-mask.show{ opacity:1; visibility:visible; }
+.sheet-panel{
+  position:absolute; left:0; right:0; bottom:0;
+  background:#fff; border-radius:18px 18px 0 0;
+  padding:14px 16px 22px;
+  max-height:70%; display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,.35,1);
+}
+.sheet-mask.show .sheet-panel{ transform:translateY(0); }
+.sheet-grab{
+  width:42px; height:4px; border-radius:2px; background:#E3E6F0;
+  margin:0 auto 14px;
+}
+.sheet-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.sheet-title{ font-size:15px; font-weight:700; color:var(--text-primary); }
+.sheet-close{
+  width:28px; height:28px; border:none; background:none; cursor:pointer;
+  color:var(--text-tertiary); font-size:22px; line-height:1; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.sheet-close:active{ background:#F0F1F6; }
+/* 图例：已答 / 未答 / 已标记 */
+.sheet-legend{
+  display:flex; gap:14px; padding:8px 4px 12px; border-bottom:1px solid #F0F1F6;
+  font-size:11px; color:var(--text-secondary);
+}
+.sheet-legend .lg{ display:flex; align-items:center; gap:5px; }
+.sheet-legend .lg i{
+  width:14px; height:14px; border-radius:4px; display:inline-block; flex-shrink:0;
+  border:1px solid transparent;
+}
+.sheet-legend .lg-done i{ background:var(--primary); }
+.sheet-legend .lg-todo i{ background:#fff; border-color:#C9CEDA; }
+.sheet-legend .lg-mark i{ background:#FFF7E6; border-color:#FA8C16; position:relative; }
+.sheet-legend .lg-mark i::after{
+  content:''; position:absolute; right:1px; top:1px; width:5px; height:5px; border-radius:50%; background:#FA8C16;
+}
+/* 题号网格 */
+.sheet-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(46px, 1fr));
+  gap:10px; padding:14px 4px 6px; overflow-y:auto;
+}
+.sheet-cell{
+  position:relative;
+  aspect-ratio:1; border-radius:10px; border:1.5px solid #C9CEDA;
+  background:#fff; color:var(--text-primary);
+  font-size:14px; font-weight:600;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:transform .12s ease, border-color .15s, background .15s;
+}
+.sheet-cell:active{ transform:scale(.94); }
+.sheet-cell.done{
+  background:var(--primary); border-color:var(--primary); color:#fff;
+}
+.sheet-cell.mark::after{
+  content:''; position:absolute; right:4px; top:4px; width:6px; height:6px; border-radius:50%; background:#FA8C16;
+}
+.sheet-cell.done.mark::after{ background:#FFD66B; }
+.sheet-cell.current{
+  box-shadow:0 0 0 2px var(--primary-light), 0 0 0 3.5px var(--primary);
+}
+
+/* ===== 成绩结果弹窗 ===== */
+.result-mask{ position:fixed; inset:0; background:rgba(22,27,46,.45); display:none; align-items:center; justify-content:center; z-index:120; }
+.result-mask.show{ display:flex; }
+.result-panel{ width:80%; max-width:320px; background:#fff; border-radius:18px; padding:26px 20px; text-align:center; }
+.result-score{ font-size:44px; font-weight:900; color:var(--primary); line-height:1; }
+.result-score .total{ font-size:18px; color:var(--text-secondary); font-weight:600; }
+.result-label{ font-size:14px; color:var(--text-secondary); margin-top:8px; }
+.result-stats{ display:flex; justify-content:center; gap:20px; margin:14px 0 18px; font-size:12px; color:var(--text-secondary); }
+.result-stats b{ display:block; font-size:18px; color:var(--text-primary); }
+.result-btns{ display:flex; gap:10px; }
+.result-btn{ flex:1; height:42px; border:none; border-radius:21px; font-size:14px; font-weight:600; cursor:pointer; }
+.result-btn.exit{ background:#F5F6FA; color:var(--text-secondary); }
+.result-btn.review{ background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff; }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航：模式切换 左 | 计时 中 | 答题卡 右；内部 ✕ 已删（2026-08-31），统一走总壳 appbar -->
+<div class="practice-nav">
+  <div class="mode-switch">
+    <span class="mode-btn active" id="modeExam" onclick="setMode('exam')">做题</span>
+    <span class="mode-btn" id="modeStudy" onclick="setMode('study')">背题</span>
+  </div>
+  <span class="nav-timer" id="navTimer" title="本次答题用时">00:00</span>
+  <button class="nav-sheet-btn" id="navSheetBtn" onclick="openSheet()" aria-label="答题卡">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </svg>
+    <span>答题卡</span>
+  </button>
+</div>
+
+<!-- 进度条：左 = 第 X 题；右 = Y/Z 进度 + 共 N 题 -->
+<div class="progress-wrap">
+  <div class="progress-top">
+    <span class="q-num" id="qNum">第 1 题</span>
+    <span class="q-pos"><span id="navProgress">1/5</span> · <span id="qTotal">共 5 题</span></span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+</div>
+
+<!-- 标签区 -->
+<div class="tag-area" id="tagArea"></div>
+
+<!-- 题目区：独立滚动，承载 题干→选项→反馈→解析（PM 2026-08-31） -->
+<div class="question-area" id="questionArea">
+  <!-- 题干/选项/填空/操作题主体由 renderQuestion 注入 -->
+  <div id="qaBody"></div>
+  <!-- 反馈入口：选项下方居中，不显眼字体 -->
+  <div class="feedback-entry">
+    <button class="feedback-link" onclick="openFeedback()">题目有错误？点击反馈</button>
+  </div>
+  <!-- 九节解析区 -->
+  <div class="analysis-area" id="analysisArea"></div>
+</div>
+
+<!-- 底部操作栏：收藏 / 标记 / 分享 + 交卷（上一题/下一题改手势滑动） -->
+<div class="bottom-bar">
+  <button class="tool-btn" id="btnFav" onclick="toggleFav()">
+    <span class="ico" id="favIco">☆</span><span class="lbl">收藏</span>
+  </button>
+  <button class="tool-btn" id="btnMark" onclick="toggleMark()">
+    <span class="ico">🚩</span><span class="lbl">标记</span>
+  </button>
+  <button class="tool-btn" id="btnShare" onclick="openShare()">
+    <span class="ico">↗</span><span class="lbl">分享</span>
+  </button>
+  <button class="btn-submit" id="btnSubmit" onclick="openSubmit()">交卷</button>
+</div>
+
+<!-- 答题卡：上滑遮罩浮窗（已答 / 未答 / 已标记 三态；点题号跳转） -->
+<div class="sheet-mask" id="sheetMask" onclick="if(event.target===this) closeSheet()">
+  <div class="sheet-panel">
+    <div class="sheet-grab"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">答题卡</div>
+      <button class="sheet-close" onclick="closeSheet()" aria-label="关闭">×</button>
+    </div>
+    <div class="sheet-legend">
+      <span class="lg lg-done"><i></i>已答 <b id="lgDone">0</b></span>
+      <span class="lg lg-todo"><i></i>未答 <b id="lgTodo">0</b></span>
+      <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
+    </div>
+    <div class="sheet-grid" id="sheetGrid"></div>
+  </div>
+</div>
+
+<!-- 反馈弹窗：错误类型多选 + 补充说明，提交同步后台管理端 -->
+<div class="modal-mask" id="feedbackModal">
+  <div class="modal-panel feedback-panel">
+    <div class="modal-title">题目反馈</div>
+    <div class="feedback-sec">
+      <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
+      <div class="feedback-opts" id="fbOpts">
+        <span class="fb-chip" data-k="题干描述错" onclick="toggleFb(this)">题干描述错</span>
+        <span class="fb-chip" data-k="选项不严密" onclick="toggleFb(this)">选项不严密</span>
+        <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
+        <span class="fb-chip" data-k="解析错误" onclick="toggleFb(this)">解析错误</span>
+        <span class="fb-chip" data-k="错别字" onclick="toggleFb(this)">错别字</span>
+        <span class="fb-chip" data-k="其他" onclick="toggleFb(this)">其他</span>
+      </div>
+    </div>
+    <div class="feedback-sec">
+      <div class="feedback-sec-t">补充说明（选填）</div>
+      <textarea class="feedback-ta" id="fbText" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeFeedback()">取消</button>
+      <button class="modal-btn ok" onclick="submitFeedback()">提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- 交卷确认弹窗 -->
+<div class="modal-mask" id="submitModal">
+  <div class="modal-panel">
+    <div class="modal-title">确认交卷？</div>
+    <div class="modal-desc" id="submitDesc">已作答 0/5 题</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="hideSubmit()">继续答题</button>
+      <button class="modal-btn ok" onclick="doSubmit()">交卷</button>
+    </div>
+  </div>
+</div>
+
+<!-- 成绩结果弹窗 -->
+<div class="result-mask" id="resultMask">
+  <div class="result-panel">
+    <div class="result-score"><span id="resultScore">0</span><span class="total" id="resultTotal">/0</span></div>
+    <div class="result-label" id="resultLabel">本次练习完成</div>
+    <div class="result-stats">
+      <div><b id="statRight">0</b>答对</div>
+      <div><b id="statWrong">0</b>答错</div>
+      <div><b id="statSkip">0</b>未答</div>
+      <div><b id="statTime">00:00</b>用时</div>
+    </div>
+    <div class="result-btns">
+      <button class="result-btn exit" onclick="closePractice()">退出</button>
+      <button class="result-btn review" onclick="reviewAnswers()">查看解析</button>
+    </div>
+  </div>
+</div>
+
+<!-- 页面轻提示（收藏/标记/分享反馈） -->
+<div class="practice-toast" id="practiceToast"></div>
+
+<!-- 分享弹窗（自动生成分享卡片，分享至朋友圈） -->
+<div class="share-mask" id="shareMask" onclick="closeShare()">
+  <div class="share-panel" onclick="event.stopPropagation()">
+    <div class="share-card" id="shareCard"></div>
+    <div class="share-desc">自动生成分享卡片，长按保存后分享至朋友圈</div>
+    <button class="share-btn" onclick="doShare()">分享至朋友圈</button>
+    <button class="share-cancel" onclick="closeShare()">取消</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   统一做题页逻辑
+   模式：exam(做题)=全部答完交卷统一显示答案解析；study(背题)=每答一题立即显示
+   ============================================================ */
+
+/* ---------- 入口参数 ---------- */
+var ENTRY = (function(){
+  var m = location.search.match(/entry=(\w+)/);
+  return m ? m[1] : 'today';
+})();
+/* 标题已上移到总壳小程序栏（appbar），做题页内部不显示 */
+var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题' }[ENTRY] || '今日学习';
+
+/* ---------- 考试模式（entry=exam 模拟考 / real 历年真题）①：试卷元数据 ----------
+   总分值无低case：满分 150，分值分布在题目 score 字段，切题 validator 会按 entry 调整
+   时长：minutes/题目数给剩余倒计时用 */
+var PAPERS = {
+  exam1:   { name:'卷 01 · 2026 届全真模拟卷一', minutes:100, fullScore:150, type:'exam'  },
+  exam2:   { name:'卷 02 · 2026 届全真模拟卷二', minutes:100, fullScore:150, type:'exam'  },
+  exam3:   { name:'卷 03 · 2026 届全真模拟卷三', minutes:100, fullScore:150, type:'exam'  },
+  sprint1: { name:'卷 01 · 冲刺模拟卷一',         minutes:45,  fullScore:150, type:'exam'  },
+  sprint2: { name:'卷 02 · 冲刺模拟卷二',         minutes:45,  fullScore:150, type:'exam'  },
+  real2025:{ name:'2025 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  real2024:{ name:'2024 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  real2023:{ name:'2023 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  real2022:{ name:'2022 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  real2021:{ name:'2021 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  }
+};
+/* 考试卷题目集（mock 两套题目复用给所有卷，演示重点在考试流程）
+   score 字段每题分值；分值之和=满分 150 */
+var PAPER_QUESTIONS = {
+  exam: [
+    { type:'single', chapter:'第1章 计算机基础', concept:'信息与数据', difficulty:'中',
+      score:2, stem:'计算机中，1GB 等于（ ）。', options:['1024KB','1024MB','1000MB','1024bit'],
+      answer:2, analysis:'1GB = <b>1024MB</b>；1MB=1024KB。', steps:['① 单位换算 1GB=1024MB'] },
+    { type:'multi', chapter:'第5章 电子表格', concept:'Excel 函数', difficulty:'中',
+      score:3, stem:'下列属于 Excel 常用统计函数的有（ ）。', options:['SUM','AVERAGE','IF','VLOOKUP'],
+      answer:[0,1,2,3], analysis:'SUM 求和、AVERAGE 求均、IF 条件判断、VLOOKUP 查找——均为常用函数。', steps:['① 逐一识别函数用途'] },
+    { type:'judge', chapter:'第8章 网络', concept:'网络基础', difficulty:'低',
+      score:2, stem:'局域网 LAN 覆盖范围一般在几公里之内。', options:['正确','错误'],
+      answer:0, analysis:'正确。LAN 覆盖范围有限（一栋楼/一个园区），WAN 覆盖广域。', steps:['① LAN/WAN 覆盖范围区别'] },
+    { type:'fill', chapter:'第1章 计算机基础', concept:'数制', difficulty:'中',
+      score:3, stem:'十进制数 12 转换为二进制数是______。', keywords:['1100'], fill:'1100',
+      analysis:'12 = 8+4 = 2^3+2^2 → <b>1100</b>。', steps:['① 按权展开 12=8+4','② → 1100'] },
+    { type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      score:2, stem:'回收站中的文件被「还原」后，将恢复到（ ）。', options:['桌面','我的文档','原位置','回收站'],
+      answer:2, analysis:'还原 = 恢复到<b>被删除前所在位置</b>。', steps:['① 还原语义 = 恢复原位'] },
+    { type:'operation', chapter:'第2章 文字处理', concept:'Word 排版', difficulty:'高',
+      score:6, stem:'请根据需求完成 Word 排版：标题居中、首行缩进、插入页眉。',
+      sub:[
+        { type:'single', stem:'将段落首行缩进 2 字符，应使用（ ）设置。', options:['行距','缩进','分栏','制表位'], answer:1, analysis:'<b>段落缩进</b>控制首行/左右缩进。' },
+        { type:'judge', stem:'页眉页脚只能插在页面底部。', options:['正确','错误'], answer:1, analysis:'页眉在上、页脚在下，都能插入。' }
+      ],
+      analysis:'操作题综合考查 Word 排版设置。', steps:['① 段落缩进','② 页眉页脚'] },
+    { type:'multi', chapter:'第7章 数据库', concept:'SQL', difficulty:'高',
+      score:3, stem:'下列 SQL 语句属于数据操作（DML）的有（ ）。', options:['SELECT','INSERT','UPDATE','DELETE','CREATE'],
+      answer:[0,1,2,3], analysis:'SELECT/INSERT/UPDATE/DELETE 为 DML；CREATE 属 DDL。', steps:['① DDL vs DML 分类'] }
+  ],
+  real: [
+    { type:'single', chapter:'第1章 计算机基础', concept:'计算机特点', difficulty:'低',
+      score:2, stem:'下列不属于计算机特点的是（ ）。', options:['运算速度快','存储容量大','只能处理数值','逻辑判断能力强'],
+      answer:2, analysis:'计算机不仅能处理数值，还<b>能处理文字/图形/声音</b>等。', steps:['① 计算机五大特点','② 排除「只能处理数值」'] },
+    { type:'judge', chapter:'第3章 操作系统', concept:'Windows', difficulty:'中',
+      score:2, stem:'Ctrl+Z 可以撤销上一步操作。', options:['正确','错误'],
+      answer:0, analysis:'正确。Ctrl+Z 为撤销，Ctrl+Y 为恢复。', steps:['① 撤销/恢复快捷键'] },
+    { type:'fill', chapter:'第1章 计算机基础', concept:'字符编码', difficulty:'中',
+      score:3, stem:'ASCII 码用______位二进制表示一个字符。', keywords:['7','8'], fill:'7',
+      analysis:'标准 ASCII 用 <b>7 位</b>（128 个字符）；扩展 ASCII 8 位。', steps:['① 标准 ASCII 7 位 128 字符'] },
+    { type:'multi', chapter:'第2章 网络', concept:'网络分类', difficulty:'中',
+      score:3, stem:'按覆盖范围划分，计算机网络可分为（ ）。', options:['LAN','MAN','WAN','PAN'],
+      answer:[0,1,2,3], analysis:'按覆盖范围：<b>局域网 LAN / 城域网 MAN / 广域网 WAN / 个人区域网 PAN</b>。', steps:['① 覆盖范围分类'] },
+    { type:'single', chapter:'第5章 表格', concept:'Excel 引用', difficulty:'高',
+      score:2, stem:'Excel 中绝对引用的写法是（ ）。', options:['A1','$A$1','#A1','=A1'],
+      answer:1, analysis:'绝对引用加 <b>$</b>：$A$1 行列都不变。', steps:['① 绝对/相对/混合引用'] }
+  ]
+};
+var ENTRY_META = { exam:'模拟考试', real:'历年真题' };
+var IS_PAPER = (ENTRY === 'exam' || ENTRY === 'real');
+var PAPER_ID = (function(){
+  var m = location.search.match(/paperId=([^&]*)/);
+  return m ? m[1] : '';
+})();
+var PAPER_META = IS_PAPER ? (PAPERS[PAPER_ID] || null) : null;
+/* 考试卷题目集 */
+var PAPER_SET = IS_PAPER ? (PAPER_QUESTIONS[PAPER_META ? PAPER_META.type : 'exam'] || PAPER_QUESTIONS.exam) : [];
+
+/* ---------- 演示题目数据（接真实题库时替换；entry 区分来源） ----------
+   type: single单选 / multi多选 / judge判断(对/错) / fill填空 / operation操作(子题) / essay简答
+   answer: single/judge=正确选项索引; multi=正确索引数组; fill 用 keywords 关键字判题 */
+var QUESTIONS = (function buildQuestions(){
+  if (IS_PAPER) return PAPER_SET;
+  return {
+  /* 今日学习：从第一级考点(操作系统)搜集薄弱项(顽固⊂薄弱)出题，demo 5 道 */
+  today: [
+    {
+      type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'中',
+      stubborn:true,
+      hotWrong:0,         /* 埋点：Delete 被高频错选（学生忘记加 Shift） */
+      stem:'在 Windows 10 中，要永久删除文件而不放入回收站，应使用的快捷键是（ ）。',
+      options:['Delete','Shift+Delete','Ctrl+Delete','Alt+Delete'],
+      answer:1,
+      analysis:'<b>Shift+Delete</b> 可永久删除文件（不经过回收站）；Delete 仅移入回收站。',
+      steps:['① 回忆删除相关快捷键','② Delete → 回收站；Shift+Delete → 永久删除','③ 本题为「永久删除」，选 Shift+Delete']
+    },
+    {
+      type:'multi', chapter:'第3章 操作系统', concept:'进程与线程', difficulty:'中',
+      stubborn:false,
+      hotWrong:4,         /* 埋点：封闭性被高频错选（看似合理但不是 OS 特征） */
+      hotMiss:[2,3],      /* 埋点：虚拟性、异步性易漏选（学生只想到并发/共享） */
+      stem:'操作系统的主要特征包括（ ）。',
+      options:['并发性','共享性','虚拟性','异步性','封闭性'],
+      answer:[0,1,2,3],
+      analysis:'操作系统四大特征：<b>并发、共享、虚拟、异步</b>；「封闭性」不是操作系统特征（系统需与外部交互）。',
+      steps:['① 回忆操作系统四大特征：并、共、虚、异','② 逐项判断，封闭性为干扰项']
+    },
+    {
+      type:'judge', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      stubborn:false,
+      stem:'在 Windows 中，文件名不能包含字符 * 和 ? 。',
+      options:['正确','错误'],
+      answer:0,
+      analysis:'正确。Windows 文件名不能包含 \\ / : * ? " &lt; &gt; | 等字符。',
+      steps:['① 文件名非法字符：\\ / : * ? " &lt; &gt; |','② * 和 ? 是通配符，不能用于文件名']
+    },
+    {
+      type:'fill', chapter:'第3章 操作系统', concept:'进程与线程', difficulty:'中',
+      stubborn:false,
+      stem:'进程的三种基本状态是就绪状态、运行状态和______状态。',
+      fill:'阻塞（等待）',
+      keywords:['阻塞','等待'],
+      analysis:'进程三种基本状态：<b>就绪、运行、阻塞（等待）</b>。',
+      steps:['① 进程基本状态三态模型','② 就绪→运行→阻塞→就绪的转换']
+    },
+    {
+      type:'operation', chapter:'第2章 文字处理', concept:'Word 排版', difficulty:'高',
+      stubborn:true,
+      stem:'琰是一名刚毕业的大学生，参加校招之际她准备套用朋友的简历格式（如下图所示）来完成自己的简历，请帮她解决以下问题。',
+      sub:[
+        { type:'single', stem:'将简历标题「个人简历」设置为居中对齐，可使用的快捷键是（ ）。',
+          options:['Ctrl+L','Ctrl+E','Ctrl+R','Ctrl+J'], answer:1, analysis:'<b>Ctrl+E</b> 为居中对齐；Ctrl+L 左对齐、Ctrl+R 右对齐、Ctrl+J 两端对齐。' },
+        { type:'fill', stem:'要快速套用朋友简历的格式到自己文字上，可使用 Word 的______工具。',
+          fill:'格式刷', keywords:['格式刷'], analysis:'<b>格式刷</b> 可快速复制文字/段落格式，是最常用的套用格式工具。' }
+      ],
+      analysis:'操作题综合考查 Word 排版：标题居中用 Ctrl+E；套用朋友简历格式用格式刷。',
+      steps:['① 标题居中 → Ctrl+E','② 复制格式 → 格式刷']
+    }
+  ],
+
+  /* 错题本：演示 3 道（答错过的题，顽固标为 red） */
+  wrong: [
+    {
+      type:'single', chapter:'第1章 计算机基础', concept:'操作系统概述', difficulty:'中',
+      stubborn:false,
+      hotWrong:1,         /* 埋点：「提供用户界面」被高频错选（学生以为是应用层功能） */
+      stem:'操作系统的作用不包括（ ）。',
+      options:['管理硬件资源','提供用户界面','编译源程序','管理软件资源'],
+      answer:2,
+      analysis:'操作系统管理硬件与软件资源、提供用户界面；<b>编译源程序是编译器的功能</b>，不属于操作系统。',
+      steps:['① 操作系统 = 资源管理 + 用户接口','② 编译器负责编译源程序，与操作系统无关']
+    },
+    {
+      type:'judge', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      stubborn:true,
+      stem:'文件的扩展名相同，其内容一定相同。',
+      options:['正确','错误'],
+      answer:1,
+      analysis:'错误。扩展名只表示文件类型约定，相同扩展名内容可能完全不同；且扩展名可更改。',
+      steps:['① 扩展名 = 类型标识，非内容保证','② 更改扩展名不影响文件内容']
+    },
+    {
+      type:'fill', chapter:'第3章 操作系统', concept:'进程与线程', difficulty:'中',
+      stubborn:false,
+      stem:'______是程序的一次执行过程，也是操作系统进行资源分配的基本单位。',
+      fill:'进程', keywords:['进程'],
+      analysis:'<b>进程</b>是程序的一次执行过程，是系统进行资源分配和调度的基本单位；线程是 CPU 调度的基本单位。',
+      steps:['① 进程 = 资源分配单位','② 线程 = CPU 调度单位']
+    }
+  ],
+
+  /* 章节练习：演示 3 道 */
+  chapter: [
+    {
+      type:'single', chapter:'第1章 计算机基础', concept:'信息与数据', difficulty:'低',
+      stubborn:false,
+      stem:'1KB 等于（ ）。',
+      options:['1000B','1024B','100B','1024bit'],
+      answer:1,
+      analysis:'1KB = <b>1024B</b>，1B = 8bit。',
+      steps:['① 存储单位换算 1KB=1024B','② 1B=8bit 勿混淆']
+    },
+    {
+      type:'multi', chapter:'第4章 信息安全与社会责任', concept:'信息安全', difficulty:'中',
+      stubborn:false,
+      stem:'下列属于计算机病毒特征的有（ ）。',
+      options:['传染性','隐蔽性','破坏性','有益性'],
+      answer:[0,1,2],
+      analysis:'计算机病毒特征：<b>传染性、隐蔽性、潜伏性、破坏性</b>等；「有益性」明显不是。',
+      steps:['① 病毒特征口诀：传、隐、潜、破','② 排除「有益性」']
+    },
+    {
+      type:'judge', chapter:'第2章 计算机网络', concept:'网络基础', difficulty:'低',
+      stubborn:false,
+      stem:'IP 地址是网络中每台联网计算机的唯一标识。',
+      options:['正确','错误'],
+      answer:0,
+      analysis:'正确。IP 地址用于唯一标识网络中的一台主机（同一网络内不能重复）。',
+      steps:['① IP 地址 = 主机在网络中的身份证','② 同一时刻同一网络内不重复']
+    }
+  ]
+}[ENTRY] || [];
+})();
+
+/* ---------- 状态 ---------- */
+var MODE = 'exam';           /* exam 做题 / study 背题 */
+var idx = 0;                 /* 当前题索引 */
+var answers = {};            /* { 题索引: 作答 } */
+var submitted = false;       /* 做题模式已交卷 */
+var total = QUESTIONS.length;
+var fav = {}, marked = {};   /* 收藏 / 标记状态 { 题索引: true } */
+var OP_TYPES = ['operation','analysis','comprehensive'];   /* 分屏遮罩式题型 */
+var opPhase = 'stem';        /* 操作类题型：stem=题干页 / sub=小题页 */
+var opSubIdx = 0;            /* 操作类题型当前子题索引 */
+var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', operation:'操作题', analysis:'分析题', comprehensive:'综合运用题', essay:'简答题' };
+var LETTERS = ['A','B','C','D','E','F','G','H'];
+
+document.getElementById('qTotal').textContent = '共 ' + total + ' 题';
+if (total === 0) {
+  document.getElementById('qaBody').innerHTML = '<div style="padding:40px 20px;text-align:center;color:#98A0B2;font-size:13px;">暂无题目</div>';
+}
+
+/* ---------- 判题 ---------- */
+function checkAnswer(q, ans) {
+  if (ans === undefined || ans === null || ans === '') return null;   /* 未答 */
+  if (q.type === 'multi') {
+    if (!Array.isArray(ans) || ans.length === 0) return null;
+    return q.answer.slice().sort().join(',') === ans.slice().sort().join(',');
+  }
+  if (q.type === 'fill') {
+    var v = String(ans).trim();
+    if (!v) return null;
+    return q.keywords.some(function(k) { return v.indexOf(k) >= 0; });
+  }
+  if (q.type === 'operation') {
+    var any = false, all = true;
+    for (var i = 0; i < q.sub.length; i++) {
+      var sa = ans && ans[i];
+      if (sa === undefined || sa === null || sa === '') return null;  /* 有子题未答 */
+      any = true;
+      if (!checkAnswer(q.sub[i], sa)) all = false;
+    }
+    return any ? all : null;
+  }
+  if (q.type === 'essay') return true;   /* 简答演示：作答即完成 */
+  return ans === q.answer;
+}
+function getAnswered(q, ans) {
+  if (ans === undefined || ans === null) return false;
+  if (Array.isArray(ans)) return ans.length > 0;
+  if (typeof ans === 'object') {
+    for (var k in ans) if (ans[k] !== undefined && ans[k] !== null && ans[k] !== '') return true;
+    return false;
+  }
+  return String(ans).trim() !== '';
+}
+function countAnswered() {
+  var n = 0;
+  for (var i = 0; i < total; i++) if (getAnswered(QUESTIONS[i], answers[i])) n++;
+  return n;
+}
+
+/* ---------- 答案文本 ---------- */
+function formatAnswer(q) {
+  if (q.type === 'operation') return q.sub.map(function(s,i){ return '第'+(i+1)+'小题：'+formatAnswer(s); }).join('　');
+  if (q.type === 'fill' || q.type === 'essay') return q.fill;
+  if (q.type === 'multi') return q.answer.map(function(i){ return LETTERS[i]; }).join('、');
+  if (q.type === 'judge') return q.options[q.answer];
+  return LETTERS[q.answer];
+}
+function formatUserAnswer(q, ans) {
+  if (q.type === 'operation') return q.sub.map(function(s,i){ return '第'+(i+1)+'小题：'+formatUserAnswer(s, ans ? ans[i] : undefined); }).join('　');
+  if (q.type === 'fill' || q.type === 'essay') return ans || '未答';
+  if (q.type === 'multi') {
+    if (!Array.isArray(ans) || ans.length === 0) return '未答';
+    return ans.map(function(i){ return LETTERS[i]; }).join('、');
+  }
+  if (q.type === 'judge') return ans === undefined ? '未答' : q.options[ans];
+  return ans === undefined ? '未答' : LETTERS[ans];
+}
+
+/* ---------- 渲染 ---------- */
+function renderQuestion() {
+  if (!total) return;
+  var q = QUESTIONS[idx];
+  var reveal = submitted || (MODE === 'study' && getAnswered(q, answers[idx]));
+
+  /* 标签 */
+  var tags = '<span class="tag type">' + (TYPE_NAME[q.type] || '题目') + '</span>'
+    + '<span class="tag concept">📍 ' + q.chapter + ' → ' + q.concept + '</span>'
+    + '<span class="tag difficulty">难度:' + q.difficulty + '</span>';
+  if (q.stubborn) tags += '<span class="tag stubborn">顽固</span>';
+  if (marked[idx]) tags += '<span class="tag marked">标记过</span>';
+  document.getElementById('tagArea').innerHTML = tags;
+
+  /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染） */
+  var html = (OP_TYPES.indexOf(q.type) < 0)
+    ? '<div class="stem-wrap"><div class="stem"><span class="q-num">' + (idx+1) + '.</span>' + q.stem + '</div></div>'
+    : '';
+  html += renderBody(q, answers[idx], reveal);
+
+  /* 解析 */
+  var aa = document.getElementById('analysisArea');
+  aa.innerHTML = renderAnalysis(q, answers[idx], reveal);
+  aa.classList.toggle('show', reveal);
+
+  document.getElementById('qaBody').innerHTML = html;
+  document.getElementById('qNum').textContent = '第 ' + (idx+1) + ' 题';
+  document.getElementById('navProgress').textContent = (idx+1) + '/' + total;
+  document.getElementById('progressFill').style.width = ((idx+1)/total*100) + '%';
+  updateBottomBar();
+  /* 答题卡开着时实时刷新已答/标记状态（否则关闭时状态会过期） */
+  if (document.getElementById('sheetMask').classList.contains('show')) renderSheet();
+}
+
+function renderBody(q, ans, reveal) {
+  if (q.type === 'single' || q.type === 'judge' || q.type === 'multi') return renderOptions(q, ans, reveal);
+  if (q.type === 'fill') {
+    var cls = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : '';
+    return '<div class="fill-wrap"><input class="fill-input' + cls + '" id="fillInput" value="' + (ans || '') + '" placeholder="请输入答案…" oninput="onFillInput(this.value)"' + (reveal ? ' disabled' : '') + '></div>';
+  }
+  if (q.type === 'operation') return renderOperation(q, ans, reveal);
+  if (q.type === 'essay') {
+    return '<div class="essay-wrap"><textarea class="essay-textarea" placeholder="请输入你的作答…" oninput="onEssayInput(this.value)"' + (reveal ? ' disabled' : '') + '>' + (ans || '') + '</textarea></div>';
+  }
+  return '';
+}
+function renderOptions(q, ans, reveal) {
+  var isMulti = q.type === 'multi';
+  var correctArr = isMulti ? q.answer : [q.answer];
+  var selArr = isMulti ? (ans || []) : (ans === undefined || ans === null ? [] : [ans]);
+  var html = '<div class="options">';
+  q.options.forEach(function(opt, i) {
+    var cls = '';
+    if (reveal) {
+      if (correctArr.indexOf(i) >= 0) cls = ' correct';
+      else if (selArr.indexOf(i) >= 0) cls = ' wrong';
+    } else if (selArr.indexOf(i) >= 0) cls = ' selected';
+    /* 易错/易漏选标签：仅答案出现后显示（交卷 / 背题已答），答题期间不显示，避免泄露正误；
+       互斥，易错优先（数据来源 = 埋点统计；演示期手写模拟） */
+    var flagHtml = '';
+    if (reveal) {
+      if (q.hotWrong !== undefined && q.hotWrong === i) {
+        flagHtml = '<span class="opt-flag hot-wrong">易错</span>';
+      } else if (q.hotMiss !== undefined) {
+        var missArr = Array.isArray(q.hotMiss) ? q.hotMiss : [q.hotMiss];
+        if (missArr.indexOf(i) >= 0) flagHtml = '<span class="opt-flag hot-miss">易漏选</span>';
+      }
+    }
+    html += '<div class="option' + cls + '" onclick="onSelectOption(' + i + ')">'
+      + '<span class="' + (isMulti ? 'checkbox' : 'radio') + '"></span>'
+      + '<span class="opt-body"><span class="opt-label">' + LETTERS[i] + '.</span>' + opt + '</span>'
+      + flagHtml
+      + '</div>';
+  });
+  return html + '</div>';
+}
+function renderOperation(q, ans, reveal) {
+  if (reveal) {
+    /* 交卷/背题已答 → 一次性显示全部子题（纵向）便于看解析 */
+    return renderOperationAll(q, ans);
+  }
+  /* 题干背景：文字 + 配图（始终保留，可看清） */
+  var bg = '<div class="op-bg">'
+    + '<div class="op-stem-text">' + q.stem + '</div>'
+    + '<div class="op-img"><span class="op-img-ico">🖼️</span><span>简历模板配图（演示占位）</span></div>'
+    + '</div>';
+  if (opPhase === 'stem') {
+    /* 题干页：全屏展示 + 上滑提示 */
+    return '<div class="op-view">' + bg
+      + '<div class="op-swipe-hint"><span class="up-arrow">↑</span> 上滑开始作答</div>'
+      + '</div>';
+  }
+  /* 小题模式：背景 + 轻度黑色遮罩 + 底部选项浮窗（紧凑自适应） */
+  var sub = q.sub[opSubIdx];
+  var subAns = ans ? ans[opSubIdx] : undefined;
+  var sheet = '<div class="op-sheet">'
+    + '<div class="op-handle"></div>'
+    + '<div class="op-sub-progress">第 ' + (opSubIdx+1) + ' 小题 / 共 ' + q.sub.length + ' 小题　<span style="color:#98A0B2;font-weight:400">左滑切换</span></div>'
+    + '<div class="op-sub-stem">' + sub.stem + '</div>';
+  if (sub.type === 'single' || sub.type === 'judge') {
+    sheet += renderSubOptions(sub, subAns, reveal, opSubIdx);
+  } else if (sub.type === 'fill') {
+    var cls = reveal ? (checkAnswer(sub, subAns) ? ' correct' : (subAns ? ' wrong' : '')) : '';
+    sheet += '<input class="fill-input' + cls + '" value="' + (subAns || '') + '" placeholder="请输入答案…" oninput="onSubFillInput(' + opSubIdx + ',this.value)"' + (reveal ? ' disabled' : '') + '>';
+  }
+  sheet += '</div>';
+  return '<div class="op-view">' + bg + '<div class="op-mask"></div>' + sheet + '</div>';
+}
+function renderOperationAll(q, ans) {
+  var html = '';
+  q.sub.forEach(function(sub, i) {
+    var subAns = ans ? ans[i] : undefined;
+    html += '<div class="sub-q"><div class="sub-label">第 ' + (i+1) + ' 小题</div><div class="sub-stem">' + sub.stem + '</div>';
+    if (sub.type === 'single' || sub.type === 'judge') {
+      html += renderSubOptions(sub, subAns, true, i);
+    } else if (sub.type === 'fill') {
+      var cls = checkAnswer(sub, subAns) ? ' correct' : (subAns ? ' wrong' : '');
+      html += '<input class="fill-input' + cls + '" value="' + (subAns || '') + '" disabled>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+function renderSubOptions(sub, subAns, reveal, subIdx) {
+  var sel = subAns === undefined || subAns === null ? -1 : subAns;
+  var html = '<div class="options">';
+  sub.options.forEach(function(opt, i) {
+    var cls = '';
+    if (reveal) {
+      if (sub.answer === i) cls = ' correct';
+      else if (sel === i) cls = ' wrong';
+    } else if (sel === i) cls = ' selected';
+    html += '<div class="option' + cls + '" onclick="onSubSelect(' + subIdx + ',' + i + ')">'
+      + '<span class="radio"></span><span><span class="opt-label">' + LETTERS[i] + '.</span>' + opt + '</span></div>';
+  });
+  return html + '</div>';
+}
+/* ---------- 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） ----------
+   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
+   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
+   每题独立组装；演示期 3/4/6/7 mock，5 笔记本地存，8 接会话计时。 */
+function renderAnalysis(q, ans, reveal) {
+  if (!reveal) return '';
+  var correct = checkAnswer(q, ans);
+  var html = '';
+
+  /* ① 答题结果 */
+  var resultLine;
+  if (correct === true) resultLine = '<div class="answer-line">✅ 回答正确　正确答案：' + formatAnswer(q) + '</div>';
+  else if (correct === false) resultLine = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + formatUserAnswer(q, ans) + '　正确答案：' + formatAnswer(q) + '</div>';
+  else resultLine = '<div class="answer-line">正确答案：' + formatAnswer(q) + '</div>';
+  html += '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
+    + resultLine + '</div>';
+
+  /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31） */
+  var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
+  html += '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span></div>'
+    + '<div class="analysis-text">' + q.analysis + '</div>' + steps + '</div>';
+
+  /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
+  var compare = q.compare || mockCompare(q);
+  html += renderCompare(compare);
+
+  /* ⑤ 举一反三（同类变式题）— mock */
+  var variants = q.variants || mockVariants(q);
+  html += renderVariants(variants);
+
+  /* ⑥ 我的笔记（本地存 localStorage，按题 id） */
+  html += renderNote(q);
+
+  /* ⑦ 相关知识点 — mock */
+  var kps = q.kp || mockKp(q);
+  html += renderKp(kps);
+
+  /* ⑧ 视频解析 — mock */
+  var vids = q.videos || mockVideos(q);
+  html += renderVideos(vids);
+
+  /* ⑨ 答题时间·耗时分析（接会话计时） */
+  html += renderTiming(q);
+
+  return html;
+}
+
+/* ④ 考点对比 mock 生成器：按当前 concept 推一个易混考点 */
+function mockCompare(q) {
+  var MAP = {
+    '进程与线程': { name: '操作系统四大功能', list: ['处理机管理','存储管理','设备管理','文件管理'] },
+    '文件管理': { name: '文件系统层次', list: ['目录管理','存储空间管理','文件存储','文件共享'] },
+    '操作系统概述': { name: '操作系统目标', list: ['方便性','有效性','可扩充性','开放性'] }
+  };
+  var m = MAP[q.concept];
+  if (m) return { curName: q.concept + '（本考点）', curList: parseCurList(q), vsName: m.name, vsList: m.list };
+  return { curName: q.concept || '本考点', curList: ['要点一','要点二'], vsName: '相似考点', vsList: ['对照项一','对照项二'] };
+}
+function parseCurList(q) {
+  /* 从 analysis 里提取要点（demo：按顿号/逗号分） */
+  var t = q.analysis.replace(/<[^>]+>/g, '');
+  var arr = t.split(/[、，,；;]/).map(function(s){ return s.trim(); }).filter(function(s){ return s && s.length < 12; });
+  return arr.slice(0, 5);
+}
+function renderCompare(c) {
+  var curItems = c.curList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
+  var vsItems = c.vsList.map(function(i){ return '<li>' + i + '</li>'; }).join('');
+  return '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-4">⇄</span><span class="name">考点对比</span></div>'
+    + '<div class="compare-box">'
+    + '<div class="compare-col is-cur"><div class="col-t">本考点</div><div class="col-name">' + c.curName + '</div><ul class="col-list">' + curItems + '</ul></div>'
+    + '<div class="compare-mid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h8m0 0l-3-3m3 3l-3 3"/><path d="M16 17H8m0 0l3 3m-3-3l3-3"/></svg></div>'
+    + '<div class="compare-col"><div class="col-t">易混考点</div><div class="col-name">' + c.vsName + '</div><ul class="col-list">' + vsItems + '</ul></div>'
+    + '</div></div>';
+}
+
+/* ⑤ 举一反三 mock 生成器：同 concept 变式题 */
+function mockVariants(q) {
+  return [
+    { stem: '【变式一】关于' + (q.concept || '该考点') + '，下列说法正确的是？', type: '单选题', difficulty: '中' },
+    { stem: '【变式二】下列关于' + (q.concept || '该考点') + '的描述，错误的是？', type: '多选题', difficulty: '高' }
+  ];
+}
+function renderVariants(vs) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-5">①</span><span class="name">举一反三</span></div>';
+  vs.forEach(function(v) {
+    html += '<div class="variant-card">'
+      + '<div class="v-stem">' + v.stem + '</div>'
+      + '<div class="v-meta"><span class="v-type">' + v.type + '</span><span>难度·' + v.difficulty + '</span></div>'
+      + '</div>';
+  });
+  html += '<div class="sec-body" style="font-size:11px;color:var(--text-tertiary);">点击变式题进入练习（v5.0 接题库）</div>';
+  return html + '</div>';
+}
+
+/* ⑥ 我的笔记：localStorage 按题 id 存取 */
+var NOTE_KEY = 'zsb_practice_notes_v1';
+function getNoteId(q) { return q.id || (ENTRY + '-' + idx); }
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveNotes(obj) {
+  try { localStorage.setItem(NOTE_KEY, JSON.stringify(obj)); } catch(e) {}
+}
+function renderNote(q) {
+  var id = getNoteId(q);
+  var notes = loadNotes();
+  var has = !!notes[id];
+  var html = '<div class="ana-sec" id="noteSec">'
+    + '<div class="sec-head"><span class="ico ico-6">✎</span><span class="name">我的笔记</span></div>';
+  if (has) {
+    html += '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)">' + notes[id] + '</textarea>'
+      + '<div class="note-save-row"><span class="note-hint">已保存于本地</span>'
+      + '<button class="note-save-btn" onclick="saveNote()">更新</button></div>';
+  } else {
+    html += '<div class="note-empty">还没有笔记，记下你的理解、易错点或记忆口诀吧</div>'
+      + '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)"></textarea>'
+      + '<div class="note-save-row"><span class="note-hint">本地保存，仅你可见</span>'
+      + '<button class="note-save-btn" onclick="saveNote()">保存笔记</button></div>';
+  }
+  return html + '</div>';
+}
+var _noteDraft = '';
+function onNoteInput(v) { _noteDraft = v; }
+function saveNote() {
+  var q = QUESTIONS[idx] || {};
+  var id = getNoteId(q);
+  var notes = loadNotes();
+  if (_noteDraft && _noteDraft.trim()) notes[id] = _noteDraft.trim();
+  else delete notes[id];
+  saveNotes(notes);
+  showToast(_noteDraft && _noteDraft.trim() ? '笔记已保存' : '笔记已清空');
+  renderQuestion();
+}
+
+/* ⑦ 相关知识点 mock */
+function mockKp(q) {
+  var base = (q.chapter || '').replace(/^第\d+章\s*/, '');
+  return [base + ' 概述', q.concept || '核心概念', q.concept + ' 的应用', q.concept + ' 易错点', '相关真题题型'];
+}
+function renderKp(kps) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-7">⌗</span><span class="name">相关知识点</span></div>'
+    + '<div class="kp-cloud">';
+  kps.forEach(function(k) {
+    html += '<span class="kp-tag" onclick="showToast(\'知识点：' + k + '（v5.0 接知识图谱）\')">' + k + '</span>';
+  });
+  return html + '</div></div>';
+}
+
+/* ⑧ 视频解析 mock */
+function mockVideos(q) {
+  return [
+    { title: (q.concept || '该考点') + ' 精讲 · 15 分钟吃透', dur: '15:20', sub: '张老师 · 系统精讲' },
+    { title: '操作系统四大特征动画演示', dur: '06:48', sub: '动画解析 · 易混辨析' }
+  ];
+}
+function renderVideos(vids) {
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-8">▶</span><span class="name">视频解析</span></div>';
+  vids.forEach(function(v) {
+    html += '<div class="video-card" onclick="showToast(\'播放：' + v.title + '（v5.0 接视频库）\')">'
+      + '<div class="video-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg><span class="v-dur">' + v.dur + '</span></div>'
+      + '<div class="video-info"><div class="v-title">' + v.title + '</div><div class="v-sub">' + v.sub + '</div></div>'
+      + '</div>';
+  });
+  return html + '</div>';
+}
+
+/* ⑨ 答题时间·耗时分析：接会话计时 */
+function renderTiming(q) {
+  var curSec = (finalSec !== null) ? Math.floor((Date.now() - startAt) / 1000) : Math.floor((Date.now() - startAt) / 1000);
+  /* 本题耗时 mock：按总耗时分摊到题数（演示） */
+  var perQ = total > 0 ? Math.floor(curSec / total) : 0;
+  var avgQ = 45;  /* mock 全站平均 45s/题 */
+  var pct = Math.min(100, Math.round(perQ / avgQ * 100));
+  var html = '<div class="ana-sec">'
+    + '<div class="sec-head"><span class="ico ico-9">◷</span><span class="name">答题时间·耗时分析</span></div>'
+    + '<div class="timing-row">'
+    + '<div class="timing-cell"><div class="t-lbl">本题耗时</div><div class="t-val">' + fmtMMSS(perQ) + '</div><div class="t-sub">本轮第 ' + (idx + 1) + ' 题</div></div>'
+    + '<div class="timing-cell"><div class="t-lbl">全场耗时</div><div class="t-val">' + fmtMMSS(curSec) + '</div><div class="t-sub">共 ' + total + ' 题</div></div>'
+    + '</div>';
+  if (finalSec !== null) {
+    html += '<div class="timing-bar-wrap">'
+      + '<div class="timing-bar-t"><span>本题耗时 / 全站平均</span><span>' + perQ + 's / ' + avgQ + 's</span></div>'
+      + '<div class="timing-bar"><div class="timing-bar-fill" style="width:' + pct + '%"></div></div>'
+      + '</div>';
+  } else {
+    html += '<div class="sec-body" style="font-size:11px;color:var(--text-tertiary);">交卷后展示本题耗时与全站平均对比</div>';
+  }
+  return html + '</div>';
+}
+
+/* ---------- 答题交互 ---------- */
+function canEdit() {
+  if (submitted) return false;
+  if (MODE === 'study' && getAnswered(QUESTIONS[idx], answers[idx])) return false;
+  return true;
+}
+function onSelectOption(optIndex) {
+  if (!canEdit()) return;
+  var q = QUESTIONS[idx];
+  if (q.type === 'multi') {
+    var arr = answers[idx] || [];
+    var i = arr.indexOf(optIndex);
+    if (i >= 0) arr.splice(i, 1); else arr.push(optIndex);
+    answers[idx] = arr;
+  } else {
+    answers[idx] = optIndex;
+  }
+  renderQuestion();
+  scheduleAutoNext();   /* 单选/判断作答后 0.5s 自动进下一题（多选不触发） */
+}
+function onFillInput(v) {
+  if (!canEdit()) return;
+  answers[idx] = v;
+  if (MODE === 'study') renderQuestion();
+}
+function onEssayInput(v) {
+  if (!canEdit()) return;
+  answers[idx] = v;
+}
+function onSubSelect(subIdx, optIdx) {
+  if (!canEdit()) return;
+  var ans = answers[idx] || {};
+  ans[subIdx] = optIdx;
+  answers[idx] = ans;
+  renderQuestion();
+  scheduleAutoNext();   /* 操作/分析/综合运用子题答完（全答）后 0.5s 自动 */
+}
+function onSubFillInput(subIdx, v) {
+  if (!canEdit()) return;
+  var ans = answers[idx] || {};
+  ans[subIdx] = v;
+  answers[idx] = ans;
+  if (MODE === 'study') renderQuestion();
+  scheduleAutoNext();
+}
+
+/* ---------- 模式 / 翻题 / 交卷 ---------- */
+function setMode(m) {
+  MODE = m;
+  document.getElementById('modeExam').classList.toggle('active', m === 'exam');
+  document.getElementById('modeStudy').classList.toggle('active', m === 'study');
+  renderQuestion();
+}
+function prevQuestion() {
+  clearAutoNext();
+  if (idx > 0) { idx--; resetOp(); renderQuestion(); }
+}
+function nextQuestion() {
+  clearAutoNext();
+  if (idx < total - 1) { idx++; resetOp(); renderQuestion(); }
+}
+function updateBottomBar() {
+  /* 做题模式未交卷显示「交卷」；背题模式/交卷后隐藏 */
+  document.getElementById('btnSubmit').style.display = (MODE === 'exam' && !submitted) ? '' : 'none';
+  /* 收藏/标记状态 */
+  document.getElementById('favIco').textContent = fav[idx] ? '★' : '☆';
+  document.getElementById('btnFav').classList.toggle('on', !!fav[idx]);
+  document.getElementById('btnMark').classList.toggle('on', !!marked[idx]);
+}
+function openSubmit() {
+  var answered = countAnswered();
+  document.getElementById('submitDesc').textContent = '已作答 ' + answered + '/' + total + ' 题，未答 ' + (total - answered) + ' 题';
+  document.getElementById('submitModal').classList.add('show');
+}
+function hideSubmit() {
+  document.getElementById('submitModal').classList.remove('show');
+}
+/* ---------- 答题计时（会话级；进入即起，交卷即停，结果页记录耗时） ----------
+   模式：
+     exam 模拟考 / real 真题卷（IS_PAPER）→ 考试倒计时：navTimer 显示【剩余时间 MM:SS】
+       从 LIMIT_SEC（卷限时分钟×60）倒扣，到 0 自动交卷（doSubmit）。
+     非考试（练习/错题/章节）→ 累计用时：从 startAt 起算，交卷后定格。
+   v5.0 接数据层时，finalSec 作为「本次做题耗时」字段一并上报。 */
+var startAt = Date.now();
+var timerId = null;
+var finalSec = null;          /* 交卷时定格秒数（非考试模式） */
+var endAt = null;             /* 考试模式：交卷截止时间戳（=startAt + 限时） */
+var AUTO_SUBMIT_DONE = false; /* 防止自动交卷重复触发 */
+var LIMIT_MIN = IS_PAPER ? ((PAPER_META && PAPER_META.minutes) || 100) : 0;
+var LIMIT_SEC = LIMIT_MIN * 60;
+if (IS_PAPER && LIMIT_SEC > 0) {
+  endAt = startAt + LIMIT_SEC * 1000;
+}
+function fmtMMSS(sec) {
+  if (sec < 0) sec = 0;
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+function tickTimer() {
+  var el = document.getElementById('navTimer');
+  if (!el) return;
+  var sec;
+  if (IS_PAPER && endAt && !submitted) {
+    sec = Math.max(0, Math.round((endAt - Date.now()) / 1000));   /* 剩余秒 */
+    /* 到点自动交卷 */
+    if (sec === 0 && !AUTO_SUBMIT_DONE && !submitted) {
+      AUTO_SUBMIT_DONE = true;
+      doSubmit();
+      return;
+    }
+  } else {
+    sec = (finalSec !== null) ? finalSec : Math.floor((Date.now() - startAt) / 1000);
+  }
+  el.textContent = fmtMMSS(sec);
+  var tip = document.getElementById('navTimer');
+  if (tip) tip.title = IS_PAPER ? '剩余时间' : '本次答题用时';
+}
+function startTimer() {
+  if (timerId) return;
+  timerId = setInterval(tickTimer, 1000);
+  tickTimer();
+}
+function stopTimer() {
+  /* 交卷定格：考试模式剩余时间已归零（navTimer 展示剩余），statTime 用【实际用时】 */
+  if (finalSec === null) finalSec = Math.floor((Date.now() - startAt) / 1000);
+  if (timerId) { clearInterval(timerId); timerId = null; }
+  tickTimer();
+}
+
+/* ---------- 答题卡（已答/未答/已标记 三态 + 点题号跳转） ---------- */
+function openSheet() {
+  renderSheet();
+  document.getElementById('sheetMask').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('sheetMask').classList.remove('show');
+}
+function renderSheet() {
+  var grid = document.getElementById('sheetGrid');
+  var done = 0, mark = 0;
+  var html = '';
+  for (var i = 0; i < total; i++) {
+    var isDone = getAnswered(QUESTIONS[i], answers[i]);
+    var isMark = !!marked[i];
+    if (isDone) done++;
+    if (isMark) mark++;
+    var cls = 'sheet-cell';
+    if (isDone) cls += ' done';
+    if (isMark) cls += ' mark';
+    if (i === idx) cls += ' current';
+    html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('lgDone').textContent = done;
+  document.getElementById('lgTodo').textContent = total - done;
+  document.getElementById('lgMark').textContent = mark;
+}
+function jumpTo(i) {
+  if (i < 0 || i >= total) return;
+  clearAutoNext();
+  idx = i;
+  resetOp();
+  renderQuestion();
+  closeSheet();
+}
+
+function doSubmit() {
+  hideSubmit();
+  submitted = true;
+  stopTimer();
+  document.getElementById('statTime').textContent = fmtMMSS(finalSec);
+  renderQuestion();
+  showResult();
+}
+/* 逐题分值累加（考试模式）：答对得该题分值，答错/未答 0 分 */
+function calcPaperScore() {
+  var score = 0;
+  for (var i = 0; i < total; i++) {
+    if (checkAnswer(QUESTIONS[i], answers[i]) === true) {
+      score += (QUESTIONS[i].score || 0);
+    }
+  }
+  return score;
+}
+function showResult() {
+  var right = 0, wrong = 0, skip = 0;
+  for (var i = 0; i < total; i++) {
+    var r = checkAnswer(QUESTIONS[i], answers[i]);
+    if (r === null) skip++;
+    else if (r === true) right++;
+    else wrong++;
+  }
+  /* 标题/口径：考试模式显示 得分 X/fullScore（逐题分值累加）；练习模式保持 答对 N/总 */
+  var isPaperScored = IS_PAPER && PAPER_META;
+  var fullScore = isPaperScored ? (PAPER_META.fullScore || 150) : total;
+  document.getElementById('resultScore').textContent = isPaperScored ? calcPaperScore() : right;
+  document.getElementById('resultTotal').textContent = '/' + fullScore;
+  document.getElementById('statRight').textContent = right;
+  document.getElementById('statWrong').textContent = wrong;
+  document.getElementById('statSkip').textContent = skip;
+  document.getElementById('resultLabel').textContent = isPaperScored
+    ? '本次考试完成，查看解析查漏补缺'
+    : ((right === total) ? '全部答对，太棒了！' :
+       (right >= Math.ceil(total * 0.6)) ? '本次练习完成，继续保持！' : '本次练习完成，加油！');
+  document.getElementById('resultMask').classList.add('show');
+}
+function reviewAnswers() {
+  document.getElementById('resultMask').classList.remove('show');
+  idx = 0;
+  renderQuestion();
+}
+
+/* ---------- 题目反馈（错误类型多选 + 补充说明，提交同步后台管理端） ----------
+   数据契约（v5.0 接后台反馈管理模块）：
+   { type:'QUESTION_FEEDBACK', questionId: 当前题id, entry: ENTRY, errorTypes:[...], detail:'...', ts:Date.now() }
+   演示期：本地 console + Toast；真实接入由总壳 postMessage 转发或直接调 API。 */
+var FB_TYPES = [];
+function openFeedback() {
+  FB_TYPES = [];
+  var chips = document.querySelectorAll('#fbOpts .fb-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on');
+  var ta = document.getElementById('fbText');
+  if (ta) ta.value = '';
+  document.getElementById('feedbackModal').classList.add('show');
+}
+function closeFeedback() {
+  document.getElementById('feedbackModal').classList.remove('show');
+}
+function toggleFb(el) {
+  var k = el.getAttribute('data-k');
+  var i = FB_TYPES.indexOf(k);
+  if (i >= 0) { FB_TYPES.splice(i, 1); el.classList.remove('on'); }
+  else { FB_TYPES.push(k); el.classList.add('on'); }
+}
+function submitFeedback() {
+  if (FB_TYPES.length === 0) {
+    showToast('请至少选择一种错误类型');
+    return;
+  }
+  var detail = (document.getElementById('fbText').value || '').trim();
+  var q = QUESTIONS[idx] || {};
+  var payload = {
+    type: 'QUESTION_FEEDBACK',
+    questionId: q.id || (ENTRY + '-' + idx),   /* v5.0 接题库真实 id */
+    entry: ENTRY,
+    chapter: q.chapter || '',
+    concept: q.concept || '',
+    errorTypes: FB_TYPES.slice(),
+    detail: detail,
+    ts: Date.now()
+  };
+  /* 演示：打印 + 转发总壳；v5.0 改为真实 API */
+  try { console.log('[QUESTION_FEEDBACK]', payload); } catch(e) {}
+  try { window.parent.postMessage(payload, '*'); } catch(e) {}
+  closeFeedback();
+  showToast('已反馈，谢谢');
+}
+
+/* ---------- 关闭（通知总壳收起做题层） ---------- */
+function closePractice() {
+  try { window.parent.postMessage({ type: 'CLOSE_PRACTICE' }, '*'); } catch(e) {}
+  try { if (window.parent === window.self) { window.location.reload(); } } catch(e) {}
+}
+
+/* ---------- 手势：非操作题=右→左下一题/左→右上一题；
+   操作/分析/综合运用题=题干页上滑进小题，小题页左滑下一小题/右滑上一小题 ---------- */
+var _px = null, _py = null;
+var qAreaEl = document.getElementById('questionArea');
+qAreaEl.addEventListener('pointerdown', function(e){ _px = e.clientX; _py = e.clientY; });
+qAreaEl.addEventListener('pointerup', function(e){
+  if (_px === null) return;
+  var dx = e.clientX - _px, dy = e.clientY - _py;
+  _px = null; _py = null;
+  var q = QUESTIONS[idx];
+  var reveal = submitted || (MODE === 'study' && q && getAnswered(q, answers[idx]));
+  var isOp = q && OP_TYPES.indexOf(q.type) >= 0 && !reveal;   /* 操作类题型且未显示解析时走分屏手势 */
+  if (isOp) {
+    if (opPhase === 'stem') {
+      /* 题干页：上滑进入第1小题；右滑返回上一主题 */
+      if (dy < -50 && Math.abs(dy) > Math.abs(dx)) { enterSub(); return; }
+      if (dx > 50 && Math.abs(dx) > Math.abs(dy)) { clearAutoNext(); prevQuestion(); return; }
+      return;
+    }
+    /* 小题页：左滑下一小题，右滑上一小题/回题干，下滑收起浮窗回题干页 */
+    if (dx < -50 && Math.abs(dx) > Math.abs(dy)) { nextSub(); return; }
+    if (dx > 50 && Math.abs(dx) > Math.abs(dy)) { prevSub(); return; }
+    if (dy > 50 && Math.abs(dy) > Math.abs(dx)) { opPhase = 'stem'; renderQuestion(); return; }   /* 下滑收起浮窗 */
+    return;
+  }
+  /* 全局手势 */
+  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+  if (dx < 0) nextQuestion(); else prevQuestion();
+});
+
+/* ---------- 操作类题型分屏切换 ---------- */
+function resetOp() { opPhase = 'stem'; opSubIdx = 0; }
+function enterSub() {
+  if (opPhase !== 'stem') return;
+  opPhase = 'sub'; opSubIdx = 0;
+  renderQuestion();
+}
+function nextSub() {
+  var q = QUESTIONS[idx];
+  if (opSubIdx < q.sub.length - 1) { opSubIdx++; renderQuestion(); }
+  else if (getAnswered(q, answers[idx])) { nextQuestion(); }   /* 最后一小题且全答完 → 下一主题 */
+}
+function prevSub() {
+  if (opSubIdx > 0) { opSubIdx--; renderQuestion(); }
+  else { opPhase = 'stem'; renderQuestion(); }                 /* 第1小题右滑 → 回题干页 */
+}
+
+/* ---------- 0.5s 自动跳转（仅做题模式 + 单选/判断/操作/分析/综合运用） ---------- */
+var autoTimer = null;
+function clearAutoNext() {
+  if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+}
+function scheduleAutoNext() {
+  clearAutoNext();
+  if (MODE !== 'exam' || submitted) return;
+  var q = QUESTIONS[idx];
+  if (['single','judge','operation','analysis','comprehensive'].indexOf(q.type) < 0) return;  /* 多选/填空/简答用手势 */
+  if (idx >= total - 1) return;               /* 最后一题不自动跳 */
+  if (!getAnswered(q, answers[idx])) return;  /* 操作/分析/综合运用需子题全答 */
+  autoTimer = setTimeout(function(){ autoTimer = null; nextQuestion(); }, 500);
+}
+
+/* ---------- 收藏 / 标记 / 分享 ---------- */
+function toggleFav() {
+  fav[idx] = !fav[idx];
+  updateBottomBar();
+  showToast(fav[idx] ? '已收藏至收藏夹' : '已取消收藏');
+}
+function toggleMark() {
+  marked[idx] = !marked[idx];
+  renderQuestion();          /* 刷新 tag 区【标记过】 */
+  showToast(marked[idx] ? '已标记，题目标签显示【标记过】' : '已取消标记');
+}
+function openShare() {
+  var q = QUESTIONS[idx];
+  var card = '<div class="share-brand">升本智答</div>'
+    + '<div class="share-qnum">第 ' + (idx+1) + ' 题 · ' + (TYPE_NAME[q.type] || '题目') + '</div>'
+    + '<div class="share-stem">' + q.stem + '</div>'
+    + '<div class="share-answer">答案：' + formatAnswer(q) + '</div>';
+  document.getElementById('shareCard').innerHTML = card;
+  document.getElementById('shareMask').classList.add('show');
+}
+function doShare() {
+  closeShare();
+  showToast('已生成分享卡片，可分享至朋友圈');
+}
+function closeShare() {
+  document.getElementById('shareMask').classList.remove('show');
+}
+
+/* ---------- 页面轻提示 ---------- */
+var toastTimer2 = null;
+function showToast(msg) {
+  var t = document.getElementById('practiceToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer2);
+  toastTimer2 = setTimeout(function(){ t.classList.remove('show'); }, 1500);
+}
+
+/* ---------- 报告页跳解析：收到 ENTER_REVIEW → 进入解析态并定位该题 ----------
+   来源：成绩报告页「查看解析」/答题卡点击 → 总壳 REPORT_REVIEW → 打开做题页 → 就绪后送 ENTER_REVIEW。
+   复用现有解析能力：submitted=true（解析态）+ jumpTo(q)（定位+渲染）。不改 URL 入口。 */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'ENTER_REVIEW') {
+    submitted = true;
+    hideSubmit();
+    stopTimer();
+    /* 钳制到卷面题量范围：报告页答题卡题量可能大于做题页 mock 卷（演示期数据契约独立），越界回第 1 题 */
+    var q = (d.data && typeof d.data.q === 'number') ? d.data.q : 0;
+    if (q < 0 || q >= total) q = 0;
+    jumpTo(q);
+  }
+});
+
+/* ---------- 初始化 ---------- */
+startTimer();              /* 进入即起表（会话级计时） */
+renderQuestion();
+</script>
+</body>
+</html>
+
+
+
+

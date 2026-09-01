@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>考试报告</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一） ====
+   成绩报告页：模拟考场/历年真题共用，独立页面嵌入总壳 report-layer
+   数据：由总壳经 POST_REPORT 中转 → GET_REPORT 回发渲染 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-teal: #3FA98B;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --danger: #EF4444;
+  --warning: #F28B3D;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* ===== 滚动容器 ===== */
+.scroll-area {
+  padding: 16px 16px 96px;
+}
+/* 顶部白底凸起标题区 + 得分 */
+.report-head {
+  background: #fff;
+  border-radius: 16px 16px 18px 18px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.03), 0 6px 16px rgba(91,114,245,.05);
+  margin-bottom: 12px;
+}
+.report-name {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  line-height: 1.4; text-align: center;
+}
+.report-submeta {
+  margin-top: 8px;
+  display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-tertiary);
+}
+.report-score-wrap {
+  margin-top: 14px; text-align: center;
+}
+.report-score {
+  font-size: 52px; font-weight: 900; color: var(--primary); line-height: 1;
+  letter-spacing: -1px; font-variant-numeric: tabular-nums;
+}
+.report-score .total { font-size: 18px; font-weight: 600; color: var(--text-secondary); }
+.report-score-label { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
+
+.report-rank {
+  margin-top: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 12px 0 2px;
+  border-top: 1px solid #F0F2F8;
+}
+.rank-item { text-align: center; }
+.rank-item .rank-num {
+  font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.rank-item .rank-num .unit { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.rank-item .rank-label { margin-top: 3px; font-size: 11px; color: var(--text-tertiary); }
+.rank-divider { width: 1px; height: 30px; background: #EEF0F6; }
+
+/* 题型概况 */
+.card {
+  background: #fff;
+  border-radius: 15px 13px 17px 12px;
+  padding: 16px 16px 14px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.03), 0 6px 16px rgba(91,114,245,.05);
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.type-row { margin-bottom: 12px; }
+.type-row:last-child { margin-bottom: 0; }
+.type-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; margin-bottom: 6px;
+}
+.type-head .type-name { color: var(--text-primary); font-weight: 600; }
+.type-head .type-stat { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.type-bar {
+  height: 7px; border-radius: 4px; background: #EEF0F6; overflow: hidden;
+}
+.type-bar-inner {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #5B72F5, #7169ED);
+  transition: width .5s ease;
+}
+.type-bar-inner.low { background: linear-gradient(90deg, #F28B3D, #EF4444); }
+
+/* 答题卡 */
+.sheet-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+}
+.sheet-cell {
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  font-size: 13px; font-weight: 700;
+  background: #F2F4F9; color: var(--text-tertiary);
+  border: none;
+}
+.sheet-cell.correct { background: #E5F6EE; color: var(--success); }
+.sheet-cell.wrong   { background: #FDEBEA; color: var(--danger); }
+.sheet-cell.unanswered { background: #F2F4F9; color: var(--text-tertiary); }
+.legend {
+  margin-top: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-size: 11.5px; color: var(--text-secondary);
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i {
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+}
+.legend i.correct { background: var(--success); }
+.legend i.wrong { background: var(--danger); }
+.legend i.unanswered { background: #C7CDDA; }
+
+/* 底部固定双按钮 */
+.report-actions {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.92); backdrop-filter: blur(10px);
+  display: flex; gap: 10px;
+  border-top: 1px solid rgba(0,0,0,.04);
+}
+.report-btn {
+  flex: 1; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 22px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.report-btn:active { transform: scale(.96); }
+.report-btn.review { background: linear-gradient(100deg, #7169ED, #62CFA9); color: #fff; box-shadow: 0 2px 8px rgba(113,105,237,.28); }
+.report-btn.restart { background: #fff; color: var(--text-primary); border: 1px solid #E5E8F0; }
+
+/* 加载态 */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 60vh; color: var(--text-tertiary); font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">报告加载中…</div>
+
+<div class="scroll-area" id="reportArea" style="display:none">
+  <!-- 头部：卷名/得分/排名 -->
+  <div class="report-head">
+    <div class="report-name" id="rName"></div>
+    <div class="report-submeta">
+      <span id="rSubmitTime"></span>
+      <span id="rUsed"></span>
+    </div>
+    <div class="report-score-wrap">
+      <div class="report-score"><span id="rScore">0</span><span class="total" id="rTotal">/0</span></div>
+      <div class="report-score-label" id="rLabel">本次考试得分</div>
+    </div>
+    <div class="report-rank">
+      <div class="rank-item"><div class="rank-num" id="rRank">--</div><div class="rank-label">排名</div></div>
+      <div class="rank-divider"></div>
+      <div class="rank-item"><div class="rank-num" id="rBeat">--</div><div class="rank-label">已击败考生</div></div>
+    </div>
+  </div>
+
+  <!-- 试卷概况：各题型 -->
+  <div class="card">
+    <div class="card-title">试卷概况</div>
+    <div id="typeStats"></div>
+  </div>
+
+  <!-- 答题卡 -->
+  <div class="card">
+    <div class="card-title">答题卡</div>
+    <div class="sheet-grid" id="sheetGrid"></div>
+    <div class="legend">
+      <span><i class="correct"></i>答对</span>
+      <span><i class="wrong"></i>答错</span>
+      <span><i class="unanswered"></i>未答</span>
+    </div>
+  </div>
+</div>
+
+<div class="report-actions" id="reportActions" style="display:none">
+  <button class="report-btn restart" onclick="restartPaper()">在此作答</button>
+  <button class="report-btn review" onclick="reviewFrom()">查看解析</button>
+</div>
+
+<script>
+/* ---------- 报告数据：总壳 POST_REPORT 注入（经 REPORT_DATA） ----------
+   GET_REPORT → 总壳回发数据 → REPORT 渲染
+   sheet: 0对 0错 0未答 1对 */
+var REPORT = null;
+
+function render() {
+  if (!REPORT) return;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('reportArea').style.display = '';
+  document.getElementById('reportActions').style.display = '';
+
+  var r = REPORT;
+  document.getElementById('rName').textContent = r.name || '';
+  document.getElementById('rSubmitTime').textContent = '交卷 ' + (r.submitTime || '--');
+  document.getElementById('rUsed').textContent = '用时 ' + fmtMMSS(r.usedSec || 0);
+  document.getElementById('rScore').textContent = r.score || 0;
+  document.getElementById('rTotal').textContent = '/' + (r.fullScore || 0);
+  document.getElementById('rLabel').textContent = (r.label || '本次考试') + '得分';
+  document.getElementById('rRank').textContent = r.rank ? (r.rank + '<span class="unit">名</span>') : '--';
+  document.getElementById('rBeat').textContent = r.beat || '--';
+
+  /* 题型概况 */
+  var ts = document.getElementById('typeStats');
+  var th = '';
+  (r.typeStats || []).forEach(function(t) {
+    var pct = t.total ? Math.round(t.right / t.total * 100) : 0;
+    var low = pct < 60;
+    th += '<div class="type-row">'
+      + '<div class="type-head"><span class="type-name">' + t.name + '</span>'
+      + '<span class="type-stat">答对 ' + t.right + '/' + t.total + ' · ' + pct + '%</span></div>'
+      + '<div class="type-bar"><div class="type-bar-inner' + (low ? ' low' : '') + '" style="width:' + pct + '%"></div></div>'
+      + '</div>';
+  });
+  ts.innerHTML = th;
+
+  /* 答题卡 */
+  var grid = document.getElementById('sheetGrid');
+  var gh = '';
+  (r.sheet || []).forEach(function(v, i) {
+    var cls = v === 1 ? 'correct' : (v === 0 ? 'wrong' : 'unanswered');
+    gh += '<button class="sheet-cell ' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+  });
+  grid.innerHTML = gh;
+}
+function fmtMMSS(sec) {
+  sec = sec || 0;
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+}
+
+/* 答题卡点击 → 请求总壳打开做题页对应题解析 */
+function jumpTo(n) {
+  if (!REPORT) return;
+  window.parent.postMessage({ type:'REPORT_REVIEW', data:{ q:n } }, '*');
+}
+/* 查看解析（从头） */
+function reviewFrom() {
+  if (!REPORT) return;
+  window.parent.postMessage({ type:'REPORT_REVIEW', data:{ q:0 } }, '*');
+}
+/* 在此作答 → 重新考试 */
+function restartPaper() {
+  if (!REPORT) return;
+  window.parent.postMessage({ type:'REPORT_RESTART', data:{ paperId:REPORT.paperId } }, '*');
+}
+
+/* 请求总壳注入报告数据 */
+function requestReport() {
+  window.parent.postMessage({ type:'GET_REPORT' }, '*');
+}
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'REPORT_DATA') {
+    REPORT = d.data;
+    render();
+  }
+});
+requestReport();
+</script>
+</body>
+</html>

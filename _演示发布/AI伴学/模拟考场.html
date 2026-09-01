@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>模拟考场</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-09-02） ====
+   模拟考场页：题库首页「模拟考试」入口下钻二级页
+   结构：试卷卡片列表（全真模拟 / 冲刺模拟 分组，默认未做在前；卡片三层：
+         名称行 / 题量信息 / 操作区，已做卷支持查看成绩报告弹层）
+   数据：试卷进程（未做/已做+得分），mock 演示期 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+* { scrollbar-width: none; }                          /* Firefox */
+*::-webkit-scrollbar { display: none; width: 0; height: 0; } /* Chrome/Safari */
+
+/* ===== 试卷列表（唯一滚动容器） ===== */
+.scroll-area { padding: 4px 16px 32px; }
+.paper-group { margin-top: 10px; }
+.group-head {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 6px;
+  margin: 14px 2px 10px;
+}
+.group-head::before {
+  content: ''; width: 3px; height: 12px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--primary), var(--brand-teal));
+}
+.paper-group:first-of-type .group-head { margin-top: 0; }
+.paper-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* 试卷卡片（纵向三层：名称行 / 题量信息 / 操作区） */
+.paper-card {
+  background: #fff;
+  border-radius: 15px 13px 17px 12px;
+  padding: 14px 14px 13px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 6px 16px rgba(91,114,245,.06);
+  display: flex; flex-direction: column;
+  width: 100%;
+}
+.paper-head { display: flex; gap: 10px; align-items: center; }
+.paper-icon {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.paper-icon.exam { background: linear-gradient(135deg, #5B72F5, #4358D7); }
+.paper-icon.sprint { background: linear-gradient(135deg, #722ED1, #9B6BD9); }
+.paper-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; }
+.paper-name {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden;
+}
+.paper-name .paper-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paper-meta {
+  margin-top: 8px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.paper-meta .pm { display: inline-flex; align-items: center; gap: 3px; }
+.paper-meta .pm svg { width: 12px; height: 12px; }
+
+/* 三层：操作区 */
+.paper-actions { margin-top: 11px; }
+.paper-status-line {
+  font-size: 12px; font-weight: 600; color: var(--success);
+  margin: 0 0 9px;
+}
+.paper-status-line.wrong { color: var(--warning); }
+.paper-btn-row { display: flex; gap: 10px; }
+.paper-btn {
+  flex: 1; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 19px;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.paper-btn:active { transform: scale(.97); }
+.paper-btn.primary { background: linear-gradient(100deg, #7169ED, #62CFA9); color: #fff; box-shadow: 0 2px 8px rgba(113,105,237,.28); }
+.paper-btn.ghost { background: #F5F6FA; color: var(--text-primary); border: 1px solid #E5E8F0; }
+.paper-btn.wide { width: 100%; }
+
+/* 试卷标题里的「2026届」徽标 */
+.paper-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
+}
+.paper-badge.exam { background: var(--primary-light); color: var(--primary-dark); }
+.paper-badge.sprint { background: #F9F0FF; color: #722ED1; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
+  background: rgba(30,33,48,.92); color: #fff;
+  padding: 9px 18px; border-radius: 22px; font-size: 13px;
+  opacity: 0; transition: opacity .25s ease; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<div class="scroll-area">
+  <div id="paperGroups"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   模拟考场 mock 数据（演示期；v5.0 接真实模拟考卷编排）
+   字段口径：
+     total   卷面题数
+     minutes 限时分钟
+     fullScore 卷面满分（山东专升本计算机卷 150）
+     done    已做次数（>0 = 做过本卷）
+     right   最近一次答对题数
+     wrong   最近一次答错题数
+     skip    答对 + 答错外未答的题数（演示 mock）
+     used    最近一次用时（秒，演示 mock）
+     score   演示得分 = round(right/total × fullScore)（演示按已做一次简化）
+     rate    正确率 = right/done 卷内百分比化（演示按已做一次简化）
+   ============================================================ */
+var GROUPS = [
+  { key:'exam',   name:'全真模拟', iconClass:'exam' },
+  { key:'sprint', name:'冲刺模拟', iconClass:'sprint' }
+];
+var PAPERS = [
+  { id:'exam1', group:'exam',   no:'卷 01', name:'2026 届全真模拟卷一',  total:80, minutes:100, fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
+  { id:'exam2', group:'exam',   no:'卷 02', name:'2026 届全真模拟卷二',  total:80, minutes:100, fullScore:150, done:1,  right:56, wrong:24, skip:0,   used:5555, score:105, rate:70 },
+  { id:'exam3', group:'exam',   no:'卷 03', name:'2026 届全真模拟卷三',  total:80, minutes:100, fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
+  { id:'sprint1', group:'sprint', no:'卷 01', name:'冲刺模拟卷一', total:40, minutes:45,  fullScore:150, done:1,  right:30, wrong:10, skip:0,   used:2300, score:113, rate:75 },
+  { id:'sprint2', group:'sprint', no:'卷 02', name:'冲刺模拟卷二', total:40, minutes:45,  fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null }
+];
+
+/* ===== 渲染 ===== */
+function scoreOf(p) {
+  // 演示得分 = 答对题数按分值折算（与做题页 calcPaperScore 口径对齐：逐题分值累加）
+  return p.score || Math.round((p.right / p.total) * p.fullScore);
+}
+function fmtMMSS(sec) {
+  if (!sec) return '00:00';
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+}
+function metaHtml(p) {
+  return '<div class="paper-meta">'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + p.total + '题</span>'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + p.minutes + '分钟</span>'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg>满分 ' + p.fullScore + '</span>'
+    + '</div>';
+}
+/* 卡片三层：名称行 / 题量行 / 操作区 */
+function cardHtml(p, g) {
+  var isDone = p.done > 0;
+  var score = scoreOf(p);
+  var actions = '';
+  if (!isDone) {
+    actions = '<div class="paper-actions">'
+      + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
+      + '</div>';
+  } else {
+    var low = p.rate !== null && p.rate < 60;
+    actions = '<div class="paper-actions">'
+      + '<div class="paper-status-line' + (low ? ' wrong' : '') + '">已做 ' + p.right + '/' + p.total + ' · ' + score + ' 分</div>'
+      + '<div class="paper-btn-row">'
+      +   '<button class="paper-btn primary" onclick="startPaper(\'' + p.id + '\')">再次答题</button>'
+      +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">查看报告</button>'
+      + '</div>'
+      + '</div>';
+  }
+  return '<div class="paper-card">'
+    + '<div class="paper-head">'
+    +   '<div class="paper-icon ' + g.iconClass + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
+    +   '<div class="paper-name"><span class="paper-title">' + p.no + ' · ' + p.name + '</span></div>'
+    + '</div>'
+    + metaHtml(p)
+    + actions
+    + '</div>';
+}
+function render() {
+  var box = document.getElementById('paperGroups');
+  var html = '';
+  GROUPS.forEach(function(g) {
+    var list = PAPERS.filter(function(p) { return g.key === p.group; })
+      .sort(function(a, b) {
+        // 默认排序：未做(0) 在前，已做(done>0) 在后
+        return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
+      });
+    if (list.length === 0) return;
+    html += '<div class="paper-group"><div class="group-head">' + g.name + '</div><div class="paper-list">';
+    list.forEach(function(p) { html += cardHtml(p, g); });
+    html += '</div></div>';
+  });
+  box.innerHTML = html;
+}
+
+/* ===== 查看报告：派生报告数据 → 请求总壳打开独立报告页 =====
+   字段契约对齐报告页（成绩报告.html）：
+     paperId/type/name/minutes/fullScore/submitTime/usedSec/score/rank/beat/sheet/typeStats
+   sheet  答题卡：1对 0错 -1未答（按总题数铺）
+   typeStats 题型概况：{name,right,total} */
+function reportOf(p) {
+  var score = scoreOf(p);
+  var sheet = [];
+  var i;
+  for (i = 0; i < p.right; i++) sheet.push(1);
+  for (i = 0; i < p.wrong; i++) sheet.push(0);
+  for (i = p.right + p.wrong; i < p.total; i++) sheet.push(-1);
+  /* 题型分布 mock：山东专升本卷 单选45/多选10/判断10/填空10/操作5（答对逐步下降、操作几乎对） */
+  var typeStats;
+  if (p.total === 80) {
+    typeStats = [
+      { name:'单选题', right: Math.round(45 * p.rate / 100), total: 45 },
+      { name:'多选题', right: Math.round(10 * p.rate / 100), total: 10 },
+      { name:'判断题', right: Math.round(10 * p.rate / 100), total: 10 },
+      { name:'填空题', right: Math.round(10 * p.rate / 100), total: 10 },
+      { name:'操作题', right: Math.round(5 * p.rate / 100),  total: 5 }
+    ];
+  } else {
+    typeStats = [
+      { name:'单选题', right: Math.round(22 * p.rate / 100), total: 22 },
+      { name:'多选题', right: Math.round(5 * p.rate / 100),  total: 5 },
+      { name:'判断题', right: Math.round(5 * p.rate / 100),  total: 5 },
+      { name:'填空题', right: Math.round(6 * p.rate / 100),  total: 6 },
+      { name:'操作题', right: Math.round(2 * p.rate / 100),  total: 2 }
+    ];
+  }
+  return {
+    paperId: p.id,
+    type: 'exam',
+    name: p.no + ' · ' + p.name,
+    minutes: p.minutes,
+    fullScore: p.fullScore,
+    submitTime: '2026-09-01 10:24',
+    usedSec: p.used,
+    score: score,
+    rank: (p.group === 'exam' ? 68 : 41),
+    beat: (p.group === 'exam' ? '击败 87% 考生' : '击败 76% 考生'),
+    sheet: sheet,
+    typeStats: typeStats,
+    label: '本次模拟考试'
+  };
+}
+function requestReport(pid) {
+  var p = PAPERS.filter(function(x) { return x.id === pid; })[0];
+  if (!p) return;
+  try {
+    window.parent.postMessage({ type:'REQ_REPORT', data: reportOf(p) }, '*');
+  } catch(e) {
+    showToast('请从总壳进入查看报告');
+  }
+}
+
+/* ===== 进入做题页 =====
+   向总壳请求打开做题层，entry=exam，附带卷 id/名字/限时/满分
+   总壳 openPractice 接 entry；v5.0 接数据层时按 paperId 取真实考卷题集 */
+function startPaper(pid) {
+  var p = PAPERS.filter(function(x) { return x.id === pid; })[0];
+  if (!p) return;
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'exam', paperId:p.id, name:p.no + ' · ' + p.name,
+      minutes:p.minutes, fullScore:p.fullScore, level:'paper'
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始模拟考试');
+  }
+}
+
+/* ===== 返回：通知题库首页收起二级层 ===== */
+function goBack() {
+  try {
+    window.parent.postMessage({ type:'CLOSE_CHAPTER' }, '*');
+  } catch(e) {
+    showToast('请从总壳返回');
+  }
+}
+
+/* ===== Toast ===== */
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+}
+
+render();
+</script>
+</body>
+</html>

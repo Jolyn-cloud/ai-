@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>山东专升本小程序 · 总壳</title>
+<style>
+/* ============================================================
+   总壳样式：左手机壳 + 右逻辑说明面板
+   （小程序框架在手机壳内：状态栏 → 小程序栏 → 功能页 → tabBar；逻辑说明随闪卡视图联动）
+   ============================================================ */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --text-primary: #202533;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background: #EDEFF7;
+  display: flex; flex-direction: column;
+}
+
+/* ============ 工作台：左手机壳区 + 右逻辑面板 ============ */
+.main { flex: 1; min-height: 0; display: flex; align-items: stretch; }
+
+/* 中间：手机壳区 */
+.phone-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(91,114,245,0.07) 0%, transparent 50%),
+    #EDEFF7;
+}
+
+/* 手机壳 */
+.phone {
+  position: relative;
+  flex-shrink: 0;
+  width: 390px;
+  height: clamp(600px, calc(100vh - 40px), 860px);
+  background: #1E2130;
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px rgba(30,33,48,0.12),
+    0 20px 60px rgba(30,33,48,0.28),
+    inset 0 0 0 2px rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
+}
+.phone-screen {
+  flex: 1; min-height: 0;
+  border-radius: 33px;
+  background: #FFFFFF;
+  overflow: hidden;
+  position: relative;
+}
+/* 手机状态栏：时间 / 信号 / 电量 */
+.phone-statusbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 34px; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  font-size: 13px; font-weight: 600; color: #1E2130;
+}
+.phone-statusbar .status-time { letter-spacing: 0.4px; }
+.phone-statusbar .status-icons { display: flex; align-items: center; gap: 8px; }
+.phone-statusbar .status-icons svg { width: 16px; height: 12px; color: #1E2130; display: block; }
+.phone-statusbar .status-icons .wifi { transform: translateY(1px); }
+
+/* 小程序自带标题栏：状态栏下一行 · 固定 · 显示当前页标题（含二级）+ 左退出 + 右固定图标 */
+.phone-appbar {
+  position: absolute; top: 34px; left: 0; right: 0;
+  height: 44px; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: #FFFFFF;
+}
+.phone-appbar .appbar-title {
+  font-size: 16px; font-weight: 600; color: #1E2130;
+  letter-spacing: 0.3px;
+}
+/* 左侧退出：二级页面显示（点击返回上一级），一级页面隐藏 */
+.appbar-exit {
+  position: absolute; left: 14px;
+  display: flex; align-items: center; gap: 4px;
+  border: none; background: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: #6E778B;
+  padding: 6px 8px; border-radius: 8px;
+  visibility: hidden;
+}
+.appbar-exit.show { visibility: visible; }
+.appbar-exit:active { background: #F0F1F6; }
+.appbar-exit svg { width: 16px; height: 16px; }
+/* 右侧固定图标：三个点（更多）+ 圆圈（退出） */
+.phone-appbar .appbar-right {
+  position: absolute; right: 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.appbar-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; color: #1E2130; opacity: .85;
+  cursor: default; pointer-events: none;
+}
+.appbar-more { font-size: 20px; line-height: 1; letter-spacing: 1px; }
+.appbar-circle { font-size: 17px; line-height: 1; }
+.phone-appbar.hidden { visibility: hidden; pointer-events: none; }
+/* 刘海 */
+.phone-notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 26px; z-index: 10;
+  background: rgba(255,255,255,0.92);
+  border-radius: 0 0 16px 16px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.phone-notch .speaker { width: 42px; height: 5px; border-radius: 3px; background: rgba(30,33,48,0.2); }
+.phone-notch .cam { width: 9px; height: 9px; border-radius: 50%; background: rgba(30,33,48,0.35); }
+
+/* 内容区：顶部让出状态栏(34)+小程序栏(44)=78，底部让出小程序 tabBar(56) */
+.content-frame { position: absolute; top: 78px; left: 0; right: 0; bottom: 56px; }
+.content-frame iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+.content-frame iframe.hidden { visibility: hidden; pointer-events: none; }
+
+/* 小程序 tabBar：在白屏内、功能页之下（不属于手机壳） */
+.tabbar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 56px; z-index: 400;
+  display: flex;
+  background: #FFFFFF;
+  border-top: 1px solid #ECEEF6;
+}
+.tab-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  border: none; background: none; cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  transition: color .15s ease;
+}
+.tab-item svg {
+  width: 22px; height: 20px;
+  stroke-width: 1.8;
+  stroke: currentColor;
+  fill: none;
+}
+.tab-item.active { color: var(--primary); font-weight: 600; }
+/* Home 指示条 */
+.home-bar {
+  height: 5px; flex-shrink: 0;
+  width: 124px; margin: 6px auto 0;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
+
+/* ============ 闪屏层（覆盖手机屏幕） ============ */
+.splash-layer {
+  position: absolute; inset: 0;
+  z-index: 9999;
+  background: #F8F9FC;
+  border-radius: 33px;
+  display: flex; align-items: flex-end; justify-content: center;
+  transition: opacity .4s ease;
+}
+.splash-layer.hide { opacity: 0; pointer-events: none; }
+.splash-layer img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+/* ============ 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ============
+   视觉：紫偏绿主题 · 不规则福利卡片 · 白鹭SVG占位 · 可交互纯HTML弹窗 */
+.vip-modal {
+  position: absolute; inset: 0;
+  z-index: 3500;
+  background: rgba(22, 27, 46, 0.32);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 28px;
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.vip-modal.show { opacity: 1; visibility: visible; }
+
+/* 柔和环境光：卡片四周紫绿光晕 */
+.vip-modal::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(440px 300px at 22% 22%, rgba(91,114,245,0.16) 0%, transparent 62%),
+    radial-gradient(430px 320px at 82% 78%, rgba(52,188,156,0.15) 0%, transparent 62%);
+  pointer-events: none;
+}
+
+/* 不规则福利卡片：四角不同程度圆角 + 轻微外凸 + 悬浮 */
+.vip-card {
+  position: relative;
+  width: 100%;
+  max-width: 318px;
+  padding: 26px 24px 24px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFBFE 100%);
+  border-radius: 26px 22px 30px 20px;             /* 四角不同程度 */
+  box-shadow:
+    0 30px 70px rgba(38, 48, 96, 0.22),
+    0 0 0 1px rgba(255,255,255,0.7) inset,
+    0 0 34px rgba(104, 126, 244, 0.18),
+    0 0 44px rgba(52, 188, 156, 0.10);
+  transform: translateY(14px) scale(0.96);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1), opacity .3s ease;
+  opacity: 0;
+}
+.vip-modal.show .vip-card { transform: translateY(0) scale(1); opacity: 1; }
+
+/* 白鹭（SVG 占位）：右上角自卡片后方探出 */
+.vip-logo {
+  position: absolute;
+  right: -6px; top: -26px;
+  width: 92px; height: 78px;
+  color: #5B72F5;
+  filter: drop-shadow(0 4px 10px rgba(91,114,245,0.28));
+  z-index: 0;
+  opacity: .92;
+}
+
+/* 关闭按钮：浅灰 弱化 小尺寸 大热区 */
+.vip-close-x {
+  position: absolute;
+  right: 4px; top: 4px;
+  width: 38px; height: 38px;
+  border: none; background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #A5ACBE;
+  z-index: 3;
+  border-radius: 50%;
+}
+.vip-close-x svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.vip-close-x:hover { color: #6E778B; background: #F0F1F7; }
+
+/* 顶部标签 */
+.vip-flag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; letter-spacing: .4px;
+  color: #4358D7;
+  background: linear-gradient(120deg, #EEF1FF, #E4FBF5);
+  border: 1px solid rgba(91,114,245,0.18);
+  border-radius: 99px;
+  padding: 5px 12px;
+  margin-bottom: 12px;
+}
+.vip-flag::before { content: '✦'; font-size: 10px; }
+
+/* 主标题 / 副标题 */
+.vip-title { font-size: 22px; font-weight: 800; letter-spacing: -.4px; color: #202533; margin-bottom: 7px; }
+.vip-flag-wrap { display: flex; align-items: center; justify-content: space-between; }
+
+.vip-sub { font-size: 13px; color: #6E778B; line-height: 1.6; margin-bottom: 18px; max-width: 84%; }
+
+/* 三权益：小图标 + 简短文字 */
+.vip-benefits {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.vip-benefit {
+  display: flex; align-items: center; gap: 12px;
+  background: #F7F8FC;
+  border: 1px solid rgba(91,114,245,0.07);
+  border-radius: 15px 13px 16px 12px;
+  padding: 11px 13px;
+}
+.vip-benefit-ico {
+  width: 38px; height: 38px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px 10px 13px 10px;
+  color: #fff;
+}
+.vip-benefit:nth-child(1) .vip-benefit-ico { background: linear-gradient(135deg, #5B72F5, #7B8DFF); box-shadow: 0 6px 14px rgba(91,114,245,.3); }
+.vip-benefit:nth-child(2) .vip-benefit-ico { background: linear-gradient(135deg, #3FA97F, #5BC29B); box-shadow: 0 6px 14px rgba(63,169,127,.28); }
+.vip-benefit:nth-child(3) .vip-benefit-ico { background: linear-gradient(135deg, #6B7CF0, #4E5ED6); box-shadow: 0 6px 14px rgba(78,94,214,.28); }
+.vip-benefit-ico svg { width: 21px; height: 21px; }
+.vip-benefit-name { font-size: 14px; font-weight: 700; color: #202533; }
+.vip-benefit-desc { font-size: 12px; color: #8A92A6; margin-top: 2px; }
+
+/* 主按钮：紫→绿渐变 CTA */
+.vip-cta {
+  width: 82%; height: 48px;
+  margin: 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 99px;
+  background: linear-gradient(100deg, #5B72F5 0%, #4358D7 46%, #3FA98B 100%);
+  color: #fff; font-size: 16px; font-weight: 700;
+  letter-spacing: .3px;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(91,114,245,.34), 0 0 18px rgba(63,169,139,.24);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.vip-cta:active { transform: scale(.97); box-shadow: 0 6px 14px rgba(91,114,245,.28); filter: brightness(.97); }
+
+/* 收起动画：领取时缩小 + 渐隐 */
+.vip-card.leave {
+  transform: scale(.82) translateY(2px);
+  opacity: 0;
+  transition: transform .22s cubic-bezier(.4,0,.7,1), opacity .22s ease;
+}
+.vip-modal.leave { opacity: 0; transition: opacity .2s ease; }
+
+/* ============ 登录 Bottom Sheet（底部上浮，领取专属权益后触发） ============ */
+.vip-login-modal {
+  position: absolute; inset: 0;
+  z-index: 3600;               /* 高于 VIP 福利弹窗 */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.vip-login-modal.show { opacity: 1; visibility: visible; }
+
+.vip-login-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.vip-login-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角 */
+  padding: 26px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.vip-login-modal.show .vip-login-sheet { transform: translateY(0); }
+
+.vip-login-close {
+  position: absolute; right: 14px; top: 12px;
+  width: 40px; height: 40px;             /* 热区满足 40px */
+  border: none; background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #9A9EAE; border-radius: 50%;
+  font-size: 22px; line-height: 1; padding: 0;
+}
+.vip-login-close:hover { color: #6E778B; background: #F0F1F7; }
+.vip-login-close:active { background: #ECEDF3; }
+
+.vip-login-logo {
+  width: 44px; height: 44px;
+  margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px 12px 15px 11px;
+  background: linear-gradient(135deg, #5B72F5, #3FA98B);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(91,114,245,0.28);
+}
+.vip-login-logo svg { width: 26px; height: 26px; }
+
+.vip-login-title {
+  font-size: 21px; font-weight: 700; color: #25283A;
+  text-align: center; margin-bottom: 6px;
+}
+.vip-login-desc {
+  font-size: 13px; color: #8D92A6;
+  text-align: center; line-height: 1.6; margin-bottom: 22px;
+}
+
+.vip-login-button {
+  width: 100%; height: 48px;
+  border: none; border-radius: 15px;
+  background: linear-gradient(100deg, #7169ED 0%, #62CFA9 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  box-shadow: 0 10px 22px rgba(113,105,237,0.28);
+}
+.vip-login-button:active { transform: scale(.98); filter: brightness(.97); box-shadow: 0 5px 12px rgba(113,105,237,.24); }
+
+.vip-login-privacy {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 12px; color: #9A9EAE;
+  margin-top: 16px; cursor: pointer;
+}
+.vip-login-privacy input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #5B72F5; cursor: pointer;
+  margin: 0;
+}
+.vip-login-privacy a {
+  color: #5B72F5; text-decoration: none; font-weight: 600;
+  cursor: pointer;
+}
+.vip-login-privacy a:hover { text-decoration: underline; }
+
+/* ============ 隐私政策提示浮窗（未勾选协议点微信登录时上浮，叠于登录 Sheet 之上） ============
+   交互：同意→下滑隐藏+自动勾选；不同意→下滑隐藏+不勾选；遮罩点击不关闭（需显式选择） */
+.privacy-modal {
+  position: absolute; inset: 0;
+  z-index: 3800;               /* 高于登录 Sheet(3600)，低于成功 Toast(4000) */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.privacy-modal.show { opacity: 1; visibility: visible; }
+
+.privacy-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.privacy-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角，与登录 Sheet 一致 */
+  padding: 12px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  text-align: left;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 / 下滑隐藏 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.privacy-modal.show .privacy-sheet { transform: translateY(0); }
+
+.privacy-handle {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: #E3E6F0; margin: 0 auto 20px;
+}
+.privacy-title {
+  font-size: 19px; font-weight: 700; color: #25283A;
+  text-align: left;
+  margin-bottom: 12px;
+}
+.privacy-desc {
+  font-size: 13px; color: #6E778B;
+  line-height: 1.7; margin-bottom: 22px;
+  text-align: left;
+  max-height: 42vh;               /* 文案较长：超出滚动，保证按钮可见 */
+  overflow-y: auto;
+}
+.privacy-desc p { margin-bottom: 10px; }
+.privacy-desc p:last-child { margin-bottom: 0; }
+.privacy-desc a {
+  color: #5B72F5; text-decoration: none; font-weight: 600;
+  cursor: pointer;
+}
+.privacy-desc a:hover { text-decoration: underline; }
+
+.privacy-actions {
+  display: flex; gap: 12px;
+}
+.privacy-btn {
+  flex: 1; height: 48px;
+  border: none; border-radius: 15px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.privacy-btn:active { transform: scale(.97); filter: brightness(.97); }
+/* 不同意：白底灰字描边（次级） */
+.privacy-btn-no {
+  background: #F5F6FA; color: #6E778B;
+  border: 1px solid #E3E6F0;
+}
+/* 同意：紫→绿渐变（主 CTA，与微信登录按钮一致） */
+.privacy-btn-yes {
+  background: linear-gradient(100deg, #7169ED 0%, #62CFA9 100%);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(113,105,237,0.28);
+}
+.privacy-btn-yes:active { box-shadow: 0 5px 12px rgba(113,105,237,.24); }
+
+/* ============ 手机号选择弹窗（微信一键登录返回多个手机号时上浮，选绑定号后登录） ============
+   交互：点击手机号条目→绑定该号并登录；暂不登录→仅关闭选择弹窗停留登录 Sheet */
+.phone-modal {
+  position: absolute; inset: 0;
+  z-index: 3900;               /* 高于隐私弹窗(3800)，低于成功 Toast(4000) */
+  display: flex; align-items: flex-end;   /* 底部贴合 */
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease;
+}
+.phone-modal.show { opacity: 1; visibility: visible; }
+
+.phone-overlay {
+  position: absolute; inset: 0;
+  background: rgba(22, 27, 46, 0.34);
+}
+.phone-sheet {
+  position: relative;
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 30px 30px 0 0;        /* 顶部圆角，与登录/隐私弹窗一致 */
+  padding: 12px 24px calc(26px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.2,.7,.3,1);   /* 上浮 / 下滑隐藏 */
+  box-shadow: 0 -10px 40px rgba(38,48,96,0.10);
+}
+.phone-modal.show .phone-sheet { transform: translateY(0); }
+
+.phone-handle {
+  width: 42px; height: 4px; border-radius: 2px;
+  background: #E3E6F0; margin: 0 auto 20px;
+}
+.phone-title {
+  font-size: 19px; font-weight: 700; color: #25283A;
+  margin-bottom: 8px;
+}
+.phone-desc {
+  font-size: 13px; color: #6E778B;
+  line-height: 1.7; margin-bottom: 18px;
+}
+.phone-list {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.phone-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; height: 58px;
+  border: 1px solid #EDEFF5; border-radius: 16px;
+  background: #F7F8FC;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: border-color .12s ease, background .12s ease, transform .12s ease;
+}
+.phone-item:active { transform: scale(.98); border-color: #5B72F5; background: #EEF1FF; }
+.phone-item-ico {
+  width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #EEF1FF, #E4FBF5);
+  color: #5B72F5;
+}
+.phone-item-ico svg { width: 18px; height: 18px; }
+.phone-item-num {
+  flex: none;
+  width: 128px;          /* 号码列定宽 → 两个号码右边缘对齐到同一位置 */
+  text-align: right;     /* 号码右对齐 */
+  font-size: 16px; font-weight: 600; color: #202533;
+  letter-spacing: 1px;
+}
+.phone-item-tag {
+  font-size: 11px; font-weight: 600; color: #4358D7;
+  background: #EEF1FF; border-radius: 99px; padding: 3px 9px;
+}
+.phone-cancel {
+  width: 100%; height: 48px;
+  border: 1px solid #E3E6F0; border-radius: 15px;
+  background: #F5F6FA; color: #6E778B;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.phone-cancel:active { transform: scale(.97); }
+
+/* ============ 登录成功轻量提示（Toast）：登录成功 → 短暂出现 → 自动消失 ============
+   视觉：半透明白 · 紫绿渐变光晕 · 轻阴影 · 圆角14-16px · 紧凑 · 无皇冠/关闭/大卡片 */
+.vip-success-toast {
+  position: absolute; left: 50%; bottom: calc(79px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  min-width: 264px; width: min(288px, calc(100% - 48px));
+  min-height: 48px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 15px;
+  z-index: 4000;
+  opacity: 0; pointer-events: none;
+  filter: drop-shadow(0 6px 18px rgba(38, 42, 58, 0.14));
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  transition: opacity .25s ease, transform .25s ease;
+}
+/* 柔和紫绿渐变光晕 */
+.vip-success-toast::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(130px 46px at 18% 50%, rgba(113,105,237,0.10) 0%, transparent 70%),
+    radial-gradient(120px 42px at 82% 50%, rgba(98,207,169,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.vip-success-icon {
+  flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: linear-gradient(135deg, #7169ED 0%, #62CFA9 100%);
+  color: #FFFFFF;
+  font-size: 13px; font-weight: 700; line-height: 20px;
+  text-align: center;
+}
+.vip-success-text {
+  font-size: 14px; font-weight: 600; color: #25283A;
+  letter-spacing: 0.2px; white-space: nowrap;
+}
+/* 出现：opacity 0→1 + translateY(8px)→0 */
+.vip-success-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* 隐藏态（非 show）：translateY(8px) */
+.vip-success-toast { transform: translateX(-50%) translateY(8px); }
+/* 消失：由 JS 移除 .show 触发 opacity 1→0 + Y 0→4px */
+.vip-success-toast.hiding {
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+}
+/* VIP 领取页全屏层：默认隐藏，仅「VIP 领取」触发时铺满手机屏幕 */
+.vip-layer {
+  position: absolute; inset: 0;
+  z-index: 3000;
+  background: #FFFFFF;
+  display: flex; flex-direction: column;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.vip-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
+.vip-layer iframe { flex: 1; min-height: 0; width: 100%; border: none; }
+
+/* 统一做题层（题库/错题本/章节练习共用一页；覆盖内容区，二级页面隐藏 tabBar） */
+.practice-layer {
+  position: absolute;
+  top: 78px; left: 0; right: 0; bottom: 56px;   /* 内容区范围（tabBar 显示时） */
+  z-index: 2000;               /* 高于内容 iframe */
+  background: #F6F7FB;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.practice-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
+.practice-layer iframe { width: 100%; height: 100%; border: none; }
+
+/* 成绩报告层（模拟考场/历年真题报告页；覆盖内容区，隐藏 tabBar） */
+.report-layer {
+  position: absolute;
+  top: 78px; left: 0; right: 0; bottom: 56px;   /* 内容区范围 */
+  z-index: 2100;               /* 高于内容 iframe */
+  background: #EDEFF7;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.report-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
+.report-layer iframe { width: 100%; height: 100%; border: none; }
+
+/* 二级页面（答题页 / 闪卡单卡·列表·完成 / 报告页）：隐藏 tabBar，内容区/做题层扩展到底 */
+body.tab-hidden .tabbar { display: none; }
+body.tab-hidden .content-frame { bottom: 0; }
+body.tab-hidden .practice-layer { bottom: 0; }
+body.tab-hidden .report-layer { bottom: 0; }
+
+/* ============ 右侧逻辑说明面板 ============ */
+.logic-col {
+  width: 0;               /* 收起态无宽度 */
+  overflow: hidden;
+  transition: width .25s ease;
+  background: #FBFBFF;
+  border-left: 1px solid #ECEFF6;
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.logic-col.open { width: 460px; }
+.logic-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* 视图切换胶囊 */
+.view-switch {
+  flex-shrink: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 10px 18px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #ECEFF6;
+}
+.view-chip {
+  padding: 5px 12px; border-radius: 14px;
+  border: 1px solid #E3E8F2; background: #F7F9FC;
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; transition: all .15s ease;
+  white-space: nowrap;
+}
+.view-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+.view-chip.active { background: var(--primary); border-color: var(--primary); color: #FFFFFF; font-weight: 600; }
+/* 全局通栏：卡片状态标签 */
+.logic-global {
+  flex-shrink: 0;
+  margin: 10px 18px 0;
+  padding: 6px 12px;
+  background: #FFFFFF;
+  border: 1px solid #ECEFF6;
+  border-radius: 10px;
+  font-size: 12px; line-height: 1;
+  color: var(--text-secondary);
+}
+.g-tab { display: inline-block; font-size: 11px; font-weight: 600; margin-right: 8px; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.g-tab.g-ok   { background: #E8F8F0; color: #20A866; }
+.g-tab.g-no   { background: #FEECEC; color: #EF4444; }
+.g-tab.g-stub { background: #FFF1E6; color: #F28B3D; }
+.logic-head {
+  flex-shrink: 0;
+  height: 46px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 18px;
+  border-bottom: 1px solid #ECEFF6;
+  background: #FFFFFF;
+}
+.logic-head .title { font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+.logic-head .close-x { margin-left: auto; border: none; background: none; cursor: pointer; color: var(--text-tertiary); font-size: 18px; line-height: 1; padding: 4px 6px; }
+.logic-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 18px 30px;
+  scrollbar-width: thin;
+}
+.logic-body::-webkit-scrollbar { width: 6px; }
+.logic-body::-webkit-scrollbar-thumb { background: #DDE1F0; border-radius: 3px; }
+.logic-desc { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 14px; padding: 12px 14px; background: var(--primary-light); border-radius: 12px; }
+.logic-sec { margin-bottom: 10px; }
+.logic-sec-head { display: flex; align-items: center; gap: 6px; padding: 0; }
+.logic-sec-head .num { width: 18px; height: 18px; border-radius: 5px; background: var(--primary); color: #FFFFFF; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logic-sec-head .sec-name { font-size: 13px; font-weight: 700; }
+.logic-sec-body { display: block; padding: 2px 0 0 24px; }
+.logic-para { margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.logic-label { display: flex; align-items: flex-start; gap: 6px; font-size: 12.5px; line-height: 1.55; color: var(--text-primary); padding: 4px 0; }
+.logic-label .k { flex-shrink: 0; font-weight: 600; color: var(--primary-dark); min-width: 58px; }
+.logic-label .v { color: var(--text-primary); }
+.logic-note { margin-top: 6px; font-size: 11.5px; color: var(--text-tertiary); background: #F5F6FB; border-radius: 8px; padding: 6px 10px; line-height: 1.5; }
+.logic-table { width: 100%; margin: 8px 0; border-collapse: collapse; font-size: 12px; }
+.logic-table th, .logic-table td { border: 1px solid #EAEDF6; padding: 6px 8px; text-align: left; vertical-align: top; }
+.logic-table th { background: #F8F9FC; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="main">
+  <!-- 左侧：手机壳（内容 iframe + 手机内 tab） -->
+  <div class="phone-col">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="phone-notch"><div class="speaker"></div><div class="cam"></div></div>
+        <div class="phone-statusbar">
+          <span class="status-time" id="statusTime">9:41</span>
+          <span class="status-icons">
+            <svg class="wifi" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0-8c-2.5 0-4.8.9-6.6 2.5l2.2 2.2a6 6 0 0 1 8.8 0l2.2-2.2a9.4 9.4 0 0 0-6.6-2.5zm0-5.4c-4.1 0-7.8 1.6-10.6 4.3l2.3 2.3a11.2 11.2 0 0 1 16.6 0l2.3-2.3A14.2 14.2 0 0 0 12 5.1z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="10" width="3" height="9" rx="1"/><rect x="7" y="7" width="3" height="12" rx="1"/><rect x="12" y="3" width="3" height="16" rx="1"/><rect x="17" y="6" width="3" height="13" rx="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="8" width="18" height="11" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h3"/><path d="M20 11h1"/></svg>
+          </span>
+        </div>
+        <!-- 小程序自带标题栏：当前页标题（含二级）+ 左退出（返回上一级）+ 右固定图标 -->
+        <div class="phone-appbar" id="appbar">
+          <button class="appbar-exit" id="appbarExit" onclick="handleAppbarExit()" aria-label="返回上一级">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            退出
+          </button>
+          <span class="appbar-title" id="appbarTitle">AI</span>
+          <div class="appbar-right">
+            <span class="appbar-ico appbar-more" aria-label="更多">⋯</span>
+            <span class="appbar-ico appbar-circle" aria-label="退出小程序">○</span>
+          </div>
+        </div>
+        <!-- 4 tab 内容：切 tab 显隐；懒加载（首次切才设 src） -->
+        <div class="content-frame">
+          <iframe id="frame-study" data-src="登录与画像原型.html" class="hidden"></iframe>
+          <iframe id="frame-quiz" src="题库.html"></iframe>
+          <iframe id="frame-flash" data-src="闪卡原型.html" class="hidden"></iframe>
+          <iframe id="frame-mine" data-src="我的.html" class="hidden"></iframe>
+        </div>
+        <!-- 小程序 tabBar：AI / 题库 / 闪卡 / 我的（Lucide 线性，选中主色） -->
+        <nav class="tabbar">
+          <button class="tab-item" data-frame="study" onclick="switchTab('study')">
+            <!-- Lucide house -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+              <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            </svg>
+            AI
+          </button>
+          <button class="tab-item active" data-frame="quiz" onclick="switchTab('quiz')">
+            <!-- Lucide book-open -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 7v14"/>
+              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
+            </svg>
+            题库
+          </button>
+          <button class="tab-item" data-frame="flash" onclick="switchTab('flash')">
+            <!-- Lucide layers-2 -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/>
+              <path d="m2.5 12.87 8.5 4.87a2 2 0 0 0 2 0l8.5-4.87"/>
+              <path d="m2.5 16.87 8.5 4.87a2 2 0 0 0 2 0l8.5-4.87"/>
+            </svg>
+            闪卡
+          </button>
+          <button class="tab-item" data-frame="mine" onclick="switchTab('mine')">
+            <!-- Lucide user -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="5"/>
+              <path d="M20 21a8 8 0 0 0-16 0"/>
+            </svg>
+            我的
+          </button>
+        </nav>
+
+        <!-- 品牌闪屏层（2.5s后隐藏，嵌入时跳过以避免双闪屏） -->
+        <div class="splash-layer" id="splashLayer">
+          <img src="ui切图/闪屏.png" alt="升本智答" />
+        </div>
+
+        <!-- VIP 弹层（领取VIP时覆盖内容区，绝对定位于手机屏幕内） -->
+        <div class="vip-layer" id="vipLayer">
+          <iframe id="frame-vip" src="VIP领取页.html"></iframe>
+        </div>
+
+        <!-- 统一做题层（题库/错题本/章节练习共用；覆盖内容区，tabBar 保留） -->
+        <div class="practice-layer" id="practiceLayer">
+          <iframe id="frame-practice" data-src="做题页.html"></iframe>
+        </div>
+
+        <!-- 成绩报告层（模拟考场/历年真题报告页；覆盖内容区，隐藏 tabBar） -->
+        <div class="report-layer" id="reportLayer">
+          <iframe id="frame-report" data-src="成绩报告.html"></iframe>
+        </div>
+
+        <!-- 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
+        <div class="vip-modal" id="benefitMask">
+          <div class="vip-card" id="benefitCard">
+            <!-- 白鹭占位（SVG，后续可替换正式素材） -->
+            <svg class="vip-logo" viewBox="0 0 92 78" fill="none" aria-hidden="true">
+              <g fill="currentColor">
+                <path d="M20 70 C18 52 26 40 40 34 C44 28 46 22 46 16 C52 24 54 34 50 44 C62 38 74 38 84 42 C74 44 66 50 61 58 C55 66 42 72 20 70 Z" opacity=".9"/>
+                <path d="M20 70 C22 66 30 63 40 61 L44 66 C34 68 26 69 20 70 Z" opacity=".85"/>
+                <circle cx="47" cy="20" r="3.4" fill="#FFE9B8" stroke="none"/>
+              </g>
+            </svg>
+
+            <button class="vip-close-x" id="benefitClose" title="关闭" aria-label="关闭">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+
+            <div class="vip-flag-wrap">
+              <span class="vip-flag">新用户专享</span>
+            </div>
+            <h3 class="vip-title">你的专属学习福利</h3>
+            <p class="vip-sub">VIP 学习权益免费领取，为你的专升本备考多一点助力。</p>
+
+            <div class="vip-benefits">
+              <div class="vip-benefit">
+                <span class="vip-benefit-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+                </span>
+                <div>
+                  <div class="vip-benefit-name">AI 助学</div>
+                  <div class="vip-benefit-desc">更贴合你的备考需求</div>
+                </div>
+              </div>
+              <div class="vip-benefit">
+                <span class="vip-benefit-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+                </span>
+                <div>
+                  <div class="vip-benefit-name">闪卡畅学</div>
+                  <div class="vip-benefit-desc">轻松巩固重点知识</div>
+                </div>
+              </div>
+              <div class="vip-benefit">
+                <span class="vip-benefit-ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </span>
+                <div>
+                  <div class="vip-benefit-name">专属权益</div>
+                  <div class="vip-benefit-desc">解锁更多学习内容</div>
+                </div>
+              </div>
+            </div>
+
+            <button class="vip-cta" id="benefitCta">领取专属权益</button>
+          </div>
+        </div>
+
+        <!-- 登录 Bottom Sheet（领取专属权益后底部上浮） -->
+        <div class="vip-login-modal" id="loginSheet">
+          <div class="vip-login-overlay" id="loginOverlay"></div>
+
+          <section class="vip-login-sheet">
+            <button class="vip-login-close" id="loginClose" title="关闭" aria-label="关闭">×</button>
+
+            <div class="vip-login-logo">
+              <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22 C5 16 10 11 16 8 C19 6 22 5 23 4 C21 9 18 13 13 17 C9 20 6 21 4 22 Z"/>
+                <path d="M4 22 C7 17 11 14 16 12"/>
+              </svg>
+            </div>
+
+            <h2 class="vip-login-title">登录鹭数教育</h2>
+            <p class="vip-login-desc">登录后即可领取新用户专属 VIP 学习权益</p>
+
+            <button class="vip-login-button" id="loginButton">微信一键登录</button>
+
+            <label class="vip-login-privacy">
+              <input type="checkbox" id="loginAgree" />
+              我已阅读并同意
+              <a href="javascript:void(0)">《用户协议》</a>和
+              <a href="javascript:void(0)">《隐私政策》</a>
+            </label>
+          </section>
+        </div>
+
+        <!-- 隐私政策提示浮窗（未勾选协议点微信登录时上浮；同意→自动勾选，不同意→不勾选） -->
+        <div class="privacy-modal" id="privacyModal">
+          <div class="privacy-overlay"></div>
+
+          <section class="privacy-sheet">
+            <div class="privacy-handle"></div>
+
+            <h3 class="privacy-title">用户协议及隐私政策</h3>
+            <div class="privacy-desc">
+              <p>在您注册成为成员的过程中，您需要通过点击同意的形式在线签署<a href="javascript:void(0)">《用户协议》</a>、<a href="javascript:void(0)">《隐私政策》</a>，请您务必仔细阅读、充分理解条款内容后再点击同意。</p>
+              <p>请您注意:如果您不同意上述服务条款、隐私政策或其中任何约定，请您停止注册。如您阅读并点击同意即表示您已充分阅读、理解并接受其全部内容，并表明您也同意可以依据以上隐私政策来处理您的个人信息。</p>
+              <p>点击同意即表示您已阅读并同意<a href="javascript:void(0)">《用户协议》</a>与<a href="javascript:void(0)">《隐私政策》</a>。</p>
+            </div>
+
+            <div class="privacy-actions">
+              <button class="privacy-btn privacy-btn-no" id="privacyDisagree">不同意</button>
+              <button class="privacy-btn privacy-btn-yes" id="privacyAgree">同意</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- 手机号选择弹窗（微信一键登录返回多个手机号时上浮，点击选择绑定哪个后登录） -->
+        <div class="phone-modal" id="phoneModal">
+          <div class="phone-overlay"></div>
+
+          <section class="phone-sheet">
+            <div class="phone-handle"></div>
+
+            <h3 class="phone-title">选择绑定手机号</h3>
+            <p class="phone-desc">检测到您的微信关联了多个手机号，请选择要绑定登录的手机号</p>
+
+            <div class="phone-list" id="phoneList"></div>
+
+            <button class="phone-cancel" id="phoneCancel">暂不登录</button>
+          </section>
+        </div>
+
+        <!-- 登录成功轻量提示（Toast）：登录后 1.5s 停留自动消失，不动弹窗结构 -->
+        <div class="vip-success-toast" id="successToast" role="status" aria-live="polite">
+          <span class="vip-success-icon">✓</span>
+          <span class="vip-success-text">登录成功，VIP权益已到账</span>
+        </div>
+      </div>
+      <!-- 系统 Home 指示条（手机壳，不在小程序内） -->
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- 右侧：闪卡逻辑说明面板（复制自闪卡原型，经 postMessage 联动） -->
+  <aside class="logic-col open" id="logicCol">
+    <div class="logic-panel">
+      <div class="logic-head">
+        <div class="title">📋 逻辑说明（学习页 · 闪卡）</div>
+        <button class="close-x" id="logicClose" title="收起/展开">×</button>
+      </div>
+      <div class="view-switch" id="viewSwitch"></div>
+      <div class="view-switch" id="studySwitch" style="display:none"></div>
+      <div class="logic-global" id="logicGlobal">
+        <span class="g-tab g-ok">已记住 · 右滑</span>
+        <span class="g-tab g-no">未记住 · 左滑</span>
+        <span class="g-tab g-stub">顽固 · 未记住≥3，每日必现</span>
+      </div>
+      <div class="logic-body" id="logicBody"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ============================================================
+   总壳状态中枢：登录/画像/VIP 全局唯一状态源
+   ============================================================ */
+var STATE = (function() {
+  /* 冷启动：登录/画像每次刷新重置，走【填画像→领VIP→登录】流程演示。
+     （2026-08-29 PM 拍板：刷新即重来；2026-08-30 补充：仅 VIP 领取状态持久化——
+       未领取(vipClaimed=false) → 每次登录/重开仍显示领取；首次领取完成后(vipClaimed=true) → 不再弹）
+     vipClaimed 独立持久于 zsb_vip_claimed_v1，不随刷新/退出清除；真实产品中该状态由后端存储 */
+  try { localStorage.removeItem('zsb_state_v1'); } catch(e) {}
+  var vipClaimed = false;
+  try { vipClaimed = localStorage.getItem('zsb_vip_claimed_v1') === '1'; } catch(e) {}
+  return {
+    logged: false,
+    user: null,
+    vipClaimed: vipClaimed,
+    profileLevel: 'none'
+  };
+})();
+
+/* 持久化：STATE 每次变更后写 localStorage（broadcast 统一出口触发）；
+   vipClaimed 单独写持久 key（跨会话保留，未领取→下次登录仍弹，首次领取后不再弹） */
+function persist() {
+  try { localStorage.setItem('zsb_state_v1', JSON.stringify(STATE)); } catch(e) {}
+  try { localStorage.setItem('zsb_vip_claimed_v1', STATE.vipClaimed ? '1' : '0'); } catch(e) {}
+}
+
+/* 画像完整度：year+month+school+major 齐全 → done；有任意一项 → partial；否则 none */
+function calcProfileLevel(user) {
+  /* 完整度=院校+专业+入学年份（考试时间 month 由系统按入学年份派生，不计入门槛，防 month 缺失导致画像永不完成） */
+  var u = user || {};
+  var hasAny = u.school || u.major || u.year;
+  var hasAll = u.school && u.major && u.year;
+  if (hasAll) return 'done';
+  if (hasAny) return 'partial';
+  return 'none';
+}
+
+var FRAMES = ['study', 'quiz', 'flash', 'mine', 'vip'];
+function allFrames() {
+  return FRAMES.map(function(f) { return document.getElementById('frame-' + f); })
+    .filter(Boolean);
+}
+
+/* 广播最新状态到所有 iframe（先持久化再广播：登录/画像/VIP 任何变更统一落盘） */
+function broadcast() {
+  persist();
+  allFrames().forEach(function(f) {
+    try { f.contentWindow.postMessage({ type: 'STATE', state: STATE }, '*'); } catch(e) {}
+  });
+}
+
+/* 子页面上报：LOGGED / PROFILE / VIP */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'SUBREADY') {
+    /* 子页就绪 → 回发当前状态（懒加载 iframe 迟到的场景） */
+    broadcast();
+    return;
+  }
+  if (d.type === 'REQ_LOGIN') {
+    /* 登录归属唯一：总壳登录 Sheet（A）；任何页请求登录 → 由总壳弹登录，不转发学习页
+       来源随请求透传，决定登录成功后 toast 文案与 VIP 是否到账 */
+    openLoginSheet(d.data && d.data.from);
+    return;
+  }
+  if (d.type === 'OPEN_PROFILE') {
+    /* 画像采集归属唯一：学习页 */
+    var study = document.getElementById('frame-study');
+    if (study && study.contentWindow) {
+      study.contentWindow.postMessage({ type: 'OPEN_PROFILE' }, '*');
+    }
+    switchTab('study');
+    return;
+  }
+  if (d.type === 'REQ_PRACTICE') {
+    /* 统一做题层：题库/错题本/章节练习/模拟考试/历年真题任一入口请求做题（entry 区分来源） */
+    openPractice(d.data && d.data.entry, d.data || {});
+    return;
+  }
+  if (d.type === 'REQ_REPORT') {
+    /* 模拟考场/历年真题点「查看报告」→ 存数据 + 打开报告层 */
+    openReport(d.data || {});
+    return;
+  }
+  if (d.type === 'GET_REPORT') {
+    /* 报告页拉数据 → 回发 */
+    var rp = document.getElementById('frame-report');
+    if (rp && rp.contentWindow) {
+      rp.contentWindow.postMessage({ type: 'REPORT_DATA', data: REPORT_DATA || {} }, '*');
+    }
+    return;
+  }
+  if (d.type === 'CLOSE_REPORT') {
+    closeReport();
+    return;
+  }
+  if (d.type === 'REPORT_REVIEW') {
+    /* 报告页「查看解析」/答题卡跳题 → 关报告层 → 打开做题页(考试卷) → 就绪后进入解析定位该题 */
+    var rd = d.data || {};
+    if (REPORT_DATA && REPORT_DATA.paperId) {
+      var entry = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
+      openPractice(entry, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
+      closeReport();
+      /* 等做题页加载完再送入解析定位（考卷就绪后） */
+      setTimeout(function() {
+        var practice = document.getElementById('frame-practice');
+        if (practice && practice.contentWindow) {
+          practice.contentWindow.postMessage({ type: 'ENTER_REVIEW', data:{ q: rd.q || 0 } }, '*');
+        }
+      }, 900);
+    }
+    return;
+  }
+  if (d.type === 'REPORT_RESTART') {
+    /* 报告页「在此作答」→ 关报告层 → 重新考试（正常模式） */
+    if (REPORT_DATA && REPORT_DATA.paperId) {
+      var entry2 = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
+      openPractice(entry2, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
+      closeReport();
+    }
+    return;
+  }
+  if (d.type === 'CLOSE_PRACTICE') {
+    /* 做题页点关闭/完成 → 收起做题层回原页 */
+    closePractice();
+    return;
+  }
+  if (d.type === 'CHAPTER_LAYER') {
+    /* 题库 tab 内二级层开关（chapter=章节刷题 / exam=模拟考场 / real=历年真题）
+       → appbar 标题跟随子页名 + 退出显隐 */
+    chapterLayerOpen = !!(d.data && d.data.open);
+    chapterLayerSub = (d.data && d.data.sub) || (chapterLayerOpen ? 'chapter' : '');
+    updateAppbarUI();
+    return;
+  }
+  if (d.type === 'LOGGED') {
+    STATE.logged = true;
+    if (d.data && d.data.user) STATE.user = d.data.user;
+    broadcast();
+    /* 从权益图点「领取权益」进入的登录 → 登录成功即 VIP 到账（本次会话不再弹权益） */
+    if (benefitUsing) {
+      benefitUsing = false;
+      benefitClosed = true;          /* 已经营过 → 不再弹 */
+      STATE.vipClaimed = true;
+      broadcast();
+    }
+  } else if (d.type === 'PROFILE') {
+    if (d.data && d.data.user) STATE.user = Object.assign({}, STATE.user, d.data.user);
+    STATE.profileLevel = calcProfileLevel(STATE.user);
+    broadcast();
+  } else if (d.type === 'VIP') {
+    STATE.vipClaimed = true;
+    broadcast();
+    closeVip();
+  } else if (d.type === 'NAV') {
+    /* 闪卡视图切换 → 逻辑面板跟随 + 二级页面隐藏 tabBar + 小程序栏标题/退出更新 */
+    setActivePanel(d.view);
+    renderLogicPanel(currentLogicData());
+    flashView = d.view;
+    updateTabBar();
+    updateAppbarUI();
+  } else if (d.type === 'POPUP') {
+    /* 闪卡弹窗/浮层开关 → 逻辑面板跟随（完成页/settings） */
+    if (d.name === 'settings') { settingsOpen = !!d.open; }
+    else if (d.name === 'completion') { completionOpen = !!d.open; }
+    renderLogicPanel(currentLogicData());
+  } else if (d.type === 'REQUEST_NAV') {
+    /* 面板视图胶囊 → 转发给闪卡 iframe 跳转 */
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: d.view }, '*');
+    }
+  }
+});
+
+/* 安全提示：caller tab 首次加载后向子页同步一次状态 */
+function syncChildState() {
+  broadcast();
+}
+
+/* ---------- 底部 tab 切换 ---------- */
+var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
+var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
+/* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题' };
+var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
+var practiceTitle = '';
+var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
+var chapterLayerSub = '';       /* 当前打开的子层：chapter=章节刷题 / exam=模拟考场 / real=历年真题 */
+function currentTabName() {
+  var t = document.querySelector('.tab-item.active');
+  return t ? t.getAttribute('data-frame') : '';
+}
+function updateAppbar(name) {
+  var title = document.getElementById('appbarTitle');
+  if (!title) return;
+  var n = name || currentTabName();
+  var t;
+  if (reportLayer.classList.contains('show')) {
+    t = '成绩报告';                                          /* 报告页标题 */
+  } else if (practiceLayer.classList.contains('show')) {
+    t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
+  } else if (chapterLayerOpen) {
+    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
+  } else if (n === 'flash') {
+    t = (flashView === 'view-home' || flashView === 'view-stats')
+      ? (TAB_NAMES.flash || '闪卡')
+      : (FLASH_TITLES[flashView] || TAB_NAMES.flash || '闪卡');  /* 闪卡单卡/列表/完成 */
+  } else {
+    t = TAB_NAMES[n] || '';
+  }
+  title.textContent = t;
+}
+/* 左侧退出显隐：二级页面显示，一级页面隐藏 */
+function updateAppbarExit() {
+  var exit = document.getElementById('appbarExit');
+  if (!exit) return;
+  var n = currentTabName();
+  var show = false;
+  if (reportLayer.classList.contains('show')) show = true;            /* 报告页 */
+  else if (practiceLayer.classList.contains('show')) show = true;     /* 答题页 */
+  else if (chapterLayerOpen) show = true;                            /* 题库 tab 内章节刷题二级层 */
+  else if (n === 'flash' && flashView !== 'view-home' && flashView !== 'view-stats') show = true;  /* 闪卡二级 */
+  exit.classList.toggle('show', show);
+}
+/* 左侧退出：返回上一级（答题页→回题库；章节层→收起回题库首页；闪卡二级→回闪卡首页） */
+function handleAppbarExit() {
+  if (reportLayer.classList.contains('show')) {
+    closeReport();
+    return;
+  }
+  if (practiceLayer.classList.contains('show')) {
+    closePractice();
+    return;
+  }
+  if (chapterLayerOpen) {
+    /* 通知题库 iframe 收起章节层（状态保留） */
+    var quiz = document.getElementById('frame-quiz');
+    if (quiz && quiz.contentWindow) {
+      quiz.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
+    }
+    return;
+  }
+  var n = currentTabName();
+  if (n === 'flash') {
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: 'view-home' }, '*');
+    }
+  }
+}
+function updateAppbarUI() {
+  updateAppbar(currentTabName());
+  updateAppbarExit();
+}
+function switchTab(name) {
+  closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
+  if (chapterLayerOpen) {  /* 切 tab → 收起二级层 */
+    var quiz = document.getElementById('frame-quiz');
+    if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
+    chapterLayerOpen = false;
+    chapterLayerSub = '';
+  }
+  updateAppbar(name);
+  updateLogicForTab(name);
+  /* 免费 VIP 触发：首次进题库 tab 自动弹（判据=未领取+会话未关；触发时机=切到题库页，登录与否都弹）。
+     2026-08-29 PM 拍板：由「切任一功能tab弹」改为「仅首次进题库页弹」，刷新重置后重新可弹 */
+  if (name === 'quiz') openBenefit();
+  TAB_FRAMES.forEach(function(f) {
+    var iframe = document.getElementById('frame-' + f);
+    if (iframe) iframe.classList.toggle('hidden', f !== name);
+    var tab = document.querySelector('.tab-item[data-frame="' + f + '"]');
+    if (tab) tab.classList.toggle('active', f === name);
+  });
+  /* 首次切入懒加载：切到才设 src，避免4个页面同载 */
+  var next = document.getElementById('frame-' + name);
+  var justLoaded = false;
+  if (!next.getAttribute('src') && next.getAttribute('data-src')) {
+    next.setAttribute('src', next.getAttribute('data-src'));
+    justLoaded = true;
+  }
+  /* 切入后同步状态 */
+  setTimeout(syncChildState, 150);
+  if (name === 'flash' && justLoaded) {
+    /* 仅首次加载闪卡时同步面板高亮（避免切回时重置闪卡内部视图，保证单卡/列表二级页状态保留） */
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: activePanel }, '*');
+    }
+  }
+  updateTabBar();   /* 切 tab 后按当前页状态刷新 tabBar 显隐 */
+  updateAppbarExit();   /* 切 tab 后刷新左侧退出显隐（二级显示/一级隐藏） */
+}
+
+/* 小程序顶栏「退出」仅为演示铬，无点击逻辑 */
+
+/* ---------- VIP 弹层 ---------- */
+var vipLayer = document.getElementById('vipLayer');
+function openVip() {
+  vipLayer.classList.add('show');
+  setTimeout(syncChildState, 150);
+}
+function closeVip() {
+  vipLayer.classList.remove('show');
+}
+
+/* ---------- 统一做题层（题库/错题本/章节练习共用一页；覆盖内容区，二级页面隐藏 tabBar） ---------- */
+var practiceLayer = document.getElementById('practiceLayer');
+var practiceFrame = document.getElementById('frame-practice');
+var reportLayer = document.getElementById('reportLayer');
+var reportFrame = document.getElementById('frame-report');
+var REPORT_DATA = null;        /* 报告数据（模拟考场/历年真题 REQ_REPORT 注入） */
+var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
+
+/* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
+function updateTabBar() {
+  var activeTab = document.querySelector('.tab-item.active');
+  var name = activeTab ? activeTab.getAttribute('data-frame') : '';
+  var show = true;
+  if (practiceLayer.classList.contains('show')) {
+    show = false;                                             /* 答题页（二级）→ 隐藏 */
+  } else if (reportLayer.classList.contains('show')) {
+    show = false;                                             /* 报告页（二级）→ 隐藏 */
+  } else if (name === 'flash') {
+    show = (flashView === 'view-home' || flashView === 'view-stats');  /* 闪卡单卡/列表/完成 → 隐藏 */
+  }
+  document.body.classList.toggle('tab-hidden', !show);
+}
+
+function openPractice(entry, extra) {
+  extra = extra || {};
+  /* 考试/真题卷：标题用卷名（如「卷 01 · 2026 届全真模拟卷一」），笔试分/时长透传做题页 */
+  practiceTitle = PRACTICE_TITLES[entry] || '今日学习';
+  if ((entry === 'exam' || entry === 'real') && extra.name) practiceTitle = extra.name;
+  var url = '做题页.html?entry=' + (entry || 'today');
+  if (entry === 'exam' || entry === 'real') {
+    url += '&paperId=' + (extra.paperId || '') + '&minutes=' + (extra.minutes || '') + '&fullScore=' + (extra.fullScore || '');
+  }
+  if (!practiceFrame.getAttribute('src')) {
+    practiceFrame.setAttribute('src', url);
+  } else {
+    try { practiceFrame.contentWindow.location.href = url; } catch(e) { practiceFrame.setAttribute('src', url); }
+  }
+  practiceLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+function closePractice() {
+  practiceLayer.classList.remove('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+
+/* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */
+function openReport(data) {
+  REPORT_DATA = data || REPORT_DATA;
+  if (!reportFrame.getAttribute('src')) {
+    reportFrame.setAttribute('src', '成绩报告.html');
+  } else {
+    try { reportFrame.contentWindow.location.href = '成绩报告.html'; } catch(e) { reportFrame.setAttribute('src', '成绩报告.html'); }
+  }
+  reportLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+function closeReport() {
+  reportLayer.classList.remove('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+
+/* ---------- 免费权益弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取→登录→VIP到账） ---------- */
+var benefitMask  = document.getElementById('benefitMask');
+var benefitCard  = document.getElementById('benefitCard');
+var benefitClosed = false;   /* 本次会话已关过（点X / 点图外）→ 不再弹 */
+var benefitUsing  = false;   /* 正在走「领取→登录」链路中 */
+var benefitShown  = false;   /* 本次会话已展示过（含领取中）→ 不再主动弹 */
+
+function openBenefit() {
+  if (STATE.vipClaimed || benefitClosed || benefitShown) return;
+  benefitShown = true;
+  benefitMask.classList.add('show');
+}
+function hideBenefit() {
+  benefitMask.classList.remove('show');
+}
+/* 点领取权益：卡片缩小消失 → 已登录直接到账 / 未登录弹登录 Sheet */
+function claimBenefit() {
+  benefitUsing = true;      /* 标记：本次领取（登录后到账 / 已登录直接到账） */
+  benefitCard.classList.add('leave');
+  benefitMask.classList.add('leave');
+  setTimeout(function() {
+    benefitCard.classList.remove('leave');
+    benefitMask.classList.remove('leave');
+    hideBenefit();           /* VIP 福利弹窗隐藏 */
+    if (STATE.logged) {
+      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 → 跳学习页（未画像填画像 / 已画像进首页） */
+      benefitUsing = false;
+      benefitClosed = true;         /* 已到账 → 本次会话不再弹权益 */
+      STATE.vipClaimed = true;
+      broadcast();
+      showToastText('领取成功，VIP权益已到账');
+      switchTab('study');
+    } else {
+      openLoginSheet('benefit');    /* 权益线：底部上浮登录弹窗（登录成功自动到账 + 跳学习页） */
+    }
+  }, 230);
+}
+/* 事件绑定 */
+document.getElementById('benefitClose').addEventListener('click', function() {
+  benefitClosed = true;
+  hideBenefit();
+  switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像；未领取下次登录仍弹 */
+});
+benefitMask.addEventListener('click', function(e) {
+  if (e.target === benefitMask) {   /* 点图外遮罩 */
+    benefitClosed = true;
+    hideBenefit();
+    switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像 */
+  }
+});
+document.getElementById('benefitCta').addEventListener('click', claimBenefit);
+
+/* ---------- 登录 Bottom Sheet（领取专属权益后底部上浮） ---------- */
+var loginSheet   = document.getElementById('loginSheet');
+var loginClose   = document.getElementById('loginClose');
+var loginButton  = document.getElementById('loginButton');
+var loginAgree   = document.getElementById('loginAgree');
+var loginOverlay = document.getElementById('loginOverlay');
+
+/* 登录来源：benefit=权益线（领取→登录→VIP到账） / onboarding=画像线（登录→跳问答） / 其他=我的等普通登录 */
+var loginFrom = 'general';
+function openLoginSheet(from) {
+  loginFrom = from || 'general';          /* 记录本次登录来源（决定 toast 文案 & 是否 VIP 到账） */
+  loginSheet.classList.add('show');
+}
+function closeLoginSheet() {
+  loginSheet.classList.remove('show');
+}
+/* 关闭登录弹窗：领取路径（from=benefit）放弃登录 → 跳学习页填画像（benefitUsing 保留：点过领取，后续登录成功 VIP 仍到账） */
+function closeLoginSheetThen() {
+  closeLoginSheet();
+  if (loginFrom === 'benefit') switchTab('study');
+}
+/* 点 ×：关闭登录弹窗，返回原页面，不登录不领 VIP */
+loginClose.addEventListener('click', closeLoginSheetThen);
+/* 点遮罩：同样关闭（与 × 一致） */
+loginOverlay.addEventListener('click', closeLoginSheetThen);
+/* ---------- 隐私政策提示浮窗（未勾选协议 → 上浮提示；同意→自动勾选 / 不同意→不勾选） ---------- */
+var privacyModal = document.getElementById('privacyModal');
+function openPrivacyModal()  { privacyModal.classList.add('show'); }
+function closePrivacyModal() { privacyModal.classList.remove('show'); }
+/* 同意 → 弹窗下滑隐藏 + 自动勾选，用户可再点微信一键登录（不自动登录） */
+document.getElementById('privacyAgree').addEventListener('click', function() {
+  closePrivacyModal();
+  loginAgree.checked = true;
+});
+/* 不同意 → 弹窗下滑隐藏 + 保持不勾选 */
+document.getElementById('privacyDisagree').addEventListener('click', function() {
+  closePrivacyModal();
+});
+
+/* ---------- 手机号选择弹窗（微信一键登录返回多个手机号 → 选择绑定哪个后登录） ---------- */
+var phoneModal  = document.getElementById('phoneModal');
+var phoneList   = document.getElementById('phoneList');
+var phoneCancel = document.getElementById('phoneCancel');
+/* 模拟微信 getPhoneNumber 返回的关联手机号（接真实接口时替换）；仅 1 个时直接登录，不弹选择 */
+var WX_PHONES = [
+  { num: '138****1234', tag: '微信绑定' },
+  { num: '139****5678', tag: '' }
+];
+function renderPhoneList(phones) {
+  phoneList.innerHTML = phones.map(function(p) {
+    return '<button class="phone-item" data-phone="' + p.num + '">' +
+      '<span class="phone-item-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>' +
+      '<span class="phone-item-num">' + p.num + '</span>' +
+      (p.tag ? '<span class="phone-item-tag">' + p.tag + '</span>' : '') +
+      '</button>';
+  }).join('');
+}
+function openPhoneModal()  { phoneModal.classList.add('show'); }
+function closePhoneModal() { phoneModal.classList.remove('show'); }
+/* 点击手机号条目 → 绑定该号并登录 */
+phoneList.addEventListener('click', function(e) {
+  var item = e.target.closest('.phone-item');
+  if (!item) return;
+  closePhoneModal();
+  doWechatLogin(item.getAttribute('data-phone'));
+});
+/* 暂不登录 → 仅关闭手机号选择弹窗，停留登录 Sheet */
+phoneCancel.addEventListener('click', closePhoneModal);
+
+/* 微信一键登录：未勾选协议 → 上浮隐私弹窗；已勾选 → 判断手机号（多个→选择弹窗）→ 登录 */
+loginButton.addEventListener('click', function() {
+  if (!loginAgree.checked) {
+    openPrivacyModal();
+    return;
+  }
+  /* 模拟微信一键登录返回关联手机号：多个 → 弹选择框选绑定号；仅 1 个 → 直接登录 */
+  var phones = WX_PHONES;
+  if (phones.length > 1) {
+    renderPhoneList(phones);
+    openPhoneModal();
+    return;
+  }
+  doWechatLogin(phones.length ? phones[0].num : '');
+});
+
+/* 登录成功统一收口：携带绑定手机号（三条线共用登录 Sheet，来源区分文案 & VIP 到账） */
+function doWechatLogin(phone) {
+  STATE.logged = true;
+  /* 登录不覆盖已填的画像草稿（C）：合并昵称/手机号等身份字段，保留 school/major/year/month 画像 */
+  STATE.user = Object.assign({}, STATE.user || {},
+    { nick: '团团酱', phone: phone,
+      year: STATE.user && STATE.user.year || '大三',
+      major: STATE.user && STATE.user.major || '计算机大类' });
+  STATE.profileLevel = calcProfileLevel(STATE.user);
+  var from = loginFrom;
+  var toastText = '登录成功';
+  if (benefitUsing) {
+    /* 权益线：领取专属权益触发的登录 → 登录 + VIP 到账，toast 提示到账 */
+    benefitUsing = false;
+    benefitClosed = true;       /* 本次会话不再弹权益 */
+    STATE.vipClaimed = true;
+    toastText = '登录成功，VIP权益已到账';
+  } else if (from === 'onboarding') {
+    /* 画像线：完成画像后登录 → 仅登录+跳问答，不涉及权益，toast 提示画像已保存 */
+    toastText = '登录成功，学习画像已保存';
+  }
+  /* 我的页等普通登录 → 默认「登录成功」，与权益/画像无关 */
+  broadcast();
+  closeLoginSheet();
+  showToastText(toastText);    /* 登录成功 → 按来源提示（自动消失，无额外点击） */
+  /* 领取路径（权益线）登录成功 → VIP 已到账，跳学习页填画像/进首页 */
+  if (from === 'benefit') switchTab('study');
+}
+
+/* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */
+var toastTimer = null;
+function showSuccessToast() { showToastText('登录成功，VIP权益已到账'); }
+function showToastText(text) {
+  var t = document.getElementById('successToast');
+  if (!t) return;
+  var txt = t.querySelector('.vip-success-text');
+  if (txt) txt.textContent = text;
+  if (toastTimer) clearTimeout(toastTimer);
+  t.classList.remove('show', 'hiding');   /* 复位动画状态 */
+  requestAnimationFrame(function() {
+    t.classList.add('show');              /* 出现：opacity 0→1 + translateY(8px)→0 */
+  });
+  /* 停留 1.5s 后进入消失态，再 0.2s 完全隐藏 */
+  toastTimer = setTimeout(function() {
+    t.classList.remove('show');
+    t.classList.add('hiding');            /* 消失：opacity 1→0 + translateY(0)→4px */
+    toastTimer = setTimeout(function() {
+      t.classList.remove('hiding');
+    }, 200);
+  }, 1500);
+}
+
+/* ---------- 闪屏 2.5s 后隐藏（嵌入小程序总壳时跳过，避免双闪屏） ---------- */
+var EMBEDDED = (function() {
+  try {
+    return window.parent !== window.self &&
+      /小程序总壳\.html$/.test(window.parent.location.pathname);
+  } catch(e) { return false; }
+})();
+setTimeout(function() {
+  var s = document.getElementById('splashLayer');
+  if (s) s.classList.add('hide');
+}, EMBEDDED ? 0 : 3000);
+
+/* 各 tab 懒加载完成后再广播一次（保证迟到 iframe 拿到状态） */
+window.addEventListener('load', function() { setTimeout(broadcast, 800); });
+
+/* ============================================================
+   逻辑说明面板（复制自闪卡原型，随闪卡视图/弹窗 postMessage 联动）
+   ============================================================ */
+var logicBody = document.getElementById('logicBody');
+var viewSwitch = document.getElementById('viewSwitch');
+var logicGlobal = document.getElementById('logicGlobal');
+var activePanel = 'view-study-login'; /* 当前面板（默认学习页·登录子tab） */
+var settingsOpen = false;            /* 首页设置弹窗开关 */
+var completionOpen = false;          /* 完成结算浮层开关 */
+
+var PANELS = {
+  /* 学习页 · 登录子 tab：登录流程 / 游客模式 / 品牌闪屏 / AI对话首页 / 领取VIP权益判定 */
+  'view-study-login': {
+    desc: '冷启动落地（登录引导入口）：闪屏后默认落在题库 tab，未领取 VIP 自动弹领取弹窗；领取 → 登录 → VIP 到账 → 跳学习页填画像；关闭 → 直接跳学习页填画像。',
+    sections: [
+      { num:'1', title:'品牌闪屏',
+        paras: [
+          '品牌图整屏展示，等待 2.5s 后自动进入首页。'
+        ] },
+      { num:'2', title:'AI 对话首页（进入判定）',
+        paras: [
+          '判断是否填写用户画像：未填写 → AI 互动（同原型），显示轻量级对话卡片，单选；完成后显示引导词提示登录。'
+        ],
+        labels: [
+          {k:'异常空态', v:'画像草稿保留在总壳 STATE.user，登录/退出均不清空'}
+        ] },
+      { num:'3', title:'登录流程',
+        paras: [
+          '登录 / 领取 / 画像流程（三条主线）见流程图：03_PRD §四（三）4。'
+        ] },
+      { num:'4', title:'游客模式',
+        paras: [
+          '游客（未登录）可自由试用 AI 问答，不强制登录；点需登录功能 → 弹总壳登录 Sheet。',
+          '「补全资料」弱引导 → 学习页画像 Sheet；已画像不显示引导。'
+        ]
+      },
+      { num:'5', title:'领取 VIP 权益判定',
+        paras: [
+          '冷启动默认落题库 tab → 未领取（vipClaimed=false）自动弹 VIP 福利；已领取 → 不再弹。',
+          '领取状态持久化：未领取 → 每次登录/重开仍弹；首次领取完成（vipClaimed=true）→ 不再弹。',
+          '点「领取专属权益」：已登录 → 直接到账 + Toast → 跳学习页；未登录 → 弹登录 Sheet → 登录成功 → VIP 到账 + Toast → 跳学习页填画像。',
+          '点 X / 图外关闭 → 本会话不再弹，跳学习页填画像（未领取，下次登录仍弹）。'
+        ],
+        labels: [
+          {k:'空异常态', v:'会话内点 X / 图外关一次不再主动弹；未领取则下次登录/重开仍弹'}
+        ] }
+    ]
+  },
+  /* 学习页 · 学习页子 tab：对话交互（首次对话 / AI问答 + 关键词回复判定） */
+  'view-study-page': {
+    desc: '学习页子页：AI 对话交互。原型未全部设计完成，本 tab 仅覆盖已确认的对话逻辑。',
+    sections: [
+      { num:'1', title:'首次对话',
+        paras: [
+          '进入首页，AI 自动发送固定欢迎语。'
+        ] },
+      { num:'2', title:'AI 问答',
+        paras: [
+          '输入提问 → AI 回复；按键词命中走固定回复，输入框为空不发送。'
+        ],
+        labels: [
+          {k:'关键词回复', v:'含「专业/跨考」→ 跨考专业口径；含「分数线/多少分」→ 投档线口径；默认 → 引导补充画像'},
+          {k:'判定条件', v:'接入知识库+大模型后，按关键词自动回复（关键词命中口径之上）'}
+        ] }
+    ]
+  },
+  'view-home': {
+    desc: '首页：考试倒计时 + 章节树 + 学习入口。仅已初始化用户进入（游客引导完成初始化后才可用），考试倒计时为全局统一口径。',
+    sections: [
+      { num:'1', title:'考试倒计时（Hero 顶部）',
+        paras: [
+          '锚点：距离最近一届统招专升本考试还有 N 天，N = 当年统考日 − 今日（自然日差）。',
+          '考试日期从山东招考院当年公布时间爬取/人工维护，每年更新 1 次，不写入用户画像。'
+        ],
+        labels: [
+          {k:'判断阈值', v:'考试日 ≤ 今日 → 视为过期/待更新'},
+          {k:'异常空态', v:'未爬取到或已过期 → 显示「考试日待更新」，不显示负数'}
+        ] },
+      { num:'2', title:'全部章节（掌握率一览）',
+        paras: [
+          '10 个一级章节，章节树按页面上下顺序排列；以章卡为一级，逐级展开二级 / 三级（子考点）、四级（知识点）。',
+          '一级至三级右侧展示「已记住 / 卡片数」+ 掌握率百分比；四级展示该知识点答题情况（已记住 ✓ / 未记住 × / 顽固）。',
+          '一级章节按掌握率升序（弱章节排最前），便于优先夯实薄弱；点击四级知识点直接进入单卡模式该考点过滤队列，刷该知识的全部题目。'
+        ] },
+      { num:'3', title:'背诵计划卡（Hero 下方）',
+        paras: [
+          '每日 N 张 = 用户设置值（卡池不足自动收缩）；连续 N 天 = 连续学习天数；总进度 = 已记/总量百分比，由章节实时汇总。'
+        ] },
+      { num:'4', title:'学习入口',
+        paras: [
+          '按钮文案：今日已开始学习（当日队列有已答卡）→「继续背诵」；今日未刷 →「开始学习」。',
+          '「继续背诵」进入单卡模式后，从当日队列中下一张未标记的卡开始（未标记即锚点，已答卡自动跳过）。',
+          '右上角设置入口 → 每日数量弹窗，保存落库 flashCardConfig_v1；今日未开始学习 → 立即生效，今日已开始 → 次日生效。'
+        ] }
+    ]
+  },
+  'view-single': {
+    desc: '单卡模式 v3.0：翻卡记忆 + 左右滑动标记「已记住/未记住」的学习模块；两种入口（今日队列 / 考点全题）都能进，卡片状态标签见全局通栏。',
+    sections: [
+      { num:'1', title:'进入单卡模式（入口与队列）',
+        paras: [
+          '首页「开始学习」/「继续背诵」进入：刷今日队列（每日 N 张）；「继续背诵」从今天下一张还没标记的卡接着刷。',
+          '首页章节树的考点进入：刷该考点全部题目（不受每日 N 张限制），刷完即完成该考点；两种入口的标记共用同一份今日进度。'
+        ] },
+      { num:'2', title:'翻卡与滑动（区块②③ 卡片交互）',
+        paras: [
+          '正面：clozeHtml(question) 填空题干（____ 渲染为视觉空位）。',
+          '背面：clozeHtml(question, answer) 空位填答案高亮 + 答案 + 解析。',
+          '轻触卡片 → flipCard() 翻转（正↔背）。翻转不计入答题、不改任何状态。'
+        ],
+        tableHead:['卡片动作','行为','标记？'],
+        table: [
+          ['轻触卡片','左右翻转（正↔背）','否，不改任何状态'],
+          ['背面拖拽','右滑=已记住 / 左滑=未记住','是'],
+          ['正面拖拽','左滑=上一张（浏览）/ 右滑=下一张（跳过）','否'],
+          ['边界回弹','无上一张/下一张 → 位移×0.25 回弹 + 摇晃提示','—'],
+          ['翻卡动画中','忽略一切交互（飞出/飞入 400ms）','—']
+        ],
+        tableHead2:['滑动判定','阈值口径','提交方式'],
+        table2: [
+          ['背面拖动','|dx|≥170（卡片区约50%，拖到侧边）','立即判定，无需松手'],
+          ['背面拖动','|dx|≥80','松手判定'],
+          ['背面拖动','|dx|<80','回弹归位，不标记'],
+          ['正面拖拽','左滑 dx<-80 / 右滑 dx>80','松手判定，不标记（左滑=上一张/右滑=下一张）'],
+          ['正面拖拽门槛','|dx|>8（死区）才进入导航拖拽；否则视为轻触','按翻转（flipCard）处理']
+        ],
+        labels:[
+          {k:'强约束', v:'不翻卡不能滑动判定（防不看答案乱滑）'},
+          {k:'判定提交', v:'右滑 → commitCard(remembered)；左滑 → commitCard(forgot)。滑动过程卡片两侧浮现「已记住」（右绿）→「未记住」（左红）反馈标签，透明度随手指位移渐显：opacity = min(|dx|/80, 1) × 0.9，拖到判定线 80px 时达最大 90%，超过 80px 保持 90% 不再加深。'},
+          {k:'提交动作链', v:'已答卡重答 → 先 undoMarkSideEffects 还原旧标记（删掉当天重刷的重复卡/未记住次数减回一次）→ markCard（未记住：未记住次数+1 + 队尾补同一张卡等会再刷一次）→ saveState + refreshFilter → 400ms 动画后下一张或完成结算'}
+        ] },
+      { num:'3', title:'上一张 / 下一张（区块④ 导航）',
+        paras: [
+          '上一张：返回「上一道题」的原卡——同一题若因为答未记住而补了重复卡，直接跳过，回到那张唯一的原卡；无论该卡是否已答都显示；标记不可逆，不触发重答。',
+          '下一张：当前卡后第一张未标记卡；无则禁用。被跳过的卡保留在待答队列中。',
+          '进度不因跳过改变（marked 未写）。',
+          '导航只发生在正面拖拽或底部按钮；边界（无上一张原卡 / 无下一张待答）回弹 + shakeWarn。'
+        ],
+        labels:[
+          {k:'重答', v:'回退到已答卡时，滑动标记 = 先 undoMarkSideEffects 还原旧标记（删掉重复卡/未记住次数减回一次）再重新标记，数据不脏；手动点按钮无撤销概念'}
+        ] },
+      { num:'4', title:'进入/退出与会话',
+        paras: [
+          '当天第一次进入记录学习开始时间，完成今日学习后清除计时。',
+          '跨天自动开始新的一天（新的今日队列），不会把昨天的卡带过来。',
+          '中途退出再进入：队列保持当天状态（不重新打乱），刷新后从上次进度继续。'
+        ] }
+    ]
+  },
+  'view-complete': {
+    desc: '完成结算页 v1.0：单卡/列表刷完当日或考点后进入的学习成果页。多入口共用同一份统计口径。',
+    sections: [
+      { num:'1', title:'触发条件',
+        paras: [
+          'commitCard 标记后，stats.done ≥ stats.total 即进入（当日=配额全刷完；考点过滤=该考点范围内全刷完；未记住补的重复卡不再继续出现）。',
+          '单卡/列表刷完都会进入本页，共享同一统计口径；「再背一轮」可重新开始当日学习。'
+        ] },
+      { num:'2', title:'内容元素与口径',
+        tableHead:['元素','口径'],
+        table: [
+          ['Hero 文案','accuracy≥80「不错哦🎉」；≥60「继续加油💪」；否则「再加把劲📚」'],
+          ['环形图','圆心 accuracy=round(remembered/done×100)'],
+          ['薄弱 TOP5','getWeakPoints(state,5)：forgot 降序→同次 total 降序；无则「全部掌握🎉」'],
+          ['章节分布','按 chapter 聚合绿条=已记住 / 红条=未记住（顽固卡含在未记住内），单章 ok%=已记住/总数'],
+          ['效率分析','用时 formatDuration(M:SS)；速度 round(elapsed/done)s/张；较上次：本次成果 vs 上次成果（最近一条历史）'],
+          ['底部按钮','只留「再背一轮」：重新计入成绩，刷新所有章节分布']
+        ] },
+      { num:'3', title:'历史与再背',
+        paras: [
+          '成绩记历史：每完成一轮记一条（flashCardHistory_v1，保留最近 30 条，新纪录放最前）；同一天背 3 轮就是 3 条历史，完成页「较上次」= 和最近一条比。',
+          '「再背一轮」→ restart() 生成全新当天状态（跨天 forgotCount 保留在卡上），清计时重新计时。'
+        ] }
+    ]
+  },
+  'view-list': {
+    desc: '列表模式：全部卡片铺开浏览 / 标记的刷题页。学生可操作。',
+    sections: [
+      { num:'1', title:'职责与队列',
+        paras: [
+          '与单卡模式共用同一份当日队列、过滤参数与 marked 进度（同一份数据，切换模式进度不丢）。',
+          '列表按「未答在上、已答置灰折叠在下」排布；无卡片时展示空态「暂无卡片 · 请返回首页重新开始背诵」。'
+        ] },
+      { num:'2', title:'标记操作',
+        paras: [
+          '点击题干行内遮罩 → 原位揭示答案 + 同步展开解析 + 启用该卡「已记住/未记住」按钮；未揭答前按钮禁用，防不看答案乱标。'
+        ],
+        tableHead:['动作','行为','标记？'],
+        table: [
+          ['点击行内遮罩','原位替换为答案，并展开该卡解析','否，仅揭示'],
+          ['点「已记住」','卡片折叠置灰到已答区','是，写入同一份 marked'],
+          ['点「未记住」','卡片折叠置灰 + 队尾补同一张副本（「今日重现」角标，当天会再刷一遍）','是'],
+          ['已答卡点击','只展开解析查看，不可重复标记','否']
+        ],
+        labels:[
+          {k:'顽固卡', v:'未记住 ≥3 次的卡：卡片右上角 ⚡ 角标 + 边框强化，底部统计条单独计数（不包含在「未记住」总数内）'}
+        ] },
+      { num:'3', title:'完成结算',
+        paras: [
+          '全部标记完毕（stats.done ≥ stats.total）→ 进入完成结算页，统计口径与单卡模式一致；「再背一轮」→ restart() 生成全新当天状态重进列表。'
+        ] }
+    ]
+  },
+  'view-stats': {
+    desc: '章节统计：首页章节树的掌握度视图（四层章节树）。无需独立页面，展示在首页。',
+    sections: [
+      { num:'1', title:'章节树结构（首页）',
+        paras: [
+          '首页章节卡片即章节统计载体：一级章节 → 二级（子章节）→ 三级（考点）→ 四级（知识点），点击层层展开，章节卡片默认收起。',
+          '10 个一级章节按掌握率升序排列（最薄弱在前）；「背诵计划卡」「总进度」由各章节实时汇总，与章节树口径一致。'
+        ] },
+      { num:'2', title:'层级数字口径',
+        tableHead:['层级','展示'],
+        table: [
+          ['一级章节','掌握率（已记住 ÷ 卡片数）+ 已记住/卡片数 + 顽固卡数'],
+          ['二级（子章节）','已记住 / 卡片数 + 掌握率%'],
+          ['三级（考点）','已记住 / 卡片数 + 掌握率%'],
+          ['四级（知识点）','✓已记住  ×未记住  顽固 计数'],
+          ['来源','CHAPTERS 演示数据；固执卡按 CARDS 题库 forgotCount≥3 实时统计'],
+          ['排序','章节/子章节均按 progress（已答比例）升序，最薄弱排最前']
+        ] },
+      { num:'3', title:'联动',
+        paras: [
+          '点击三级（考点）/四级（知识点）标题 → 进入单卡模式对应考点过滤队列刷题（goLevel4 传 chapter/sub/point）。',
+          '当前视图为首页，顶部按钮仍可切换单卡/列表等模式，数据共享同一份今日进度。'
+        ] }
+    ]
+  },
+  'view-settings': {
+    desc: '每日学习卡片设置：首页右上角设置入口 → 弹窗。学生可操作。',
+    sections: [
+      { num:'1', title:'职责',
+        paras: [
+          '每日学习卡片数量：滑杆 10-500、步进 10；快捷值 30/50/100/200/350 点击即选。',
+          '该数量是生成今日队列的数量基准；超过题库总量时自动收缩为实际可用卡数，顽固卡自动优先入队。'
+        ] },
+      { num:'2', title:'数据落库与生效',
+        labels:[
+          {k:'保存', v:'saveConfig → flashCardConfig_v1，仅更新每日数量（保留现有章节权重）'},
+          {k:'立即生效', v:'今天还没开始刷（无已答记录）→ 保存后立即生效'},
+          {k:'次日生效', v:'今天已开始背诵 → 新数量明日生效'},
+          {k:'去向', v:'保存后弹窗自动关闭，回到首页'}
+        ] },
+      { num:'3', title:'每日卡片构成（规则自动算，无用户可配比例）',
+        paras: [
+          '每日队列 = 复习卡 + 新卡。卡片类型（复习/新卡）比例由规则自动决定，不存在用户可配置的卡片类型比例。',
+          '复习卡 = 未记住卡（累计 forgotCount≥1，含顽固 ≥3），必现优先入队；复习卡占满配额 → 新卡为 0，警示「明日无新卡，新卡顺延到后天」。',
+          '每章新卡数 = max(0, 每日数量 × 该章比例 − 该章复习卡数)；实际每日数量 = min(配置 dailyCount, 卡池可用卡数)。',
+          '时间口径区分：今日队列的复习卡不含「已记住到期」；明日组成预估 = 今日已记住(+1天到期) + 未记住 + 顽固（分时态，已记住到期只计入明日预估）。'
+        ] },
+      { num:'4', title:'章节题型配置比例（weights）',
+        paras: [
+          'weights = { 章节名: 百分比 }，覆盖 10 个一级章节；合计恒 100%，调高某章 → 其余章节等比压缩。',
+          '每章今日张数 = 每日数量 × 该章比例；某章折算张数超过该章卡池时自动收缩到卡池上限；收缩后的缺口：该章有可用卡 → 先用该章可用卡补足，该章无可用卡 → 再由其余章节补齐。',
+          '缺省 / 未配置章节 → 各章均分；队列生成优先级：复习卡（未记住 + 顽固）必现 → 每章扣减该章复习卡后余量抽新卡 → 卡量不足兜底补齐。',
+          '口径示例：每日 100 张、章节1 比例 9% → 该章应得 9 张；该章复习卡 8 张 → 新卡 1 张（即 1%）。'
+        ] }
+    ]
+  },
+  'view-quiz-placeholder': {
+    desc: '题库 tab（题库.html v4.0）：考试倒计时 + AI 今日任务 + 自主学习逃生口。薄弱/顽固规则见下方。',
+    sections: [
+      { num:'1', title:'考试倒计时（Hero 顶部）',
+        paras: [
+          '已填画像 → 倒计时到 user.month（如大三 → 2027-03-28）；未填/已过 → 顺延最近一届未过期统考日（2026-08 → 显示 2027），永不显示负数/待更新。',
+          '考试日集中维护于 EXAM_DATES（3 月最后周日）：2026-03-29 / 2027-03-28 / 2028-03-26 / 2029-03-25。'
+        ],
+        labels: [
+          {k:'过期年份', v:'自动顺延最近一届'},
+          {k:'空态', v:'永不显示负数/待更新'}
+        ] },
+      { num:'2', title:'AI 今日任务（主卡，每日一练已并入）',
+        paras: [
+          '单一主卡：按薄弱项自动组 15-20 道题 + 开始学习按钮；每日一练不再单列（与 AI 定制作用重合，PM 拍板并入）。',
+          '画像未完善 → 「完善学习资料后定制今日任务」引导；今日已刷完 → 「今日已完成，明天继续」。'
+        ] },
+      { num:'3', title:'薄弱项判定（PM 2026-08-31 拍板）',
+        paras: [
+          '四级知识点 = 最后一级，每知识点对应多道考题。判定在四级层统计。'
+        ],
+        table: [
+          ['顽固', '四级考点错误率≥50%（错过考题数÷考题总数） 或 答错≥3次；考点内错过的考题标记「顽固」'],
+          ['薄弱', '正确率<60% 且 答题样本≥5 题'],
+          ['取题优先', '顽固必进今日任务排最前；薄弱按纯薄弱度(1-正确率)降序'],
+          ['题量兜底', '凑 15-20 道；不足则收缩为实际可用题量']
+        ] },
+      { num:'4', title:'自主学习（逃生口）',
+        paras: [
+          '章节刷题 / 模拟考试 / 历年真题 / 错题本（2×2）+ 收藏本 / 拍照搜题 / 成绩录入 / 笔记本（快捷行）。',
+          '本轮入口点 Toast 占位，刷题页/真题/错题交互 v5.0 接入。'
+        ] }
+    ]
+  },
+  'view-mine-placeholder': {
+    desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §四，权益规则见 §四（五）。',
+    sections: [
+      { num:'1', title:'当前状态',
+        paras: [
+          '我的页（我的.html）独立嵌入，状态全部来自总壳 STATE，本地不做二次维护。'
+        ] }
+    ]
+  }
+};
+
+var PANEL_VIEWS = [
+  { id: 'view-home',     title: '首页' },
+  { id: 'view-single',   title: '单卡模式' },
+  { id: 'view-list',     title: '列表模式' },
+  { id: 'view-stats',    title: '章节统计' },
+  { id: 'view-complete', title: '完成结算页' }
+];
+/* 闪卡视图 ID 集合（供 tab 联动判断 activePanel 是否落在闪卡内） */
+var FLASH_VIEWS = PANEL_VIEWS.map(function(v) { return v.id; });
+/* 面板视图切换胶囊：点胶囊 → 通知闪卡 iframe 跳转（联动）。仅闪卡 tab 显示 */
+PANEL_VIEWS.forEach(function(v) {
+  var b = document.createElement('button');
+  b.className = 'view-chip';
+  b.textContent = v.title;
+  b.setAttribute('data-view', v.id);
+  b.addEventListener('click', function() {
+    setActivePanel(v.id);
+    var flash = document.getElementById('frame-flash');
+    if (flash && flash.contentWindow) {
+      flash.contentWindow.postMessage({ type: 'REQUEST_NAV', view: v.id }, '*');
+    }
+  });
+  viewSwitch.appendChild(b);
+});
+
+function setActivePanel(viewId) {
+  activePanel = viewId;
+  document.querySelectorAll('#viewSwitch .view-chip').forEach(function(chip) {
+    chip.classList.toggle('active', chip.getAttribute('data-view') === viewId);
+  });
+}
+
+/* 逻辑面板随功能 tab 联动：
+   - 学习 tab → 学习页子 tab（登录 / 学习页 两枚胶囊）+ 对应面板
+   - 闪卡 tab → 闪卡胶囊 + 闪卡状态通栏 + 当前闪卡视图说明
+   - 题库/我的 tab → 占位说明（胶囊/通栏隐藏） */
+var LOGIC_TABS = {
+  study: { title: '📋 逻辑说明 · 学习页',           panel: null, studyTab: true },
+  flash: { title: '📋 逻辑说明 · 闪卡',             panel: null },
+  quiz:  { title: '📋 逻辑说明 · 题库',             panel: 'view-quiz-placeholder' },
+  mine:  { title: '📋 逻辑说明 · 我的',             panel: 'view-mine-placeholder' }
+};
+var studySwitch = document.getElementById('studySwitch');
+
+/* 学习页子 tab 数据：登录 / 学习页 */
+var STUDY_SUBTABS = [
+  { id: 'login', title: '登录',       panel: 'view-study-login' },
+  { id: 'page',  title: '学习页',     panel: 'view-study-page' }
+];
+var studySubActive = 'login';   /* 学习页子 tab 当前激活 */
+
+function buildStudySwitch() {
+  studySwitch.innerHTML = '';
+  STUDY_SUBTABS.forEach(function(st) {
+    var b = document.createElement('button');
+    b.className = 'view-chip';
+    b.textContent = st.title;
+    b.setAttribute('data-sub', st.id);
+    b.addEventListener('click', function() {
+      studySubActive = st.id;
+      renderLogicPanel(PANELS[st.panel] || { desc: '', sections: [] });
+      document.querySelectorAll('#studySwitch .view-chip').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-sub') === st.id);
+      });
+    });
+    studySwitch.appendChild(b);
+  });
+  /* 初始激活「登录」 */
+  document.querySelectorAll('#studySwitch .view-chip').forEach(function(c) {
+    c.classList.toggle('active', c.getAttribute('data-sub') === studySubActive);
+  });
+}
+
+function updateLogicForTab(name) {
+  var cfg = LOGIC_TABS[name] || LOGIC_TABS.study;
+  var titleEl = document.querySelector('.logic-head .title');
+  if (titleEl) titleEl.textContent = cfg.title;
+  /* 学习页子 tab 胶囊（登录/学习页），仅学习 tab 显示 */
+  if (studySwitch) studySwitch.style.display = (name === 'study') ? '' : 'none';
+  /* 闪卡胶囊区仅闪卡 tab 显示 */
+  viewSwitch.style.display = (name === 'flash') ? '' : 'none';
+  /* 闪卡状态通栏（已记住/未记住/顽固）仅闪卡 tab 显示 */
+  if (logicGlobal) logicGlobal.style.display = (name === 'flash') ? '' : 'none';
+  if (name === 'study') {
+    /* 学习 tab → 学习页子 tab（登录/学习页），默认激活「登录」 */
+    activePanel = PANELS['view-study-' + studySubActive] ? 'view-study-' + studySubActive : 'view-study-login';
+    renderLogicPanel(PANELS[activePanel] || { desc: '', sections: [] });
+  } else if (cfg.panel) {
+    /* 固定面板：题库占位 / 我的占位 */
+    activePanel = cfg.panel;
+    renderLogicPanel(PANELS[cfg.panel] || { desc: '当前 tab：' + name + ' 逻辑说明待补', sections: [] });
+  } else if (name === 'flash') {
+    /* 闪卡 tab：保持当前闪卡视图面板（进入时默认首页说明） */
+    if (!activePanel || FLASH_VIEWS.indexOf(activePanel) === -1) activePanel = 'view-home';
+    renderLogicPanel(currentLogicData());
+  }
+}
+buildStudySwitch();
+
+function currentLogicData() {
+  /* 弹窗/浮层打开时 → 逻辑说明自动切到对应面板，关闭时恢复原视图说明：
+     - 完成页浮层 → 完成结算页
+     - 首页设置弹窗 → 背诵设置
+     优先级：完成页浮层 > 设置弹窗 （与闪卡原型一致） */
+  if (completionOpen && PANELS['view-complete']) return PANELS['view-complete'];
+  if (settingsOpen && PANELS['view-settings']) return PANELS['view-settings'];
+  return PANELS[activePanel] || { desc: '当前视图：' + activePanel, sections: [] };
+}
+
+function renderLogicPanel(data) {
+  logicBody.innerHTML = '';
+  var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc || ''; logicBody.appendChild(de);
+  (data.sections || []).forEach(function(sec) {
+    var card = document.createElement('div'); card.className = 'logic-sec';
+    var head = document.createElement('div'); head.className = 'logic-sec-head';
+    head.innerHTML = '<span class="num">' + sec.num + '</span><span class="sec-name">' + esc(sec.title) + '</span>';
+    card.appendChild(head);
+    var body = document.createElement('div'); body.className = 'logic-sec-body';
+    (sec.paras || []).forEach(function(t) { var p = document.createElement('div'); p.className = 'logic-para'; p.textContent = t; body.appendChild(p); });
+    (sec.labels || []).forEach(function(lb) { var d = document.createElement('div'); d.className = 'logic-label'; d.innerHTML = '<span class="k">' + esc(lb.k) + '</span><span class="v">' + esc(lb.v) + '</span>'; body.appendChild(d); });
+    if (sec.table && sec.table.length) {
+      var t = document.createElement('table'); t.className = 'logic-table';
+      var hr = '<tr>' + (sec.tableHead || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
+      var br = sec.table.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
+      t.innerHTML = hr + br; body.appendChild(t);
+    }
+    if (sec.table2 && sec.table2.length) {
+      var t2 = document.createElement('table'); t2.className = 'logic-table';
+      var hr2 = '<tr>' + (sec.tableHead2 || ['项','规则']).map(function(h){return '<th>'+esc(h)+'</th>';}).join('') + '</tr>';
+      var br2 = sec.table2.map(function(r){ return '<tr>' + r.map(function(c){return '<td>'+esc(c)+'</td>';}).join('') + '</tr>'; }).join('');
+      t2.innerHTML = hr2 + br2; body.appendChild(t2);
+    }
+    card.appendChild(body);
+    logicBody.appendChild(card);
+  });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ---------- 逻辑面板开关 ---------- */
+var logicCol = document.getElementById('logicCol');
+function toggleLogic() {
+  logicCol.classList.toggle('open');
+}
+document.getElementById('logicClose').addEventListener('click', toggleLogic);
+
+/* 初始渲染：冷启动默认落题库 tab（闪屏后 → 题库页自动弹 VIP → 领取/关闭 → 跳学习页填画像 → 登录） */
+switchTab('quiz');
+
+/* 手机状态栏时钟 */
+setInterval(function() {
+  var d = new Date();
+  var t = document.getElementById('statusTime');
+  if (t) t.textContent = (d.getHours() < 10 ? '0' + d.getHours() : d.getHours()) + ':' + (d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes());
+}, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>章节刷题</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-08-31） ====
+   章节刷题页：题库首页「章节刷题」入口下钻二级页
+   结构：顶栏（返回+标题）→ 筛选 chip 行 → 章节卡片列表（四级手风琴）
+   交互：一二级展开下钻 / 三级整行展开四级+右「再刷」按钮 / 四级整行点击直接刷
+   数据：刷题指标（已做/正确率/错题/未做），与闪卡章节页（记忆度）口径分离
+   图标：10 章各一色渐变（题库首页 entry-icon 调子另出一套，不复用闪卡） */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --accent-grad-end: #62CFA9;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --success-light: #E8F8F0;
+  --warning: #F28B3D;
+  --warning-light: #FFF1E6;
+  --danger: #EF4444;
+  --danger-light: #FEECEC;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  display: flex; flex-direction: column; height: 100%; overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 筛选 chip 行（页面内无顶栏，标题/退出在小程序栏 appbar；顶部留小程序栏间距） ===== */
+.filter-row {
+  flex-shrink: 0;
+  display: flex; gap: 8px;
+  padding: 16px 16px 8px;
+  background: #EDEFF7;
+  position: relative; z-index: 4;
+}
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #E5E8F0;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all .15s ease;
+}
+.chip:active { transform: scale(.96); }
+.chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.chip svg { width: 13px; height: 13px; }
+.chip .chip-count { font-size: 11px; opacity: .8; }
+
+/* ===== 章节列表（唯一滚动容器） ===== */
+.scroll-area {
+  flex: 1; overflow-y: auto;
+  padding: 4px 16px 32px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 全页隐藏滚动条但保留滚动效果（PM 2026-09-02 拍板） ===== */
+* { scrollbar-width: none; }                            /* Firefox */
+*::-webkit-scrollbar { display: none; width: 0; height: 0; } /* Chrome/Safari */
+
+/* ===== 一级：章卡片 ===== */
+.chapter-list { display: flex; flex-direction: column; gap: 10px; }
+.chapter-card {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 14px 15px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 6px 16px rgba(91,114,245,.06);
+}
+.chapter-head { cursor: pointer; }
+.chapter-head:active { opacity: .75; }
+.chapter-main { display: flex; align-items: center; gap: 12px; }
+
+/* 章图标：10 章各一色渐变（另出一套，不复用闪卡单色） */
+.chapter-icon {
+  width: 40px; height: 40px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+}
+.chapter-icon svg { width: 21px; height: 21px; stroke: #fff; fill: none; stroke-width: 2; }
+.ici-1 { background: linear-gradient(135deg, #5B72F5, #4358D7); }   /* 信息与计算机基础 蓝靛 */
+.ici-2 { background: linear-gradient(135deg, #722ED1, #9B6BD9); }   /* 计算思维 紫 */
+.ici-3 { background: linear-gradient(135deg, #13C2C2, #36CFC9); }  /* 操作系统 青 */
+.ici-4 { background: linear-gradient(135deg, #1677FF, #4096FF); }  /* Word 蓝 */
+.ici-5 { background: linear-gradient(135deg, #20A866, #52C41A); }  /* Excel 绿 */
+.ici-6 { background: linear-gradient(135deg, #F28B3D, #FFA940); }  /* PowerPoint 橙 */
+.ici-7 { background: linear-gradient(135deg, #5B72F5, #3FA98B); }  /* 数据库 蓝绿 */
+.ici-8 { background: linear-gradient(135deg, #2F54EB, #597EF7); }  /* 网络 靛蓝 */
+.ici-9 { background: linear-gradient(135deg, #EF4444, #F87171); } /* 信息安全 红 */
+.ici-10{ background: linear-gradient(135deg, #FA541C, #FF7A45); }  /* 新一代技术 橙红 */
+
+.chapter-info { min-width: 0; flex: 1; }
+.chapter-name {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chapter-data {
+  margin-top: 5px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.cd-done strong { color: var(--text-secondary); font-weight: 600; }
+.cd-rate { color: var(--primary); font-weight: 700; }
+.cd-rate.low { color: var(--danger); }
+.cd-rate.mid { color: var(--warning); }
+.cd-rate.high { color: var(--success); }
+.cd-wrong {
+  color: var(--warning);
+  background: var(--warning-light);
+  padding: 1px 6px; border-radius: 5px; font-size: 10.5px; font-weight: 600;
+}
+.cd-todo { color: var(--text-tertiary); }
+.cd-todo strong { color: var(--text-secondary); font-weight: 600; }
+
+.chapter-right { display: flex; align-items: center; flex-shrink: 0; }
+.chapter-rate-big {
+  font-size: 17px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin-right: 6px;
+}
+.arrow {
+  color: #8b93a4; font-size: 16px; line-height: 1;
+  transition: transform .25s ease;
+}
+.chapter-card.open .arrow { transform: rotate(90deg); }
+
+/* 一级进度条 */
+.chapter-progress {
+  margin: 10px 0 0 52px;
+  height: 3px; border-radius: 10px;
+  background: #E7EAF3; overflow: hidden;
+}
+.chapter-progress-inner {
+  width: 0; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--brand-teal));
+  transition: width .9s cubic-bezier(.22,.61,.36,1);
+}
+
+/* ===== 二级：节（手风琴展开） ===== */
+.sub-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+.chapter-card.open .sub-list { max-height: 9999px; }   /* 展开态用大值，子级撑高不被卡 */
+.sub-inner { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.sub-container {
+  background: #FAFBFF;
+  border: 1px solid rgba(91,114,245,.06);
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+.sub-item {
+  display: flex; align-items: center;
+  padding: 3px 0; cursor: pointer;
+  border-radius: 0; background: transparent;
+  transition: background .12s ease;
+}
+.sub-item:active { background: rgba(91,114,245,.04); }
+.sub-dot {
+  width: 6px; height: 6px; margin-right: 11px;
+  border-radius: 50%; background: var(--primary); flex-shrink: 0;
+}
+.sub-title {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600; color: var(--primary-dark);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sub-right {
+  display: flex; align-items: baseline; gap: 8px; flex-shrink: 0;
+  font-size: 11.5px; font-variant-numeric: tabular-nums;
+}
+.sr-rate { font-weight: 700; }
+.sr-rate.low { color: var(--danger); }
+.sr-rate.mid { color: var(--warning); }
+.sr-rate.high { color: var(--success); }
+.sub-arrow {
+  margin-left: 3px; color: #c3c9d5; font-size: 15px; line-height: 1;
+  transition: transform .25s ease;
+}
+.sub-item.open-l2 .sub-arrow { transform: rotate(90deg); }
+/* 二级进度条 */
+.sub-progress {
+  margin: 6px 0 2px 17px; height: 2px; border-radius: 10px;
+  background: #EEF0F7; overflow: hidden;
+}
+.sub-progress-inner {
+  width: 0; height: 100%; border-radius: inherit;
+  background: rgba(91,114,245,.40);
+  transition: width .9s cubic-bezier(.22,.61,.36,1);
+}
+
+/* ===== 三级：主题 ===== */
+.l3-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+/* l3-list 是 sub-item 的后续兄弟（同在 sub-container 内），用兄弟选择器命中 */
+.sub-item.open-l2 ~ .l3-list { max-height: 9999px; }
+.l3-inner { padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.l3-block {
+  border: 1px solid rgba(91,114,245,.08);
+  border-radius: 10px; background: #fff;
+  padding: 9px 10px;
+}
+.l3-item {
+  display: flex; align-items: center;
+  padding: 3px 2px; cursor: pointer;
+  transition: background .12s ease;
+}
+.l3-item:active { background: rgba(91,114,245,.04); }
+.l3-arrow {
+  width: 24px; height: 24px; margin-right: 2px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary); font-size: 14px; font-weight: 700; line-height: 1;
+  flex-shrink: 0; border-radius: 7px; cursor: pointer;
+  transition: transform .2s ease, background .12s ease;
+}
+.l3-arrow:hover { background: var(--primary-light); }
+.l3-arrow:active { background: rgba(91,114,245,.14); }
+.l3-item.open .l3-arrow { transform: rotate(90deg); }
+.l3-title {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; font-weight: 600; color: var(--primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.l3-right {
+  display: flex; align-items: baseline; gap: 7px; flex-shrink: 0;
+  font-size: 11px; color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.l3-done { color: var(--text-secondary); font-weight: 600; }
+.l3-rate { font-weight: 700; }
+.l3-rate.low { color: var(--danger); }
+.l3-rate.mid { color: var(--warning); }
+.l3-rate.high { color: var(--success); }
+.l3-todo { color: var(--text-secondary); font-weight: 600; }
+
+/* ===== 四级：考点 ===== */
+.l4-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+/* l4-list 是 l3-item 的后续兄弟（同在 l3-block 内），用兄弟选择器命中 */
+.l3-item.open ~ .l4-list { max-height: 9999px; }
+.l4-inner { margin: 0 0 0 12px; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.l4-item {
+  display: flex; align-items: center;
+  height: 40px; padding: 0 11px; cursor: pointer;
+  border: 1px solid rgba(103,116,141,.12);
+  border-radius: 8px; background: #fff;
+  transition: background .12s ease;
+}
+.l4-item:active { background: rgba(91,114,245,.04); }
+.l4-dot {
+  width: 7px; height: 7px; margin-right: 10px;
+  border-radius: 50%; background: #C7CDD9; flex-shrink: 0;
+}
+.l4-title {
+  flex: 1; min-width: 0;
+  font-size: 11.5px; font-weight: 500; color: #68748D;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.l4-right {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  font-size: 10.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary);
+}
+/* 四级答题状态：✔做对 / ✖做错 / 顽固（考点级：错题≥50%）；未做不显示符号 */
+.l4-ok { color: var(--success); font-weight: 700; font-size: 11px; }
+.l4-no { color: var(--danger); font-weight: 700; font-size: 11px; }
+.l4-stubborn {
+  color: #CF1322; font-weight: 700; font-size: 10.5px;
+  background: #FFF1F0; padding: 2px 7px; border-radius: 5px;
+}
+.l4-total { color: var(--text-tertiary); }
+
+/* ===== 空态（整章未做过） ===== */
+.chapter-card.fresh .chapter-rate-big { color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
+.chapter-card.fresh .chapter-progress { display: none; }
+.fresh-tag {
+  font-size: 10.5px; color: var(--primary); font-weight: 600;
+  background: var(--primary-light); padding: 2px 8px; border-radius: 6px;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
+  background: rgba(30,33,48,.92); color: #fff;
+  padding: 9px 18px; border-radius: 22px; font-size: 13px;
+  opacity: 0; transition: opacity .25s ease; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<!-- 筛选 chip 行（标题/退出在小程序栏 appbar，页面内不再重复） -->
+<div class="filter-row">
+  <button class="chip active" data-filter="all" onclick="setFilter('all')">全部</button>
+  <button class="chip" data-filter="todo" onclick="setFilter('todo')">
+    只看未做 <span class="chip-count" id="cntTodo"></span>
+  </button>
+  <button class="chip" data-filter="wrong" onclick="setFilter('wrong')">
+    只看错题 <span class="chip-count" id="cntWrong"></span>
+  </button>
+</div>
+
+<!-- 章节列表 -->
+<div class="scroll-area">
+  <div class="chapter-list" id="chapterList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   章节刷题数据（mock，演示期）
+   结构与闪卡 CHAPTERS 对齐：章 subs[] → 节 level3[] → 主题 level4[] → 考点
+   字段口径（刷题场景，与闪卡记忆度分离）：
+     total   该级总题数
+     done    已做题数
+     right   答对题数（算正确率 = right/done）
+     wrong   答错题数（done=right+wrong+空答，演示简化 wrong=done-right）
+     todo    未做题数 = total - done
+     rate    正确率 = done? right/done : null
+   颜色档：<60% low红 / 60-80% mid橙 / ≥80% high绿 / 未做 null灰
+   ============================================================ */
+var CHAPTERS = [
+  { id:1, name:"信息与计算机基础知识", icon:"monitor", ici:"ici-1",
+    total:120, done:96, right:69, wrong:27,
+    subs:[
+      { name:"信息与信息技术概述", total:24, done:20, right:16, wrong:4,
+        level3:[
+          { name:"信息与数据", total:9, done:7, right:6, wrong:1,
+            level4:[
+              { name:"信息", total:3, done:3, right:3, wrong:0 },
+              { name:"数据", total:3, done:2, right:2, wrong:0 },
+              { name:"信息与数据的区别与联系", total:3, done:2, right:1, wrong:1 }
+            ]},
+          { name:"信息技术与计算机文化", total:15, done:13, right:10, wrong:3,
+            level4:[
+              { name:"信息技术", total:4, done:4, right:3, wrong:1 },
+              { name:"信息社会", total:4, done:3, right:3, wrong:0 },
+              { name:"计算机文化", total:4, done:3, right:2, wrong:1 },
+              { name:"计算机的特点", total:3, done:3, right:2, wrong:1 }
+            ]}
+        ]},
+      { name:"计算机发展概述", total:30, done:24, right:17, wrong:7,
+        level3:[
+          { name:"计算机的起源与发展", total:10, done:9, right:7, wrong:2,
+            level4:[
+              { name:"计算机的起源", total:5, done:5, right:4, wrong:1 },
+              { name:"计算机的发展", total:5, done:4, right:3, wrong:1 }
+            ]},
+          { name:"计算机的特点及分类", total:10, done:8, right:5, wrong:3,
+            level4:[
+              { name:"计算机的特点", total:5, done:4, right:3, wrong:1 },
+              { name:"计算机的分类", total:5, done:4, right:2, wrong:2 }
+            ]},
+          { name:"计算机的应用领域及发展趋势", total:10, done:7, right:5, wrong:2,
+            level4:[
+              { name:"计算机的应用领域", total:5, done:4, right:3, wrong:1 },
+              { name:"计算机的发展趋势", total:5, done:3, right:2, wrong:1 }
+            ]}
+        ]},
+      { name:"计算机数制与编码概述", total:36, done:28, right:20, wrong:8,
+        level3:[
+          { name:"数制及其转换", total:12, done:10, right:7, wrong:3,
+            level4:[
+              { name:"数制", total:3, done:3, right:2, wrong:1 },
+              { name:"数制转换", total:5, done:4, right:3, wrong:1 },
+              { name:"常见数制", total:4, done:3, right:2, wrong:1 }
+            ]},
+          { name:"数据与编码", total:12, done:9, right:6, wrong:3,
+            level4:[
+              { name:"数据单位", total:4, done:3, right:2, wrong:1 },
+              { name:"字符编码", total:4, done:3, right:2, wrong:1 },
+              { name:"汉字编码", total:4, done:3, right:2, wrong:1 }
+            ]},
+          { name:"原码反码补码", total:12, done:9, right:7, wrong:2,
+            level4:[
+              { name:"原码", total:4, done:3, right:3, wrong:0 },
+              { name:"反码", total:4, done:3, right:2, wrong:1 },
+              { name:"补码", total:4, done:3, right:2, wrong:1 }
+            ]}
+        ]},
+      { name:"计算机系统组成", total:30, done:24, right:16, wrong:8,
+        level3:[
+          { name:"硬件系统", total:15, done:13, right:9, wrong:4,
+            level4:[
+              { name:"CPU", total:4, done:4, right:3, wrong:1 },
+              { name:"存储器", total:4, done:3, right:2, wrong:1 },
+              { name:"输入输出设备", total:4, done:3, right:2, wrong:1 },
+              { name:"总线", total:3, done:3, right:2, wrong:1 }
+            ]},
+          { name:"软件系统", total:15, done:11, right:7, wrong:4,
+            level4:[
+              { name:"系统软件", total:5, done:4, right:3, wrong:1 },
+              { name:"应用软件", total:5, done:4, right:2, wrong:2 },
+              { name:"程序设计语言", total:5, done:3, right:2, wrong:1 }
+            ]}
+        ]}
+    ]},
+  { id:2, name:"计算思维", icon:"brain", ici:"ici-2",
+    total:48, done:18, right:11, wrong:7,
+    subs:[
+      { name:"计算思维基础", total:16, done:8, right:5, wrong:3,
+        level3:[
+          { name:"计算思维的概念", total:8, done:4, right:3, wrong:1,
+            level4:[
+              { name:"计算思维定义", total:4, done:2, right:2, wrong:0 },
+              { name:"计算思维特征", total:4, done:2, right:1, wrong:1 }
+            ]},
+          { name:"问题分解与抽象", total:8, done:4, right:2, wrong:2,
+            level4:[
+              { name:"问题分解", total:4, done:2, right:1, wrong:1 },
+              { name:"抽象建模", total:4, done:2, right:1, wrong:1 }
+            ]}
+        ]},
+      { name:"算法基础", total:16, done:6, right:3, wrong:3,
+        level3:[
+          { name:"算法概念与表示", total:8, done:3, right:2, wrong:1,
+            level4:[
+              { name:"算法定义", total:4, done:2, right:1, wrong:1 },
+              { name:"流程图", total:4, done:1, right:1, wrong:0 }
+            ]},
+          { name:"基本算法", total:8, done:3, right:1, wrong:2,
+            level4:[
+              { name:"顺序结构", total:3, done:1, right:1, wrong:0 },
+              { name:"选择结构", total:3, done:1, right:0, wrong:1 },
+              { name:"循环结构", total:2, done:1, right:0, wrong:1 }
+            ]}
+        ]},
+      { name:"程序设计基础", total:16, done:4, right:3, wrong:1,
+        level3:[
+          { name:"数据类型与变量", total:8, done:2, right:2, wrong:0,
+            level4:[
+              { name:"数据类型", total:4, done:1, right:1, wrong:0 },
+              { name:"变量与常量", total:4, done:1, right:1, wrong:0 }
+            ]},
+          { name:"控制结构", total:8, done:2, right:1, wrong:1,
+            level4:[
+              { name:"顺序结构", total:3, done:1, right:1, wrong:0 },
+              { name:"分支结构", total:3, done:1, right:0, wrong:1 },
+              { name:"循环结构", total:2, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:3, name:"操作系统（Windows 10）", icon:"settings", ici:"ici-3",
+    total:56, done:0, right:0, wrong:0, fresh:true,
+    subs:[
+      { name:"操作系统概述", total:12, done:0, right:0, wrong:0,
+        level3:[
+          { name:"操作系统基础", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"操作系统定义", total:4, done:0, right:0, wrong:0 },
+              { name:"操作系统功能", total:4, done:0, right:0, wrong:0 },
+              { name:"操作系统分类", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"Windows基本操作", total:22, done:0, right:0, wrong:0,
+        level3:[
+          { name:"桌面与窗口", total:11, done:0, right:0, wrong:0,
+            level4:[
+              { name:"桌面管理", total:4, done:0, right:0, wrong:0 },
+              { name:"窗口操作", total:4, done:0, right:0, wrong:0 },
+              { name:"对话框", total:3, done:0, right:0, wrong:0 }
+            ]},
+          { name:"文件与文件夹", total:11, done:0, right:0, wrong:0,
+            level4:[
+              { name:"文件管理", total:4, done:0, right:0, wrong:0 },
+              { name:"文件夹操作", total:4, done:0, right:0, wrong:0 },
+              { name:"资源管理器", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"系统设置与管理", total:22, done:0, right:0, wrong:0,
+        level3:[
+          { name:"控制面板", total:11, done:0, right:0, wrong:0,
+            level4:[
+              { name:"系统设置", total:4, done:0, right:0, wrong:0 },
+              { name:"设备管理", total:4, done:0, right:0, wrong:0 },
+              { name:"用户管理", total:3, done:0, right:0, wrong:0 }
+            ]},
+          { name:"附件与工具", total:11, done:0, right:0, wrong:0,
+            level4:[
+              { name:"记事本与写字板", total:4, done:0, right:0, wrong:0 },
+              { name:"画图", total:4, done:0, right:0, wrong:0 },
+              { name:"计算器", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:4, name:"文档处理（Word 2016）", icon:"doc", ici:"ici-4",
+    total:64, done:40, right:30, wrong:10,
+    subs:[
+      { name:"Word基础", total:16, done:14, right:12, wrong:2,
+        level3:[
+          { name:"文档基本操作", total:8, done:8, right:7, wrong:1,
+            level4:[
+              { name:"新建与打开", total:3, done:3, right:3, wrong:0 },
+              { name:"保存与关闭", total:3, done:3, right:2, wrong:1 },
+              { name:"文档视图", total:2, done:2, right:2, wrong:0 }
+            ]},
+          { name:"文本编辑", total:8, done:6, right:5, wrong:1,
+            level4:[
+              { name:"输入与选定", total:4, done:3, right:3, wrong:0 },
+              { name:"复制与移动", total:4, done:3, right:2, wrong:1 }
+            ]}
+        ]},
+      { name:"格式设置", total:16, done:10, right:7, wrong:3,
+        level3:[
+          { name:"字符格式", total:8, done:5, right:4, wrong:1,
+            level4:[
+              { name:"字体字号", total:4, done:3, right:2, wrong:1 },
+              { name:"字符效果", total:4, done:2, right:2, wrong:0 }
+            ]},
+          { name:"段落格式", total:8, done:5, right:3, wrong:2,
+            level4:[
+              { name:"对齐与缩进", total:4, done:3, right:2, wrong:1 },
+              { name:"行距与间距", total:4, done:2, right:1, wrong:1 }
+            ]}
+        ]},
+      { name:"图文混排", total:16, done:9, right:6, wrong:3,
+        level3:[
+          { name:"图片与图形", total:8, done:5, right:4, wrong:1,
+            level4:[
+              { name:"插入图片", total:4, done:3, right:3, wrong:0 },
+              { name:"图形绘制", total:4, done:2, right:1, wrong:1 }
+            ]},
+          { name:"文本框与艺术字", total:8, done:4, right:2, wrong:2,
+            level4:[
+              { name:"文本框", total:4, done:2, right:1, wrong:1 },
+              { name:"艺术字", total:4, done:2, right:1, wrong:1 }
+            ]}
+        ]},
+      { name:"表格与高级排版", total:16, done:7, right:5, wrong:2,
+        level3:[
+          { name:"表格", total:8, done:4, right:3, wrong:1,
+            level4:[
+              { name:"插入表格", total:4, done:2, right:2, wrong:0 },
+              { name:"表格编辑", total:4, done:2, right:1, wrong:1 }
+            ]},
+          { name:"高级排版", total:8, done:3, right:2, wrong:1,
+            level4:[
+              { name:"分栏与分节", total:4, done:2, right:1, wrong:1 },
+              { name:"页眉页脚", total:4, done:1, right:1, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:5, name:"电子表格处理（Excel 2016）", icon:"chart", ici:"ici-5",
+    total:60, done:0, right:0, wrong:0, fresh:true,
+    subs:[
+      { name:"Excel基础", total:12, done:0, right:0, wrong:0,
+        level3:[
+          { name:"基本操作", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"工作簿与工作表", total:4, done:0, right:0, wrong:0 },
+              { name:"单元格操作", total:4, done:0, right:0, wrong:0 },
+              { name:"数据输入", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"公式与函数", total:24, done:0, right:0, wrong:0,
+        level3:[
+          { name:"公式基础", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"运算符", total:4, done:0, right:0, wrong:0 },
+              { name:"单元格引用", total:4, done:0, right:0, wrong:0 },
+              { name:"常用函数", total:4, done:0, right:0, wrong:0 }
+            ]},
+          { name:"常用函数", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"SUM/AVERAGE", total:4, done:0, right:0, wrong:0 },
+              { name:"IF/COUNTIF", total:4, done:0, right:0, wrong:0 },
+              { name:"VLOOKUP", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"数据处理与图表", total:24, done:0, right:0, wrong:0,
+        level3:[
+          { name:"数据处理", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"排序与筛选", total:4, done:0, right:0, wrong:0 },
+              { name:"分类汇总", total:4, done:0, right:0, wrong:0 },
+              { name:"数据验证", total:4, done:0, right:0, wrong:0 }
+            ]},
+          { name:"图表", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"图表创建", total:4, done:0, right:0, wrong:0 },
+              { name:"图表编辑", total:4, done:0, right:0, wrong:0 },
+              { name:"图表类型", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:6, name:"演示文稿制作（PowerPoint 2016）", icon:"slides", ici:"ici-6",
+    total:52, done:12, right:8, wrong:4,
+    subs:[
+      { name:"PPT基础", total:16, done:8, right:6, wrong:2,
+        level3:[
+          { name:"演示文稿操作", total:8, done:5, right:4, wrong:1,
+            level4:[
+              { name:"新建与版式", total:4, done:3, right:3, wrong:0 },
+              { name:"保存与放映", total:4, done:2, right:1, wrong:1 }
+            ]},
+          { name:"幻灯片编辑", total:8, done:3, right:2, wrong:1,
+            level4:[
+              { name:"新增与删除", total:4, done:2, right:1, wrong:1 },
+              { name:"版式应用", total:4, done:1, right:1, wrong:0 }
+            ]}
+        ]},
+      { name:"内容编排", total:18, done:4, right:2, wrong:2,
+        level3:[
+          { name:"文本与图形", total:9, done:3, right:2, wrong:1,
+            level4:[
+              { name:"文本框", total:3, done:1, right:1, wrong:0 },
+              { name:"图片图形", total:3, done:1, right:1, wrong:0 },
+              { name:"SmartArt", total:3, done:1, right:0, wrong:1 }
+            ]},
+          { name:"表格图表", total:9, done:1, right:0, wrong:1,
+            level4:[
+              { name:"表格", total:3, done:1, right:0, wrong:1 },
+              { name:"图表", total:3, done:0, right:0, wrong:0 },
+              { name:"多媒体", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"动画与放映", total:18, done:0, right:0, wrong:0,
+        level3:[
+          { name:"动画", total:9, done:0, right:0, wrong:0,
+            level4:[
+              { name:"进入动画", total:3, done:0, right:0, wrong:0 },
+              { name:"强调退出", total:3, done:0, right:0, wrong:0 },
+              { name:"路径动画", total:3, done:0, right:0, wrong:0 }
+            ]},
+          { name:"切换与放映", total:9, done:0, right:0, wrong:0,
+            level4:[
+              { name:"切换效果", total:3, done:0, right:0, wrong:0 },
+              { name:"放映设置", total:3, done:0, right:0, wrong:0 },
+              { name:"计时排练", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:7, name:"数据库技术", icon:"database", ici:"ici-7",
+    total:44, done:0, right:0, wrong:0, fresh:true,
+    subs:[
+      { name:"数据库基础", total:12, done:0, right:0, wrong:0,
+        level3:[
+          { name:"基本概念", total:12, done:0, right:0, wrong:0,
+            level4:[
+              { name:"数据与数据库", total:4, done:0, right:0, wrong:0 },
+              { name:"数据库系统", total:4, done:0, right:0, wrong:0 },
+              { name:"数据模型", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"关系数据库", total:16, done:0, right:0, wrong:0,
+        level3:[
+          { name:"关系模型", total:8, done:0, right:0, wrong:0,
+            level4:[
+              { name:"关系结构", total:4, done:0, right:0, wrong:0 },
+              { name:"关系运算", total:4, done:0, right:0, wrong:0 }
+            ]},
+          { name:"完整性约束", total:8, done:0, right:0, wrong:0,
+            level4:[
+              { name:"实体完整性", total:4, done:0, right:0, wrong:0 },
+              { name:"参照完整性", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"SQL基础", total:16, done:0, right:0, wrong:0,
+        level3:[
+          { name:"数据定义", total:8, done:0, right:0, wrong:0,
+            level4:[
+              { name:"CREATE", total:4, done:0, right:0, wrong:0 },
+              { name:"ALTER/DROP", total:4, done:0, right:0, wrong:0 }
+            ]},
+          { name:"数据操作与查询", total:8, done:0, right:0, wrong:0,
+            level4:[
+              { name:"INSERT/UPDATE", total:4, done:0, right:0, wrong:0 },
+              { name:"SELECT查询", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:8, name:"计算机网络与信息检索", icon:"globe", ici:"ici-8",
+    total:50, done:22, right:15, wrong:7,
+    subs:[
+      { name:"网络基础", total:18, done:10, right:7, wrong:3,
+        level3:[
+          { name:"网络概述", total:9, done:6, right:4, wrong:2,
+            level4:[
+              { name:"网络定义与功能", total:3, done:2, right:2, wrong:0 },
+              { name:"网络分类", total:3, done:2, right:1, wrong:1 },
+              { name:"网络拓扑", total:3, done:2, right:1, wrong:1 }
+            ]},
+          { name:"网络协议", total:9, done:4, right:3, wrong:1,
+            level4:[
+              { name:"OSI模型", total:5, done:2, right:2, wrong:0 },
+              { name:"TCP/IP", total:4, done:2, right:1, wrong:1 }
+            ]}
+        ]},
+      { name:"Internet基础", total:16, done:8, right:5, wrong:3,
+        level3:[
+          { name:"IP与域名", total:8, done:4, right:3, wrong:1,
+            level4:[
+              { name:"IP地址", total:4, done:2, right:2, wrong:0 },
+              { name:"域名系统", total:4, done:2, right:1, wrong:1 }
+            ]},
+          { name:"Internet服务", total:8, done:4, right:2, wrong:2,
+            level4:[
+              { name:"WWW", total:4, done:2, right:1, wrong:1 },
+              { name:"电子邮件", total:4, done:2, right:1, wrong:1 }
+            ]}
+        ]},
+      { name:"信息检索", total:16, done:4, right:3, wrong:1,
+        level3:[
+          { name:"搜索引擎", total:8, done:3, right:2, wrong:1,
+            level4:[
+              { name:"搜索技巧", total:4, done:2, right:1, wrong:1 },
+              { name:"检索语法", total:4, done:1, right:1, wrong:0 }
+            ]},
+          { name:"信息评价", total:8, done:1, right:1, wrong:0,
+            level4:[
+              { name:"信息鉴别", total:4, done:1, right:1, wrong:0 },
+              { name:"信息整合", total:4, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]},
+  { id:9, name:"信息安全与社会责任", icon:"shield", ici:"ici-9",
+    total:30, done:18, right:12, wrong:6,
+    subs:[
+      { name:"信息安全", total:16, done:12, right:9, wrong:3,
+        level3:[
+          { name:"安全威胁", total:8, done:6, right:5, wrong:1,
+            level4:[
+              { name:"病毒与木马", total:4, done:3, right:3, wrong:0 },
+              { name:"网络攻击", total:4, done:3, right:2, wrong:1 }
+            ]},
+          { name:"安全防护", total:8, done:6, right:4, wrong:2,
+            level4:[
+              { name:"防护技术", total:4, done:3, right:2, wrong:1 },
+              { name:"安全法规", total:4, done:3, right:2, wrong:1 }
+            ]}
+        ]},
+      { name:"知识产权与道德", total:14, done:6, right:3, wrong:3,
+        level3:[
+          { name:"知识产权", total:7, done:3, right:2, wrong:1,
+            level4:[
+              { name:"著作权", total:4, done:2, right:1, wrong:1 },
+              { name:"专利权", total:3, done:1, right:1, wrong:0 }
+            ]},
+          { name:"网络道德", total:7, done:3, right:1, wrong:2,
+            level4:[
+              { name:"网络行为规范", total:4, done:2, right:1, wrong:1 },
+              { name:"隐私保护", total:3, done:1, right:0, wrong:1 }
+            ]}
+        ]}
+    ]},
+  { id:10, name:"新一代信息技术", icon:"cpu", ici:"ici-10",
+    total:36, done:8, right:5, wrong:3,
+    subs:[
+      { name:"人工智能", total:12, done:4, right:3, wrong:1,
+        level3:[
+          { name:"AI基础", total:6, done:3, right:2, wrong:1,
+            level4:[
+              { name:"AI定义与分类", total:3, done:2, right:1, wrong:1 },
+              { name:"机器学习", total:3, done:1, right:1, wrong:0 }
+            ]},
+          { name:"AI应用", total:6, done:1, right:1, wrong:0,
+            level4:[
+              { name:"大语言模型", total:3, done:1, right:1, wrong:0 },
+              { name:"AI应用领域", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"大数据与云计算", total:12, done:3, right:1, wrong:2,
+        level3:[
+          { name:"大数据", total:6, done:2, right:1, wrong:1,
+            level4:[
+              { name:"大数据概念", total:3, done:1, right:0, wrong:1 },
+              { name:"大数据技术", total:3, done:1, right:1, wrong:0 }
+            ]},
+          { name:"云计算", total:6, done:1, right:0, wrong:1,
+            level4:[
+              { name:"云服务模式", total:3, done:1, right:0, wrong:1 },
+              { name:"部署模式", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]},
+      { name:"物联网与区块链", total:12, done:1, right:1, wrong:0,
+        level3:[
+          { name:"物联网", total:6, done:1, right:1, wrong:0,
+            level4:[
+              { name:"IoT架构", total:3, done:1, right:1, wrong:0 },
+              { name:"IoT应用", total:3, done:0, right:0, wrong:0 }
+            ]},
+          { name:"区块链", total:6, done:0, right:0, wrong:0,
+            level4:[
+              { name:"区块链原理", total:3, done:0, right:0, wrong:0 },
+              { name:"区块链应用", total:3, done:0, right:0, wrong:0 }
+            ]}
+        ]}
+    ]}
+];
+
+/* ===== 图标 SVG（另出一套，线性白描边，与题库首页 entry-icon 调子统一） ===== */
+var ICONS = {
+  monitor:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  brain:'<path d="M9 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M15 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 0"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  doc:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>',
+  chart:'<line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="11" width="3" height="8"/><rect x="10.5" y="6" width="3" height="13"/><rect x="16" y="14" width="3" height="5"/>',
+  slides:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="8" cy="9" r="1.5"/><path d="M6 13h5"/>',
+  database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
+  shield:'<path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/><path d="M9 12l2 2 4-4"/>',
+  cpu:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>'
+};
+
+/* ===== 计算与格式 ===== */
+function rateOf(done, right){ return done ? Math.round(right/done*100) : null; }
+function rateClass(r){ if(r===null) return ''; return r<60?'low':(r<80?'mid':'high'); }
+function rateText(r){ return r===null ? '未做' : r+'%'; }
+function todoOf(total, done){ return total - done; }
+
+/* 汇总下级指标（父级聚合用） */
+function aggregate(items){
+  var t=0,d=0,r=0,w=0;
+  items.forEach(function(it){
+    t+=it.total; d+=it.done; r+=it.right; w+=it.wrong;
+    if(it.level3) { var s=aggregate(it.level3); }
+    if(it.level4) { var s2=aggregate(it.level4); }
+  });
+  return {total:t, done:d, right:r, wrong:w};
+}
+
+/* ===== 渲染 ===== */
+var currentFilter = 'all';
+
+function renderChapters(){
+  var list = document.getElementById('chapterList');
+  var html = '';
+  CHAPTERS.forEach(function(ch, idx){
+    var r = rateOf(ch.done, ch.right);
+    var rc = rateClass(r);
+    var todo = todoOf(ch.total, ch.done);
+    var fresh = ch.fresh || ch.done===0;
+    // 筛选：只看未做 → 隐藏 done>=total 的章；只看错题 → 隐藏 wrong=0 的章（按章级聚合判断）
+    if(currentFilter==='todo' && todo===0) return;
+    if(currentFilter==='wrong' && ch.wrong===0) return;
+
+    html += '<div class="chapter-card'+(fresh?' fresh':'')+'" data-cid="'+ch.id+'">';
+    html += '<div class="chapter-head" onclick="toggleChapter(this)">';
+    html += '<div class="chapter-main">';
+    html += '<div class="chapter-icon '+ch.ici+'"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[ch.icon]||'')+'</svg></div>';
+    html += '<div class="chapter-info">';
+    html += '<div class="chapter-name">'+ch.name+'</div>';
+    html += '<div class="chapter-data">';
+    html += '<span class="cd-done">已做 <strong>'+ch.done+'/'+ch.total+'</strong></span>';
+    if(fresh){
+      html += '<span class="fresh-tag">未练习</span>';
+    } else {
+      if(ch.wrong>0) html += '<span class="cd-wrong">错 '+ch.wrong+'</span>';
+    }
+    html += '</div>'; // chapter-data
+    html += '</div>'; // chapter-info
+    html += '<div class="chapter-right">';
+    if(fresh){
+      html += '<span class="chapter-rate-big">未做</span>';
+    } else {
+      html += '<span class="chapter-rate-big '+rc+'">'+r+'%</span>';
+    }
+    html += '<span class="arrow">▸</span>';
+    html += '</div>'; // chapter-right
+    html += '</div>'; // chapter-main
+    if(!fresh){
+      var pct = Math.round(ch.done/ch.total*100);
+      html += '<div class="chapter-progress"><div class="chapter-progress-inner" style="width:'+pct+'%"></div></div>';
+    }
+    html += '</div>'; // chapter-head
+    // 二级
+    html += '<div class="sub-list"><div class="sub-inner">';
+    ch.subs.forEach(function(sub){
+      var sr = rateOf(sub.done, sub.right);
+      var src = rateClass(sr);
+      var stodo = todoOf(sub.total, sub.done);
+      var sfresh = sub.done===0;
+      html += '<div class="sub-container">';
+      html += '<div class="sub-item" onclick="toggleSub(this)">';
+      html += '<div class="sub-dot"></div>';
+      html += '<div class="sub-title">'+sub.name+'</div>';
+      html += '<div class="sub-right">';
+      if(sfresh){
+        html += '<span class="sr-rate" style="color:var(--text-tertiary)">未做</span>';
+      } else {
+        html += '<span class="sr-rate '+src+'">'+sr+'%</span>';
+      }
+      html += '<span class="sub-arrow">▸</span>';
+      html += '</div>';
+      html += '</div>'; // sub-item
+      // 二级进度条
+      if(!sfresh){
+        var spct = Math.round(sub.done/sub.total*100);
+        html += '<div class="sub-progress"><div class="sub-progress-inner" style="width:'+spct+'%"></div></div>';
+      }
+      // 三级
+      html += '<div class="l3-list"><div class="l3-inner">';
+      sub.level3.forEach(function(l3){
+        var l3r = rateOf(l3.done, l3.right);
+        var l3c = rateClass(l3r);
+        var l3todo = todoOf(l3.total, l3.done);
+        var l3fresh = l3.done===0;
+        html += '<div class="l3-block">';
+        /* 三级整行点击 → 进做题页；右侧下拉按钮（箭头）→ 展开四级 */
+        html += '<div class="l3-item" onclick="goQuiz(\'l3\','+ch.id+',\''+escapeName(l3.name)+'\')">';
+        html += '<span class="l3-arrow" onclick="event.stopPropagation();toggleL3(this)">▸</span>';
+        html += '<span class="l3-title">'+l3.name+'</span>';
+        html += '<span class="l3-right">';
+        if(l3fresh){
+          html += '<span class="l3-todo">未做</span>';
+        } else {
+          html += '<span class="l3-done">已做 '+l3.done+'/'+l3.total+'</span>';
+          html += '<span class="l3-rate '+l3c+'">正确 '+l3r+'%</span>';
+        }
+        html += '</span>';
+        html += '</div>'; // l3-item
+        // 四级
+        html += '<div class="l4-list"><div class="l4-inner">';
+        l3.level4.forEach(function(l4){
+          var l4fresh = l4.done===0;
+          /* 四级状态符号（题库顽固口径，题库.html §顽固标签规则）：
+             ✔ 答对题数 / ✖ 答错题数
+             顽固 = 考点级顽固：错题题数 ÷ 该考点总题数 × 100% ≥ 50%（与题库.html 口径一致） */
+          var l4Stubborn = !l4fresh && l4.total>0 && (l4.wrong/l4.total >= 0.5);
+          html += '<div class="l4-item" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">';
+          html += '<span class="l4-dot"></span>';
+          html += '<span class="l4-title">'+l4.name+'</span>';
+          html += '<span class="l4-right">';
+          if(l4fresh){
+            html += '<span class="l4-total">'+l4.total+'题·未做</span>';
+          } else {
+            if(l4.right>0) html += '<span class="l4-ok">✔ '+l4.right+'</span>';
+            if(l4.wrong>0) html += '<span class="l4-no">✖ '+l4.wrong+'</span>';
+            if(l4Stubborn) html += '<span class="l4-stubborn">顽固</span>';
+          }
+          html += '</span>';
+          html += '</div>'; // l4-item
+        });
+        html += '</div></div>'; // l4-inner / l4-list
+        html += '</div>'; // l3-block
+      });
+      html += '</div></div>'; // l3-inner / l3-list
+      html += '</div>'; // sub-container
+    });
+    html += '</div></div>'; // sub-inner / sub-list
+    html += '</div>'; // chapter-card
+  });
+  list.innerHTML = html;
+  updateChipCounts();
+}
+
+function escapeName(s){ return s.replace(/'/g,"\\'"); }
+
+/* ===== 展开/收起（CSS class 控 max-height，展开态 9999px 不被父级卡，嵌套级联自动） ===== */
+function toggleChapter(head){
+  head.parentNode.classList.toggle('open');
+}
+function toggleSub(item){
+  /* sub-item 与 l3-list 同为 sub-container 子级；在 sub-item 上 toggle，CSS 用兄弟选择器命中 l3-list */
+  item.classList.toggle('open-l2');
+}
+function toggleL3(arrow){
+  /* 箭头在 l3-item 内；toggle open 到父级，CSS 用兄弟选择器命中 l4-list */
+  arrow.closest('.l3-item').classList.toggle('open');
+}
+
+/* ===== 筛选 ===== */
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.classList.toggle('active', c.dataset.filter===f);
+  });
+  renderChapters();
+}
+function updateChipCounts(){
+  var todoChap = 0, wrongChap = 0;
+  CHAPTERS.forEach(function(ch){
+    if(todoOf(ch.total, ch.done)>0) todoChap++;
+    if(ch.wrong>0) wrongChap++;
+  });
+  document.getElementById('cntTodo').textContent = todoChap? '('+todoChap+')' : '';
+  document.getElementById('cntWrong').textContent = wrongChap? '('+wrongChap+')' : '';
+}
+
+/* ===== 进入做题页 =====
+   向总壳请求打开做题层，entry=chapter，附带选中的层级路径（章id+考点名）
+   总壳 openPractice 接 entry；做题页 v5.0 接数据层时按路径取题 */
+function goQuiz(level, cid, name){
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{ entry:'chapter', level:level, cid:cid, name:name } }, '*');
+  } catch(e){
+    showToast('请从总壳进入开始刷题');
+  }
+}
+
+/* ===== 返回：通知题库首页收起章节层（保留展开状态） ===== */
+function goBack(){
+  try {
+    window.parent.postMessage({ type:'CLOSE_CHAPTER' }, '*');
+  } catch(e){
+    showToast('请从总壳返回');
+  }
+}
+
+/* ===== Toast ===== */
+var toastTimer = null;
+function showToast(msg){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.style.opacity = 0; }, 1500);
+}
+
+/* ===== 初始化 ===== */
+renderChapters();
+</script>
+</body>
+</html>

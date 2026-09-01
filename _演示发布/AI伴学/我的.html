@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>我的</title>
+<style>
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --text-primary: #202533;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --card-radius: 17px;
+  --hero-radius: 22px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background: #F8F9FC;
+  -webkit-overflow-scrolling: touch;
+}
+.content { max-width: 430px; margin: 0 auto; padding: 22px 18px 30px; }
+
+/* 顶部用户卡 */
+.user-card {
+  background: linear-gradient(135deg, #5572F6 0%, #4358D7 100%);
+  border-radius: var(--hero-radius);
+  padding: 20px;
+  color: #fff;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 14px 32px rgba(76,99,221,0.25);
+}
+.user-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: 2px solid rgba(255,255,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.user-avatar svg { width: 28px; height: 28px; }
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 18px; font-weight: 700; }
+.user-sub { font-size: 12px; opacity: .85; margin-top: 5px; }
+.user-btn {
+  border: none; border-radius: 18px;
+  background: #fff; color: var(--primary-dark);
+  font-size: 13px; font-weight: 600;
+  padding: 8px 16px; cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* VIP 卡 */
+.vip-card {
+  background: linear-gradient(135deg, #FFD97A 0%, #F5B940 100%);
+  border-radius: var(--hero-radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 24px rgba(240,170,48,0.3);
+  cursor: pointer;
+}
+.vip-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  color: #8A5B00; flex-shrink: 0;
+}
+.vip-icon svg { width: 24px; height: 24px; }
+.vip-info { flex: 1; min-width: 0; }
+.vip-name { font-size: 16px; font-weight: 700; color: #4A3200; }
+.vip-sub { font-size: 12px; color: #7A5200; margin-top: 4px; line-height: 1.5; }
+.vip-arrow { color: #8A5B00; font-size: 18px; }
+
+/* 区块 */
+.section-card {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 4px 16px;
+  box-shadow: 0 5px 18px rgba(54,66,108,0.055);
+  margin-bottom: 14px;
+}
+.list-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid #F1F3F9;
+  cursor: pointer;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row .row-left { display: flex; align-items: center; gap: 10px; }
+.list-row .row-icon { color: var(--primary); display: flex; }
+.list-row .row-icon svg { width: 19px; height: 19px; }
+.list-row .txt { font-size: 14px; font-weight: 600; }
+.list-row .meta { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+.list-row .arrow { color: #C6CADE; }
+</style>
+</head>
+<body>
+<div class="content">
+
+  <!-- 用户信息卡 -->
+  <div class="user-card" id="userCard">
+    <div class="user-avatar" id="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"/></svg>
+    </div>
+    <div class="user-info">
+      <div class="user-name" id="userName">未登录</div>
+      <div class="user-sub" id="userSub">登录后同步学习进度</div>
+    </div>
+    <button class="user-btn" id="loginBtn" onclick="handleLogin()">登录</button>
+  </div>
+
+  <!-- VIP 入口卡 -->
+  <div class="vip-card" onclick="navVip()">
+    <div class="vip-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3l6 10 6-10h3"/><path d="M9 7h6l2 4-5 7-5-7 2-4z"/><path d="M6 16H4l-1 3h18l-1-3h-2"/></svg>
+    </div>
+    <div class="vip-info">
+      <div class="vip-name">VIP 会员</div>
+      <div class="vip-sub">新用户专享体验 · 立即领取</div>
+    </div>
+    <span class="vip-arrow">›</span>
+  </div>
+
+  <!-- 通用设置 -->
+  <div class="section-card">
+    <div class="list-row">
+      <div class="row-left">
+        <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><circle cx="7" cy="7.5" r="1.2" fill="currentColor"/><circle cx="7" cy="16.5" r="1.2" fill="currentColor"/></svg></span>
+        <div class="txt">消息通知</div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="list-row">
+      <div class="row-left">
+        <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 6h6v6"/><path d="M21 6l-7 7-4-4-7 7"/></svg></span>
+        <div class="txt">意见反馈</div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+    <div class="list-row">
+      <div class="row-left">
+        <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg></span>
+        <div class="txt">关于我们</div>
+      </div>
+      <span class="arrow">›</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- 我的页：登录态/画像态 全部来自父壳状态中枢，本地不做二次维护 ---------- */
+var STATE = { logged: false, user: null, profile: false, vipClaimed: false };
+
+/* 渲染我的页（依据 STATE） */
+function renderState() {
+  var nameEl = document.getElementById('userName');
+  var subEl  = document.getElementById('userSub');
+  var btn    = document.getElementById('loginBtn');
+
+  if (STATE.logged) {
+    var u = STATE.user || {};
+    nameEl.textContent = u.nick || '已登录';
+    subEl.textContent = [u.major, u.year].filter(Boolean).join(' · ') || '学习进度已同步';
+    btn.textContent = '已登录';
+    btn.disabled = true;
+  } else {
+    nameEl.textContent = '未登录';
+    subEl.textContent = '登录后同步学习进度';
+    btn.textContent = '登录';
+    btn.disabled = false;
+  }
+
+  /* VIP 卡副文案：领取后变化 */
+  if (STATE.vipClaimed) {
+    var sub = document.querySelector('.vip-card .vip-sub');
+    if (sub) sub.textContent = 'VIP 体验已生效 · 随时查看';
+  }
+}
+
+/* 首次同步：先取父壳注入，再监听广播 */
+function requestState() {
+  try {
+    window.parent.postMessage({ type: 'SUBREADY' }, '*');
+  } catch(e) {}
+}
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'STATE') return;
+  STATE = {
+    logged:       !!d.state.logged,
+    user:         d.state.user || null,
+    profile:      !!d.state.profile,
+    profileLevel: d.state.profileLevel || (d.state.profile ? 'done' : 'none'),  /* 兼容旧字段 */
+    vipClaimed:   !!d.state.vipClaimed
+  };
+  renderState();
+});
+requestState();
+renderState();  /* 初始默认态 */
+
+/* 点击登录 → 转发总壳 → 学习页弹微信登录（登录归属唯一：学习页） */
+function handleLogin() {
+  try { window.parent.postMessage({ type: 'REQ_LOGIN' }, '*'); } catch(e) {}
+}
+function navVip() {
+  /* 点击 VIP 卡 → 调父壳弹出 VIP 领取层 */
+  if (window.parent && window.parent.openVip) { window.parent.openVip(); return; }
+  alert('请在小程序总壳中打开');
+}
+</script>
+</body>
+</html>

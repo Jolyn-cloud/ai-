@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>题库 · 首页</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与闪卡/AI 页统一，2026-08-31 对齐） ====
+   来源：AI伴学_小程序.html / 闪卡原型.html :root 共用口径
+   --primary            #5B72F5  主色（选中/强调/按钮）
+   --primary-dark       #4358D7  按压/深色强调
+   --primary-light      #EEF1FF  浅底/选中背景
+   --brand-mid          #4358D7  三色渐变中点
+   --brand-teal         #3FA98B  三色渐变终点（VIP/AI CTA 统一）
+   --accent-grad-end    #62CFA9  双色渐变终点（按钮、图标底）
+   文字  #1E2130 / #6E778B / #98A0B2    背景 #EDEFF7 / 卡片 #FFFFFF
+   状态  绿#20A866 橙#F28B3D 红#EF4444（闪卡页口径） */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --accent-grad-end: #62CFA9;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* 全页隐藏滚动条但保留滚动效果（PM 2026-09-02 拍板） */
+* { scrollbar-width: none; }                             /* Firefox */
+*::-webkit-scrollbar { display: none; width: 0; height: 0; } /* Chrome/Safari */
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;   /* 闪卡同款内容区底色 */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 背景氛围图（与闪卡共用 ui切图/bg-flashcard-home.png，保持完全一致）
+   固定视口层不随内容滚动（避免 cover 拉伸） */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  z-index: 0;
+  background: url('ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+  pointer-events: none;
+}
+.content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; position: relative; z-index: 1; }
+
+/* ===== 顶部 header（抄闪卡首页口径，2026-09-02 PM 拍板：与闪卡一致）
+   同款问候语 + 内联倒计时（图标+文案+天数+天）+ 右上角头像 */
+.header {
+  padding: 48px 16px 20px;   /* 左右留白，与手机框拉开距离（2026-09-02 PM 拍的版） */
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.greeting { font-size: 25px; line-height: 1.35; font-weight: 700; letter-spacing: -0.5px; }
+.countdown {
+  margin-top: 7px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--text-secondary);
+}
+.countdown-icon {
+  width: 16px; height: 16px;
+  border: 2px solid #A8B0C8; border-radius: 50%;
+  position: relative;
+}
+.countdown-icon::before {
+  content: ""; position: absolute;
+  width: 1.5px; height: 5px; background: #A8B0C8;
+  left: 6px; top: 2px;
+}
+.countdown-icon::after {
+  content: ""; position: absolute;
+  width: 4px; height: 1.5px; background: #A8B0C8;
+  left: 6px; top: 7px; transform: rotate(25deg); transform-origin: left center;
+}
+/* 天数：深紫 + 加大加粗；"天" 保持次要灰小字（闪卡同款） */
+.countdown .days-num { color: #4A3FA0; font-size: 20px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown .days-unit { font-size: 14px; color: var(--text-secondary); }
+
+/* 头像（闪卡同款） */
+.avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(235,239,255,0.95));
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 8px 24px rgba(75,91,160,0.08);
+  flex-shrink: 0;
+}
+.avatar svg { width: 25px; height: 25px; stroke: var(--primary); }
+
+/* ===== 主体（左右同 header 留白，视觉对齐） ===== */
+.body { padding: 0 16px; }
+
+/* ===== AI 今日任务主卡（白色主体漂浮在环境光中，2026-09-01 PM 拍板）
+   周围保留非常轻微的蓝紫光晕（低透明度，无边框/无玻璃拟态），自然嵌入过渡区。
+   纯白底，无顶部色条（2026-09-02 PM 拍板：卡片整体白底） */
+.ai-card {
+  background: #FFFFFF;
+  border-radius: 26px 22px 30px 20px;
+  padding: 20px;
+  box-shadow:
+    0 1px 1px rgba(38,48,96,.03),
+    0 0 0 1px rgba(255,255,255,.6),
+    0 16px 40px rgba(91,114,245,.08),   /* 低透明度蓝紫环境光晕 */
+    0 6px 18px rgba(63,169,139,.05);    /* 底部轻微青光，过渡到 F8F9FC */
+  margin-bottom: 16px;
+  position: relative;
+}
+.ai-task-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.ai-badge {
+  background: linear-gradient(135deg, var(--primary), var(--brand-mid)); color:#fff;
+  font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px;
+  display:flex; align-items:center; gap:4px;
+}
+.ai-badge svg { width:12px; height:12px; }
+.ai-task-title { font-size:11px; color:var(--text-tertiary); }
+.ai-empty-title { font-size:15px; font-weight:600; margin-bottom:6px; }
+.ai-empty-desc { font-size:12px; color:var(--text-secondary); line-height:1.6; margin-bottom:14px; }
+.ai-task-chapter { font-size:18px; font-weight:700; margin-bottom:4px; }
+.ai-task-section { font-size:13px; color:var(--text-secondary); margin-bottom:12px; }
+.ai-task-meta { display:flex; gap:16px; margin-bottom:14px; }
+.meta-item { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text-secondary); }
+.meta-item svg { width:14px; height:14px; color:var(--primary); }
+.ai-reason {
+  background:var(--primary-light); border-radius:12px 10px 13px 9px; padding:10px 12px;
+  font-size:12px; color:var(--primary-dark); line-height:1.5; margin-bottom:16px;
+  display:flex; align-items:flex-start; gap:6px;
+}
+.ai-reason svg { width:14px; height:14px; flex-shrink:0; margin-top:1px; }
+.start-btn {
+  width:100%;
+  background: linear-gradient(100deg, var(--primary) 0%, var(--brand-mid) 46%, var(--brand-teal) 100%);
+  color:#fff;
+  border:none; border-radius:99px; padding:14px; font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  box-shadow: 0 12px 26px rgba(91,114,245,.34), 0 0 18px rgba(63,169,139,.24);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.start-btn:active {
+  transform:scale(.97);
+  box-shadow: 0 6px 14px rgba(91,114,245,.28);
+  filter: brightness(.97);
+}
+.start-btn svg { width:18px; height:18px; }
+.start-btn.ghost {
+  background:#fff; color:var(--primary-dark); border:1.5px solid var(--primary);
+  box-shadow:none; border-radius:99px; padding:12px; font-size:14px;
+}
+.start-btn.ghost:active { background:var(--primary-light); }
+
+/* ===== 区块标题（自主入口） ===== */
+.section-title {
+  font-size:14px; font-weight:700; margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+.section-title::before {
+  content:''; width:3px; height:14px; border-radius:2px;
+  background:linear-gradient(180deg, var(--primary), var(--brand-teal));
+}
+
+/* ===== 自主入口 2×2 ===== */
+.entry-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.entry-card {
+  background:#fff; border-radius:16px 14px 18px 13px; padding:14px; cursor:pointer;
+  box-shadow:0 1px 2px rgba(38,48,96,.04), 0 6px 16px rgba(91,114,245,.06);
+  display:flex; flex-direction:column; gap:6px;
+  border:none; text-align:left;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.entry-card:active { transform:scale(.96); box-shadow:0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.08); }
+.entry-icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; margin-bottom:4px;
+}
+.entry-icon svg { width:20px; height:20px; color:#fff; }
+.entry-icon { background:linear-gradient(135deg, var(--primary), var(--accent-grad-end)); }
+.entry-name { font-size:14px; font-weight:600; }
+.entry-desc { font-size:11px; color:var(--text-tertiary); }
+
+/* ===== 快捷行 ===== */
+.quick-row { display:flex; gap:8px; margin-bottom:16px; }
+.quick-item {
+  flex:1; background:#fff; border-radius:13px 11px 14px 10px; padding:12px 8px; text-align:center;
+  box-shadow:0 1px 2px rgba(38,48,96,.03), 0 4px 12px rgba(91,114,245,.05);
+  cursor:pointer; border:none; transition:transform .12s ease, box-shadow .12s ease;
+}
+.quick-item:active { transform:scale(.96); }
+.quick-item .q-icon { width:24px; height:24px; margin:0 auto 4px; display:flex; align-items:center; justify-content:center; }
+.quick-item .q-icon svg { width:22px; height:22px; color:var(--primary-dark); }
+.quick-item .q-name { font-size:11px; color:var(--text-secondary); }
+
+/* ===== 二级层（题库 tab 内部下钻，覆盖题库首页，状态保留）
+   chapter=章节刷题 / exam=模拟考场 / real=历年真题，三组并列共用样式 ===== */
+.sub-layer {
+  position: fixed; inset: 0;
+  z-index: 50;
+  background: #EDEFF7;
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease;
+}
+.sub-layer.show { opacity: 1; visibility: visible; }
+.sub-layer iframe { width: 100%; height: 100%; border: none; }
+
+/* ===== Toast ===== */
+#toast {
+  position:fixed; top:44px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.78); color:#fff; padding:10px 20px; border-radius:8px;
+  font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:86%;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+</style>
+</head>
+<body>
+
+<div class="content">
+
+  <!-- 顶部 header（闪卡同款） -->
+  <header class="header">
+    <div>
+      <div class="greeting">你好，团团酱 👋</div>
+      <div class="countdown">
+        <div class="countdown-icon"></div>
+        <span>距离<span id="cdLabelYear">2027</span>届专升本考试还有</span>
+        <span class="days-num" id="cdDays">--</span>
+        <span class="days-unit">天</span>
+      </div>
+    </div>
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"></circle>
+        <path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path>
+      </svg>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- AI 今日任务卡（单一主卡，内容按 STATE / 任务数据动态渲染） -->
+    <div class="ai-card" id="aiCard"></div>
+
+    <!-- 自主学习（逃生口） -->
+    <div class="section-title">自主学习</div>
+    <div class="entry-grid">
+      <button class="entry-card" onclick="openSubLayer('chapter')">
+        <div class="entry-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="entry-name">章节刷题</div>
+        <div class="entry-desc">按章节系统练习</div>
+      </button>
+      <button class="entry-card" onclick="openSubLayer('exam')">
+        <div class="entry-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="entry-name">模拟考试</div>
+        <div class="entry-desc">全真模拟考场</div>
+      </button>
+      <button class="entry-card" onclick="openSubLayer('real')">
+        <div class="entry-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </div>
+        <div class="entry-name">历年真题</div>
+        <div class="entry-desc">2010-2025年真题</div>
+      </button>
+      <button class="entry-card" onclick="goPractice('wrong')">
+        <div class="entry-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div class="entry-name">错题本</div>
+        <div class="entry-desc">专攻你的错题</div>
+      </button>
+    </div>
+
+    <!-- 快捷行 -->
+    <div class="quick-row">
+      <button class="quick-item" onclick="showToast('收藏本')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <div class="q-name">收藏本</div>
+      </button>
+      <button class="quick-item" onclick="showToast('拍照搜题')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="q-name">拍照搜题</div>
+      </button>
+      <button class="quick-item" onclick="showToast('成绩录入')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="q-name">成绩录入</div>
+      </button>
+      <button class="quick-item" onclick="showToast('笔记本')">
+        <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <div class="q-name">笔记本</div>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- 二级层（覆盖题库首页，iframe 套选卷/刷题页，返回即收起保留状态）
+     chapter=章节刷题 / exam=模拟考场 / real=历年真题 -->
+<div class="sub-layer" id="chapterLayer">
+  <iframe src="章节刷题.html"></iframe>
+</div>
+<div class="sub-layer" id="examLayer">
+  <iframe src="模拟考场.html"></iframe>
+</div>
+<div class="sub-layer" id="realLayer">
+  <iframe src="历年真题.html"></iframe>
+</div>
+
+<script>
+/* ============================================================
+   题库首页 v4.0（2026-08-31）
+   - 结构对齐甲方 demo：倒计时头 → AI 今日任务(单卡) → 自主学习2×2 → 快捷行
+   - 每日一练已并入 AI 卡，不单列
+   - 薄弱/顽固规则见函数 identifyWeakPoints() 注释（与逻辑面板口径一致）
+   - STATE 由总壳（AI伴学_小程序.html）postMessage 广播，题库页消费
+   - 本轮为展示原型：题库数据 mock，不接刷题数据层（v5.0 接）
+   ============================================================ */
+
+/* ---------- 考试日集中维护（山东统招：每年 3 月最后周日，PRD §四.4） ---------- */
+var EXAM_DATES = [
+  { y: 2026, m: '2026-03-29' },   /* 3月最后周日=29日 */
+  { y: 2027, m: '2027-03-28' },   /* PRD 发布 */
+  { y: 2028, m: '2028-03-26' },   /* PRD 发布 */
+  { y: 2029, m: '2029-03-25' }    /* PRD 发布 */
+];
+
+/* 演示锚点：今天。正式接入后改为 new Date() */
+var today = new Date(2026, 7, 31);
+
+var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
+
+/* ============================================================
+   顽固标签规则（通用 · 闪卡 / 题库共用，口径与逻辑面板一致）
+   ------------------------------------------------------------
+   层级：第一级考点（章）→ … → 四级考点（最后一级）→ 具体考题。
+   ① 考题级顽固：同一道考题答错 ≥ 3 次 → 该考题标记「顽固」。
+   ② 考点级顽固：四级考点内 错误考题数 ÷ 该考点考题总数 × 100% ≥ 50%
+      → 该四级考点标记「顽固」；答题时该考点优先展示错过的考题。
+   ③ 薄弱（PM 拍板）：考点正确率 < 60% 且答题样本 ≥ 5 → 薄弱。
+   ◆ 顽固包含在薄弱中：顽固 = 薄弱项中更严重的一档（考点级顽固 / 考题级顽固）。
+
+   首次分配题目规则（AI 定制 · 题库「今日任务」）
+   ------------------------------------------------------------
+   ① 出题范围：从第一级考点（章）中搜集「薄弱项」（顽固 ⊂ 薄弱）出题。
+   ② 优先级：顽固 > 一般薄弱（顽固优先，插队最前）。
+   ③ 题量：目标 15-20 道，各考点考题数求和后收敛到区间。
+   ④ 时间：约 count ÷ 1.5 分钟。
+   ⑤ 页面展示：第几章 - 哪个考点（chapter = 第一级考点，section = 四级薄弱考点）。
+   ⑥ 文案：取首个考点 → 错误率%（顽固/薄弱）+ 近5年考频，
+      标注「答题时优先展示错过的考题」。
+   ============================================================ */
+
+/* 四级考点数据（演示 demo）：第一级考点 chapter → 四级考点 name → 下挂具体考题 questions
+   qid=考题号；wrong=该考题答错次数（≥3 → 考题顽固） */
+var WEAK_POINTS = [
+  { id: 'p1', chapter: '第3章 操作系统', name: '文件管理', freq: 8, questions: [
+      { qid: 'Q101', wrong: 4 },   /* 答错4次≥3 → 考题顽固 */
+      { qid: 'Q102', wrong: 1 },
+      { qid: 'Q103', wrong: 0 },
+      { qid: 'Q104', wrong: 0 } ] },   /* 错误考题2/4=50% → 考点顽固 */
+  { id: 'p2', chapter: '第3章 操作系统', name: '进程与线程', freq: 5, questions: [
+      { qid: 'Q201', wrong: 3 },   /* 答错3次≥3 → 考题顽固 */
+      { qid: 'Q202', wrong: 2 },
+      { qid: 'Q203', wrong: 0 },
+      { qid: 'Q204', wrong: 0 } ] }    /* 错误考题2/4=50% → 考点顽固 */
+];
+
+/* 顽固标签识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
+   wrongRate（考点错误率）/ wrongQuestions（错过的考题）/ stubbornQuestions（考题级顽固） */
+function identifyWeakPoints() {
+  var stubborn = [], weak = [];
+  WEAK_POINTS.forEach(function(p) {
+    var wrongQuestions    = p.questions.filter(function(q) { return q.wrong > 0; });
+    var stubbornQuestions = p.questions.filter(function(q) { return q.wrong >= 3; });  /* 考题级顽固：答错≥3 */
+    var wrongRate = wrongQuestions.length / p.questions.length;
+    var isStubborn = wrongRate >= 0.5;                    /* 考点级顽固：错误考题数/总数 ≥ 50% */
+    var isWeak = (1 - wrongRate) < 0.6 && p.questions.length >= 5;   /* 薄弱：正确率<60% 且样本≥5 */
+    var info = { wrongRate: wrongRate, wrongQuestions: wrongQuestions, stubbornQuestions: stubbornQuestions };
+    if (isStubborn) stubborn.push(Object.assign({}, p, info));
+    else if (isWeak) weak.push(Object.assign({}, p, info));
+  });
+  return { stubborn: stubborn, weak: weak };
+}
+
+/* 今日任务组装（首次分配题目规则）：按考点识别结果分配，演示 demo */
+function buildTodayTask() {
+  var points = identifyWeakPoints();
+  var focus = points.stubborn.concat(points.weak);       /* 顽固优先，插队最前 */
+  var names = focus.length ? focus.map(function(p) { return p.name; }).join(' · ') : '基础知识巩固';
+  var first = focus[0] || null;
+  var flag = points.stubborn.length ? '顽固' : (points.weak.length ? '薄弱' : '巩固');
+  var count = focus.reduce(function(s, p) { return s + p.questions.length; }, 0);
+  count = Math.max(15, Math.min(20, count));             /* 目标 15-20 道 */
+  var minutes = Math.max(8, Math.round(count / 1.5));
+  var reason = first
+    ? '「' + first.name + '」考点错误率 ' + Math.round(first.wrongRate * 100) + '%（' + flag + '），近5年考 ' + first.freq + ' 次，答题时优先展示错过的考题。'
+    : '今日按考点分配基础巩固任务，稳步提升。';
+  return {
+    chapter: first ? first.chapter : '基础知识巩固',   /* 第一级考点（章） */
+    section: names,
+    count: count,
+    minutes: minutes,
+    reason: reason,
+    flag: flag
+  };
+}
+
+/* ---------- 倒计时 ---------- */
+function diffDays(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  var t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((d - t) / 86400000);
+}
+function getCountdownTarget() {
+  var u = (SHELL_STATE && SHELL_STATE.user) || null;
+  if (u && u.month) {
+    var d = diffDays(u.month);
+    if (d >= 0) return { labelYear: u.month.slice(0, 4), days: d };
+  }
+  /* 未画像 / 已过 → 顺延最近一届未过期（永不显示负数和待更新） */
+  for (var i = 0; i < EXAM_DATES.length; i++) {
+    if (diffDays(EXAM_DATES[i].m) >= 0) return { labelYear: EXAM_DATES[i].y, days: diffDays(EXAM_DATES[i].m) };
+  }
+  var last = EXAM_DATES[EXAM_DATES.length - 1];
+  return { labelYear: last.y, days: diffDays(last.m) };
+}
+function renderCountdown() {
+  var t = getCountdownTarget();
+  var elDays = document.getElementById('cdDays');
+  var elYear = document.getElementById('cdLabelYear');
+  if (elDays) elDays.textContent = t.days;
+  if (elYear) elYear.textContent = t.labelYear;
+}
+
+/* ---------- AI 今日任务卡（三态） ---------- */
+function renderAiCard() {
+  var box = document.getElementById('aiCard');
+  var s = SHELL_STATE || { profileLevel: 'none' };
+  var done = s.profileLevel === 'done';
+
+  /* ① 未画像 → 引导 */
+  if (!done) {
+    box.innerHTML = ''
+      + '<div class="ai-task-header">'
+      +   '<span class="ai-badge">'
+      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>'
+      +     'AI为你定制'
+      +   '</span>'
+      +   '<span class="ai-task-title">今日学习任务</span>'
+      + '</div>'
+      + '<div class="ai-empty-title">完善学习资料后，为你定制今日任务</div>'
+      + '<div class="ai-empty-desc">填写备考年份与专业，AI 将根据你的薄弱点和考试日程，自动生成每天最该练的题。</div>'
+      + '<button class="start-btn ghost" onclick="goCompleteProfile()">完善资料</button>';
+    return;
+  }
+
+  var t = buildTodayTask();
+  box.innerHTML = ''
+    + '<div class="ai-task-header">'
+    +   '<span class="ai-badge">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>'
+    +     'AI为你定制'
+    +   '</span>'
+    +   '<span class="ai-task-title">今日学习任务</span>'
+    + '</div>'
+    + '<div class="ai-task-chapter">' + t.chapter + '</div>'
+    + '<div class="ai-task-section">' + t.section + ' — 继续上次进度</div>'
+    + '<div class="ai-task-meta">'
+    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + t.count + '道题</div>'
+    +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + t.flag + '</div>'
+    + '</div>'
+    + '<div class="ai-reason">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    +   '<span>' + t.reason + '</span>'
+    + '</div>'
+    + '<button class="start-btn" onclick="goPractice(\'today\')">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    +   '开始今日学习（' + t.count + '道）'
+    + '</button>';
+  /* ② 今日已刷完 → 空态已完成（本轮 demo 恒未刷，仅预留分支） */
+}
+
+/* 未完善资料 → 跳转 AI（学习）页完善画像：向总壳发 OPEN_PROFILE（总壳转发学习页 + 切 AI tab）
+   独立打开题库.html 时无父壳 → 兜底提示 */
+function goCompleteProfile() {
+  var embedded = false;
+  try { embedded = window.parent !== window.self; } catch(e) {}
+  if (embedded) {
+    window.parent.postMessage({ type: 'OPEN_PROFILE' }, '*');
+  } else {
+    showToast('请从总壳进入，完善学习资料');
+  }
+}
+
+/* 开始做题：向总壳请求打开统一做题层（今日学习/错题本/章节练习共用一页，entry 区分来源） */
+function goPractice(entry) {
+  try {
+    window.parent.postMessage({ type: 'REQ_PRACTICE', data: { entry: entry || 'today' } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始做题');
+  }
+}
+
+/* ---------- 二级层（题库 tab 内部下钻） ----------
+   open：覆盖题库首页展开二级层（chapter=章节刷题 / exam=模拟考场 / real=历年真题）
+   close：子页点返回 → 收起对应层回题库首页（展开状态保留在 iframe 内）
+   子页内选卷/选考点 → 仍走 goPractice(总壳 practiceLayer 做题页) */
+var SUB_LAYERS = {
+  chapter: document.getElementById('chapterLayer'),
+  exam:    document.getElementById('examLayer'),
+  real:    document.getElementById('realLayer')
+};
+/* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
+var activeSub = null;
+function notifyShellChapter(open, sub) {
+  /* 通知总壳 appbar 跟随：标题=子页名 / 退出按钮显隐 */
+  try { window.parent.postMessage({ type: 'CHAPTER_LAYER', data: { open: open, sub: sub || 'chapter' } }, '*'); } catch(e) {}
+}
+function openSubLayer(sub) {
+  /* 已有其他层打开 → 先收（互斥） */
+  if (activeSub && activeSub !== sub) SUB_LAYERS[activeSub].classList.remove('show');
+  activeSub = sub;
+  SUB_LAYERS[sub].classList.add('show');
+  notifyShellChapter(true, sub);
+}
+function closeSubLayer() {
+  if (activeSub) SUB_LAYERS[activeSub].classList.remove('show');
+  activeSub = null;
+  notifyShellChapter(false);
+}
+/* 监听子页发来的消息：
+   - CLOSE_CHAPTER：子页点返回 → 收起对应二级层
+   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页 */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d) return;
+  if (d.type === 'CLOSE_CHAPTER') { closeSubLayer(); return; }
+  if (d.type === 'REQ_PRACTICE' || d.type === 'REQ_REPORT') {
+    /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳）
+       REQ_REPORT：模拟考场/历年真题「查看报告」→ 总壳存数据并打开报告层 */
+    try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
+});
+
+/* ---------- Toast ---------- */
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+}
+
+/* ---------- 消费总壳 STATE 广播 ---------- */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || d.type !== 'STATE') return;
+  SHELL_STATE = d.state || null;
+  renderCountdown();
+  renderAiCard();
+});
+
+/* ---------- 冷启动渲染（无 STATE 兜底空态） ---------- */
+renderCountdown();
+renderAiCard();
+</script>
+</body>
+</html>
