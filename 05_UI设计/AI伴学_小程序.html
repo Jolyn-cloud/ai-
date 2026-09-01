@@ -1032,8 +1032,8 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REQ_PRACTICE') {
-    /* 统一做题层：题库/错题本/章节练习任一入口请求做题（entry 区分来源） */
-    openPractice(d.data && d.data.entry);
+    /* 统一做题层：题库/错题本/章节练习/模拟考试/历年真题任一入口请求做题（entry 区分来源） */
+    openPractice(d.data && d.data.entry, d.data || {});
     return;
   }
   if (d.type === 'CLOSE_PRACTICE') {
@@ -1042,8 +1042,10 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'CHAPTER_LAYER') {
-    /* 题库 tab 内「章节刷题」二级层开关 → appbar 标题/退出跟随 */
+    /* 题库 tab 内二级层开关（chapter=章节刷题 / exam=模拟考场 / real=历年真题）
+       → appbar 标题跟随子页名 + 退出显隐 */
     chapterLayerOpen = !!(d.data && d.data.open);
+    chapterLayerSub = (d.data && d.data.sub) || (chapterLayerOpen ? 'chapter' : '');
     updateAppbarUI();
     return;
   }
@@ -1096,10 +1098,11 @@ function syncChildState() {
 var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 /* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
-var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习' };
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题' };
 var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
 var practiceTitle = '';
-var chapterLayerOpen = false;   /* 题库 tab 内「章节刷题」二级层是否展开（appbar 跟随） */
+var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
+var chapterLayerSub = '';       /* 当前打开的子层：chapter=章节刷题 / exam=模拟考场 / real=历年真题 */
 function currentTabName() {
   var t = document.querySelector('.tab-item.active');
   return t ? t.getAttribute('data-frame') : '';
@@ -1112,7 +1115,7 @@ function updateAppbar(name) {
   if (practiceLayer.classList.contains('show')) {
     t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
   } else if (chapterLayerOpen) {
-    t = '章节刷题';                                         /* 题库 tab 内章节刷题二级层 */
+    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')
       ? (TAB_NAMES.flash || '闪卡')
@@ -1161,10 +1164,11 @@ function updateAppbarUI() {
 }
 function switchTab(name) {
   closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
-  if (chapterLayerOpen) {  /* 切 tab → 收起章节层 */
+  if (chapterLayerOpen) {  /* 切 tab → 收起二级层 */
     var quiz = document.getElementById('frame-quiz');
     if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
     chapterLayerOpen = false;
+    chapterLayerSub = '';
   }
   updateAppbar(name);
   updateLogicForTab(name);
@@ -1227,9 +1231,15 @@ function updateTabBar() {
   document.body.classList.toggle('tab-hidden', !show);
 }
 
-function openPractice(entry) {
-  practiceTitle = PRACTICE_TITLES[entry] || '今日学习';   /* 记录答题页标题（今日学习等） */
+function openPractice(entry, extra) {
+  extra = extra || {};
+  /* 考试/真题卷：标题用卷名（如「卷 01 · 2026 届全真模拟卷一」），笔试分/时长透传做题页 */
+  practiceTitle = PRACTICE_TITLES[entry] || '今日学习';
+  if ((entry === 'exam' || entry === 'real') && extra.name) practiceTitle = extra.name;
   var url = '做题页.html?entry=' + (entry || 'today');
+  if (entry === 'exam' || entry === 'real') {
+    url += '&paperId=' + (extra.paperId || '') + '&minutes=' + (extra.minutes || '') + '&fullScore=' + (extra.fullScore || '');
+  }
   if (!practiceFrame.getAttribute('src')) {
     practiceFrame.setAttribute('src', url);
   } else {

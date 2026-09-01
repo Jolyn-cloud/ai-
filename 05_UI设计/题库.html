@@ -195,16 +195,17 @@ body::before {
 .quick-item .q-icon svg { width:22px; height:22px; color:var(--primary-dark); }
 .quick-item .q-name { font-size:11px; color:var(--text-secondary); }
 
-/* ===== 章节刷题二级层（题库 tab 内部下钻，覆盖题库首页，状态保留） ===== */
-.chapter-layer {
+/* ===== 二级层（题库 tab 内部下钻，覆盖题库首页，状态保留）
+   chapter=章节刷题 / exam=模拟考场 / real=历年真题，三组并列共用样式 ===== */
+.sub-layer {
   position: fixed; inset: 0;
   z-index: 50;
   background: #EDEFF7;
   opacity: 0; visibility: hidden;
   transition: opacity .25s ease;
 }
-.chapter-layer.show { opacity: 1; visibility: visible; }
-.chapter-layer iframe { width: 100%; height: 100%; border: none; }
+.sub-layer.show { opacity: 1; visibility: visible; }
+.sub-layer iframe { width: 100%; height: 100%; border: none; }
 
 /* ===== Toast ===== */
 #toast {
@@ -246,21 +247,21 @@ body::before {
     <!-- 自主学习（逃生口） -->
     <div class="section-title">自主学习</div>
     <div class="entry-grid">
-      <button class="entry-card" onclick="openChapterLayer()">
+      <button class="entry-card" onclick="openSubLayer('chapter')">
         <div class="entry-icon blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         </div>
         <div class="entry-name">章节刷题</div>
         <div class="entry-desc">按章节系统练习</div>
       </button>
-      <button class="entry-card" onclick="showToast('模拟考试：全真模拟考场')">
+      <button class="entry-card" onclick="openSubLayer('exam')">
         <div class="entry-icon orange">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
         <div class="entry-name">模拟考试</div>
         <div class="entry-desc">全真模拟考场</div>
       </button>
-      <button class="entry-card" onclick="showToast('历年真题：2010-2025 真题')">
+      <button class="entry-card" onclick="openSubLayer('real')">
         <div class="entry-icon purple">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
         </div>
@@ -302,9 +303,16 @@ body::before {
 <!-- Toast -->
 <div id="toast"></div>
 
-<!-- 章节刷题二级层（覆盖题库首页，iframe 套章节刷题页，返回即收起保留状态） -->
-<div class="chapter-layer" id="chapterLayer">
+<!-- 二级层（覆盖题库首页，iframe 套选卷/刷题页，返回即收起保留状态）
+     chapter=章节刷题 / exam=模拟考场 / real=历年真题 -->
+<div class="sub-layer" id="chapterLayer">
   <iframe src="章节刷题.html"></iframe>
+</div>
+<div class="sub-layer" id="examLayer">
+  <iframe src="模拟考场.html"></iframe>
+</div>
+<div class="sub-layer" id="realLayer">
+  <iframe src="历年真题.html"></iframe>
 </div>
 
 <script>
@@ -502,30 +510,40 @@ function goPractice(entry) {
   }
 }
 
-/* ---------- 章节刷题二级层（题库 tab 内部下钻） ----------
-   open：覆盖题库首页展开章节层（iframe 套章节刷题页，状态保留）
-   close：章节页点返回 → 收起章节层回题库首页（展开状态保留在 iframe 内）
-   章节页内选到三四级 → 仍走 goPractice(总壳 practiceLayer 做题页) */
-var chapterLayer = document.getElementById('chapterLayer');
-function notifyShellChapter(open) {
-  /* 通知总壳 appbar 跟随：标题=章节刷题 / 退出按钮显隐 */
-  try { window.parent.postMessage({ type: 'CHAPTER_LAYER', data: { open: open } }, '*'); } catch(e) {}
+/* ---------- 二级层（题库 tab 内部下钻） ----------
+   open：覆盖题库首页展开二级层（chapter=章节刷题 / exam=模拟考场 / real=历年真题）
+   close：子页点返回 → 收起对应层回题库首页（展开状态保留在 iframe 内）
+   子页内选卷/选考点 → 仍走 goPractice(总壳 practiceLayer 做题页) */
+var SUB_LAYERS = {
+  chapter: document.getElementById('chapterLayer'),
+  exam:    document.getElementById('examLayer'),
+  real:    document.getElementById('realLayer')
+};
+/* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
+var activeSub = null;
+function notifyShellChapter(open, sub) {
+  /* 通知总壳 appbar 跟随：标题=子页名 / 退出按钮显隐 */
+  try { window.parent.postMessage({ type: 'CHAPTER_LAYER', data: { open: open, sub: sub || 'chapter' } }, '*'); } catch(e) {}
 }
-function openChapterLayer() {
-  chapterLayer.classList.add('show');
-  notifyShellChapter(true);
+function openSubLayer(sub) {
+  /* 已有其他层打开 → 先收（互斥） */
+  if (activeSub && activeSub !== sub) SUB_LAYERS[activeSub].classList.remove('show');
+  activeSub = sub;
+  SUB_LAYERS[sub].classList.add('show');
+  notifyShellChapter(true, sub);
 }
-function closeChapterLayer() {
-  chapterLayer.classList.remove('show');
+function closeSubLayer() {
+  if (activeSub) SUB_LAYERS[activeSub].classList.remove('show');
+  activeSub = null;
   notifyShellChapter(false);
 }
-/* 监听章节刷题页发来的消息：
-   - CLOSE_CHAPTER：章节页点返回 → 收起章节层
-   - REQ_PRACTICE：章节页点考点/主题进做题 → 透传给总壳打开 practiceLayer 做题页 */
+/* 监听子页发来的消息：
+   - CLOSE_CHAPTER：子页点返回 → 收起对应二级层
+   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
-  if (d.type === 'CLOSE_CHAPTER') { closeChapterLayer(); return; }
+  if (d.type === 'CLOSE_CHAPTER') { closeSubLayer(); return; }
   if (d.type === 'REQ_PRACTICE') {
     /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳） */
     try { window.parent.postMessage(d, '*'); } catch(e) {}
