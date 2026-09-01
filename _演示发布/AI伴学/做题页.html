@@ -533,6 +533,10 @@ body{
 .sheet-legend .lg-done i{ background:var(--primary); }
 .sheet-legend .lg-todo i{ background:#fff; border-color:#C9CEDA; }
 .sheet-legend .lg-mark i{ background:#FFF7E6; border-color:#FA8C16; position:relative; }
+.sheet-legend .lg-current i{
+  background:#fff; border:1.5px solid var(--primary);
+  box-shadow:0 0 0 1.5px var(--primary-light);
+}
 .sheet-legend .lg-mark i::after{
   content:''; position:absolute; right:1px; top:1px; width:5px; height:5px; border-radius:50%; background:#FA8C16;
 }
@@ -644,6 +648,7 @@ body{
       <span class="lg lg-done"><i></i>已答 <b id="lgDone">0</b></span>
       <span class="lg lg-todo"><i></i>未答 <b id="lgTodo">0</b></span>
       <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
+      <span class="lg lg-current"><i></i>当前题</span>
     </div>
     <div class="sheet-grid" id="sheetGrid"></div>
   </div>
