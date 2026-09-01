@@ -77,18 +77,26 @@ body::after {
   padding: 24px 20px 36px;
   color: var(--primary-dark);
 }
-.hero .countdown { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
-.hero .label { font-size: 15px; font-weight: 700; opacity: .95; white-space: nowrap; }
-.hero .num { font-size: 34px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
-.hero .unit { font-size: 15px; font-weight: 700; opacity: .9; }
+.hero .countdown {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.hero .label { font-size: 14px; font-weight: 600; color: var(--text-secondary); letter-spacing: .04em; }
+.hero .num-row { display: flex; align-items: baseline; gap: 5px; }
+.hero .num {
+  font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.hero .unit { font-size: 17px; font-weight: 700; color: var(--text-secondary); }
 
 /* ===== 主体（顶部环境光消散处留白，无硬叠） ===== */
 .body { padding: 0 16px; margin-top: 6px; }
 
 /* ===== AI 今日任务主卡（白色主体漂浮在环境光中，2026-09-01 PM 拍板）
-   周围保留非常轻微的蓝紫光晕（低透明度，无边框/无玻璃拟态），自然嵌入过渡区 */
+   周围保留非常轻微的蓝紫光晕（低透明度，无边框/无玻璃拟态），自然嵌入过渡区。
+   纯白底，无顶部色条（2026-09-02 PM 拍板：卡片整体白底） */
 .ai-card {
-  background: linear-gradient(180deg, #FFFFFF 0%, #FBFBFE 100%);
+  background: #FFFFFF;
   border-radius: 26px 22px 30px 20px;
   padding: 20px;
   box-shadow:
@@ -98,11 +106,6 @@ body::after {
     0 6px 18px rgba(63,169,139,.05);    /* 底部轻微青光，过渡到 F8F9FC */
   margin-bottom: 16px;
   position: relative;
-  overflow: hidden;
-}
-.ai-card::before {
-  content: ''; position: absolute; top:0; left:0; right:0; height:4px;
-  background: linear-gradient(90deg, var(--primary), var(--brand-mid) 55%, var(--brand-teal));
 }
 .ai-task-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
 .ai-badge {
@@ -211,12 +214,14 @@ body::after {
 
 <div class="content">
 
-  <!-- Hero：考试倒计时头（一行显示「距离X年山东专升本考试N天」，数字放大） -->
+  <!-- Hero：考试倒计时头（两级排版：上=距离X年山东专升本考试，下=209 大字+天） -->
   <div class="hero">
     <div class="countdown">
-      <span class="label" id="cdLabel">距离2027年山东专升本考试</span>
-      <span class="num" id="cdDays">--</span>
-      <span class="unit">天</span>
+      <span class="label" id="cdLabel">距离 2027 年山东专升本考试</span>
+      <div class="num-row">
+        <span class="num" id="cdDays">--</span>
+        <span class="unit">天</span>
+      </div>
     </div>
   </div>
 
@@ -410,7 +415,7 @@ function getCountdownTarget() {
 function renderCountdown() {
   var t = getCountdownTarget();
   document.getElementById('cdDays').textContent = t.days;
-  document.getElementById('cdLabel').textContent = '距离' + t.labelYear + '年山东专升本考试';
+  document.getElementById('cdLabel').textContent = '距离 ' + t.labelYear + ' 年山东专升本考试';
 }
 
 /* ---------- AI 今日任务卡（三态） ---------- */
