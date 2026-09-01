@@ -920,11 +920,10 @@ function renderChapters(){
         html += '<span class="l3-title">'+l3.name+'</span>';
         html += '<span class="l3-right">';
         if(l3fresh){
-          html += '<span class="l3-todo">未做 '+l3todo+'</span>';
+          html += '<span class="l3-todo">未做</span>';
         } else {
           html += '<span class="l3-done">已做 '+l3.done+'/'+l3.total+'</span>';
           html += '<span class="l3-rate '+l3c+'">正确 '+l3r+'%</span>';
-          if(l3todo>0) html += '<span class="l3-todo">未做 '+l3todo+'</span>';
         }
         html += '</span>';
         html += '</div>'; // l3-item
@@ -932,22 +931,20 @@ function renderChapters(){
         html += '<div class="l4-list"><div class="l4-inner">';
         l3.level4.forEach(function(l4){
           var l4fresh = l4.done===0;
-          /* 四级答题状态（题库口径，2026-09-02 PM 拍板）：
-             ✔ 做过且答对 / ✖ 做过且答错 / 顽固=答错题÷总题≥50%（红标签覆盖符号） */
-          var l4Stubborn = !l4fresh && (l4.total>0) && (l4.wrong/l4.total >= 0.5);
+          /* 四级答题状态（PM 2026-09-02 拍板）：
+             ✔ 对题数 / ✖ 错题数 / 顽固 = 有答错过的题（wrong>0）即标，
+             与做题页「错过的题标顽固记忆点」语义一致；未做只提示 */
+          var l4Wrong = !l4fresh && l4.wrong>0;
           html += '<div class="l4-item" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">';
           html += '<span class="l4-dot"></span>';
           html += '<span class="l4-title">'+l4.name+'</span>';
           html += '<span class="l4-right">';
           if(l4fresh){
             html += '<span class="l4-total">'+l4.total+'题·未做</span>';
-          } else if(l4Stubborn){
-            html += '<span class="l4-stubborn">顽固</span>';
-            html += '<span class="l4-total">'+l4.total+'题</span>';
           } else {
             if(l4.right>0) html += '<span class="l4-ok">✔ '+l4.right+'</span>';
             if(l4.wrong>0) html += '<span class="l4-no">✖ '+l4.wrong+'</span>';
-            html += '<span class="l4-total">'+l4.total+'题</span>';
+            if(l4Wrong) html += '<span class="l4-stubborn">顽固</span>';
           }
           html += '</span>';
           html += '</div>'; // l4-item
