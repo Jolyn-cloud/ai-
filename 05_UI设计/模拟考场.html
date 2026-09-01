@@ -7,7 +7,7 @@
 <style>
 /* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-09-02） ====
    模拟考场页：题库首页「模拟考试」入口下钻二级页
-   结构：筛选 chip 行 → 试卷卡片列表（全真模拟 / 冲刺模拟 分组）
+   结构：试卷卡片列表（全真模拟 / 冲刺模拟 分组，默认未做在前）
    数据：试卷进程（未做/已做+正确率），mock 演示期 */
 :root{
   --primary: #5B72F5;
@@ -33,28 +33,6 @@ body {
 }
 * { scrollbar-width: none; }                          /* Firefox */
 *::-webkit-scrollbar { display: none; width: 0; height: 0; } /* Chrome/Safari */
-
-/* ===== 筛选 chip 行（标题/退出在小程序栏 appbar） ===== */
-.filter-row {
-  display: flex; gap: 8px;
-  padding: 16px 16px 8px;
-  position: relative; z-index: 4;
-}
-.chip {
-  flex-shrink: 0;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid #E5E8F0;
-  font-size: 12.5px; font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex; align-items: center; gap: 5px;
-  transition: all .15s ease;
-}
-.chip:active { transform: scale(.96); }
-.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-.chip .chip-count { font-size: 11px; opacity: .8; }
 
 /* ===== 试卷列表（唯一滚动容器） ===== */
 .scroll-area { padding: 4px 16px 32px; }
@@ -132,16 +110,6 @@ body {
 </head>
 <body>
 
-<div class="filter-row">
-  <button class="chip active" data-filter="all" onclick="setFilter('all')">全部</button>
-  <button class="chip" data-filter="todo" onclick="setFilter('todo')">
-    只看未做 <span class="chip-count" id="cntTodo"></span>
-  </button>
-  <button class="chip" data-filter="wrong" onclick="setFilter('wrong')">
-    只看错题 <span class="chip-count" id="cntWrong"></span>
-  </button>
-</div>
-
 <div class="scroll-area">
   <div id="paperGroups"></div>
 </div>
@@ -172,8 +140,6 @@ var PAPERS = [
   { id:'sprint2', group:'sprint', no:'卷 02', name:'冲刺模拟卷二', total:40, minutes:45,  fullScore:150, done:0,  right:0,  wrong:0,  rate:null }
 ];
 
-var currentFilter = 'all';
-
 /* ===== 渲染 ===== */
 function statusHtml(p) {
   if (!p.done || p.right === 0) return '<span class="paper-status empty">未开始</span>';
@@ -191,12 +157,11 @@ function render() {
   var box = document.getElementById('paperGroups');
   var html = '';
   GROUPS.forEach(function(g) {
-    var list = PAPERS.filter(function(p) {
-      if (g.key !== p.group) return false;
-      if (currentFilter === 'todo' && (p.done > 0)) return false;
-      if (currentFilter === 'wrong' && !(p.done > 0 && p.wrong > 0)) return false;
-      return true;
-    });
+    var list = PAPERS.filter(function(p) { return g.key === p.group; })
+      .sort(function(a, b) {
+        // 默认排序：未做(0) 在前，已做(done>0) 在后
+        return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
+      });
     if (list.length === 0) return;
     html += '<div class="paper-group"><div class="group-head">' + g.name + '</div><div class="paper-list">';
     list.forEach(function(p) {
@@ -212,24 +177,6 @@ function render() {
     html += '</div></div>';
   });
   box.innerHTML = html;
-  updateChipCounts();
-}
-
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.chip').forEach(function(c) {
-    c.classList.toggle('active', c.dataset.filter === f);
-  });
-  render();
-}
-function updateChipCounts() {
-  var todo = 0, wrong = 0;
-  PAPERS.forEach(function(p) {
-    if (p.done === 0) todo++;
-    if (p.done > 0 && p.wrong > 0) wrong++;
-  });
-  document.getElementById('cntTodo').textContent = todo ? '(' + todo + ')' : '';
-  document.getElementById('cntWrong').textContent = wrong ? '(' + wrong + ')' : '';
 }
 
 /* ===== 进入做题页 =====
