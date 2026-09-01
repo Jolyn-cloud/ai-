@@ -225,10 +225,14 @@ body {
 }
 .l3-item:active { background: rgba(91,114,245,.04); }
 .l3-arrow {
-  width: 13px; height: 13px; margin-right: 7px;
-  color: var(--primary); font-size: 13px; font-weight: 600; line-height: 1;
-  flex-shrink: 0; transition: transform .2s ease;
+  width: 24px; height: 24px; margin-right: 2px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary); font-size: 14px; font-weight: 700; line-height: 1;
+  flex-shrink: 0; border-radius: 7px; cursor: pointer;
+  transition: transform .2s ease, background .12s ease;
 }
+.l3-arrow:hover { background: var(--primary-light); }
+.l3-arrow:active { background: rgba(91,114,245,.14); }
 .l3-item.open .l3-arrow { transform: rotate(90deg); }
 .l3-title {
   flex: 1; min-width: 0;
@@ -240,23 +244,12 @@ body {
   font-size: 11px; color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
+.l3-done { color: var(--text-secondary); font-weight: 600; }
 .l3-rate { font-weight: 700; }
 .l3-rate.low { color: var(--danger); }
 .l3-rate.mid { color: var(--warning); }
 .l3-rate.high { color: var(--success); }
 .l3-todo { color: var(--text-secondary); font-weight: 600; }
-/* 「再刷」按钮：三级整行展开四级，按钮进做题页 */
-.rebtn {
-  margin-left: 8px; flex-shrink: 0;
-  padding: 4px 10px; border-radius: 999px;
-  border: 1px solid var(--primary);
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  font-size: 11px; font-weight: 700; cursor: pointer;
-  transition: all .12s ease;
-}
-.rebtn:active { transform: scale(.95); background: var(--primary); color: #fff; }
-.rebtn.todo { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* ===== 四级：考点 ===== */
 .l4-list { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
@@ -275,9 +268,6 @@ body {
   width: 7px; height: 7px; margin-right: 10px;
   border-radius: 50%; background: #C7CDD9; flex-shrink: 0;
 }
-.l4-dot.done-low { background: var(--danger); }
-.l4-dot.done-mid { background: var(--warning); }
-.l4-dot.done-high { background: var(--success); }
 .l4-title {
   flex: 1; min-width: 0;
   font-size: 11.5px; font-weight: 500; color: #68748D;
@@ -287,11 +277,14 @@ body {
   display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   font-size: 10.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary);
 }
-.l4-rate { font-weight: 700; }
-.l4-rate.low { color: var(--danger); }
-.l4-rate.mid { color: var(--warning); }
-.l4-rate.high { color: var(--success); }
-.l4-todo { color: var(--warning); font-weight: 600; }
+/* 四级答题状态：✔做对 / ✖做错 / 顽固（考点级：错题≥50%）；未做不显示符号 */
+.l4-ok { color: var(--success); font-weight: 700; font-size: 11px; }
+.l4-no { color: var(--danger); font-weight: 700; font-size: 11px; }
+.l4-stubborn {
+  color: #CF1322; font-weight: 700; font-size: 10.5px;
+  background: #FFF1F0; padding: 2px 7px; border-radius: 5px;
+}
+.l4-total { color: var(--text-tertiary); }
 
 /* ===== 空态（整章未做过） ===== */
 .chapter-card.fresh .chapter-rate-big { color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
@@ -870,9 +863,7 @@ function renderChapters(){
     if(fresh){
       html += '<span class="fresh-tag">未练习</span>';
     } else {
-      html += '<span class="cd-rate '+rc+'">正确 '+rateText(r)+'</span>';
       if(ch.wrong>0) html += '<span class="cd-wrong">错 '+ch.wrong+'</span>';
-      if(todo>0) html += '<span class="cd-todo">未做 <strong>'+todo+'</strong></span>';
     }
     html += '</div>'; // chapter-data
     html += '</div>'; // chapter-info
@@ -923,39 +914,40 @@ function renderChapters(){
         var l3todo = todoOf(l3.total, l3.done);
         var l3fresh = l3.done===0;
         html += '<div class="l3-block">';
-        html += '<div class="l3-item" onclick="toggleL3(this)">';
-        html += '<span class="l3-arrow">▸</span>';
+        /* 三级整行点击 → 进做题页；右侧下拉按钮（箭头）→ 展开四级 */
+        html += '<div class="l3-item" onclick="goQuiz(\'l3\','+ch.id+',\''+escapeName(l3.name)+'\')">';
+        html += '<span class="l3-arrow" onclick="event.stopPropagation();toggleL3(this)">▸</span>';
         html += '<span class="l3-title">'+l3.name+'</span>';
         html += '<span class="l3-right">';
         if(l3fresh){
           html += '<span class="l3-todo">未做 '+l3todo+'</span>';
         } else {
-          html += '<span>已做 '+l3.done+'/'+l3.total+'</span>';
+          html += '<span class="l3-done">已做 '+l3.done+'/'+l3.total+'</span>';
           html += '<span class="l3-rate '+l3c+'">正确 '+l3r+'%</span>';
           if(l3todo>0) html += '<span class="l3-todo">未做 '+l3todo+'</span>';
         }
         html += '</span>';
-        // 「再刷」按钮：点击进做题页刷该主题
-        var rebtnClass = l3fresh ? 'rebtn todo' : 'rebtn';
-        var rebtnText = l3fresh ? '开始刷' : '再刷';
-        html += '<button class="'+rebtnClass+'" onclick="event.stopPropagation();goQuiz(\'l3\','+ch.id+',\''+escapeName(l3.name)+'\')">'+rebtnText+'</button>';
         html += '</div>'; // l3-item
         // 四级
         html += '<div class="l4-list"><div class="l4-inner">';
         l3.level4.forEach(function(l4){
-          var l4r = rateOf(l4.done, l4.right);
-          var l4c = rateClass(l4r);
           var l4fresh = l4.done===0;
-          var dotClass = l4fresh ? '' : ('done-'+l4c);
+          /* 四级答题状态（题库口径，2026-09-02 PM 拍板）：
+             ✔ 做过且答对 / ✖ 做过且答错 / 顽固=答错题÷总题≥50%（红标签覆盖符号） */
+          var l4Stubborn = !l4fresh && (l4.total>0) && (l4.wrong/l4.total >= 0.5);
           html += '<div class="l4-item" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">';
-          html += '<span class="l4-dot '+dotClass+'"></span>';
+          html += '<span class="l4-dot"></span>';
           html += '<span class="l4-title">'+l4.name+'</span>';
           html += '<span class="l4-right">';
           if(l4fresh){
-            html += '<span class="l4-todo">'+l4.total+'题·未做</span>';
+            html += '<span class="l4-total">'+l4.total+'题·未做</span>';
+          } else if(l4Stubborn){
+            html += '<span class="l4-stubborn">顽固</span>';
+            html += '<span class="l4-total">'+l4.total+'题</span>';
           } else {
-            html += '<span>'+l4.total+'题</span>';
-            html += '<span class="l4-rate '+l4c+'">正确 '+l4r+'%</span>';
+            if(l4.right>0) html += '<span class="l4-ok">✔ '+l4.right+'</span>';
+            if(l4.wrong>0) html += '<span class="l4-no">✖ '+l4.wrong+'</span>';
+            html += '<span class="l4-total">'+l4.total+'题</span>';
           }
           html += '</span>';
           html += '</div>'; // l4-item
@@ -983,9 +975,9 @@ function toggleSub(item){
   /* sub-item 与 l3-list 同为 sub-container 子级；在 sub-item 上 toggle，CSS 用兄弟选择器命中 l3-list */
   item.classList.toggle('open-l2');
 }
-function toggleL3(item){
-  /* l4-list 是 l3-item 的兄弟（同在 l3-block 内）；l3-item.toggle .open */
-  item.classList.toggle('open');
+function toggleL3(arrow){
+  /* 箭头在 l3-item 内；toggle open 到父级，CSS 用兄弟选择器命中 l4-list */
+  arrow.closest('.l3-item').classList.toggle('open');
 }
 
 /* ===== 筛选 ===== */
