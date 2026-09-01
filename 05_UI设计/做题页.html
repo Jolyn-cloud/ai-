@@ -163,6 +163,13 @@ body{
 .answer-line.wrong-ans{ color:var(--danger); }
 .analysis-text{ font-size:13px; color:#555; line-height:1.7; }
 .analysis-text b{ color:#333; }
+/* 解析图片占位：表示该解析可能带图片（流程图/截图），接真实题源后替换 */
+.analysis-img-placeholder{
+  margin-top:10px; height:120px; border-radius:10px;
+  border:1.5px dashed #D3D9EC; background:#FAFBFD;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:12px; color:var(--text-tertiary);
+}
 .step-list{ font-size:13px; color:#666; line-height:1.8; margin-top:8px; padding-top:8px; border-top:1px dashed #EDEFF3; }
 
 /* ===== 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） =====
@@ -1278,11 +1285,14 @@ function renderAnalysis(q, ans, reveal) {
     html += renderWrongStats(q);
   }
 
-  /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31） */
+  /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31）
+     · 部分解析带图片（流程图/截图），文字下方显示图片占位，接真实题源后替换为实际图 */
   var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
   html += '<div class="ana-sec">'
     + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span></div>'
-    + '<div class="analysis-text">' + q.analysis + '</div>' + steps + '</div>';
+    + '<div class="analysis-text">' + q.analysis + '</div>'
+    + '<div class="analysis-img-placeholder"><span>🖼️</span>图片解析（流程图 / 截图）</div>'
+    + steps + '</div>';
 
   /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
   var compare = q.compare || mockCompare(q);
