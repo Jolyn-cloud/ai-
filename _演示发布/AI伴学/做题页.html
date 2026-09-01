@@ -195,6 +195,54 @@ body{
 .ico-8{ background:linear-gradient(135deg,#5B72F5,#3FA98B); color:#fff; }      /* 视频解析 蓝绿 */
 .ico-9{ background:linear-gradient(135deg,#8A90A8,#B0B6CA); color:#fff; }     /* 答题时间 灰 */
 
+/* ===== 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区） ===== */
+.diag-card{
+  background:linear-gradient(135deg,#E8F3FF 0%,#D6E9FF 100%);
+  border-radius:12px; padding:13px 14px; margin-bottom:10px;
+}
+.diag-title{ font-size:13px; font-weight:700; color:#2F6FED; margin-bottom:6px; }
+.diag-desc{ font-size:12px; color:#3B5B9E; line-height:1.6; margin-bottom:9px; }
+.diag-actions{ display:flex; flex-wrap:wrap; gap:7px; }
+.diag-btn{
+  padding:5px 11px; border-radius:14px; font-size:11.5px; font-weight:600;
+  border:1px solid #BBD6F5; background:#fff; color:#2F6FED; cursor:pointer;
+  transition:all .15s ease;
+}
+.diag-btn:active{ transform:scale(.96); }
+.diag-btn.active{ background:#2F6FED; color:#fff; border-color:#2F6FED; }
+.diag-btn.ok{ border-color:#9BD8B4; color:#1F7A4D; }
+.diag-btn.ok.active{ background:#20A866; color:#fff; border-color:#20A866; }
+
+/* 错题统计卡 */
+.wrong-stats-card{ background:#fff; border-radius:12px; padding:13px 14px; margin-bottom:10px; }
+.wrong-stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.wrong-stats-grid .ws-item{ display:flex; flex-direction:column; gap:2px; }
+.ws-label{ font-size:11px; color:var(--text-tertiary); }
+.ws-value{ font-size:14px; font-weight:700; color:var(--text-primary); }
+.ws-value.green{ color:var(--success); }
+.ws-value.red{ color:var(--danger); }
+.ws-value.blue{ color:var(--primary); }
+.wrong-count-row{ margin-top:9px; padding-top:9px; border-top:1px dashed #EDEFF3; display:flex; gap:12px; font-size:12px; color:#666; }
+.wrong-count-row .ok{ color:var(--success); font-weight:700; }
+.wrong-count-row .fail{ color:var(--danger); font-weight:700; }
+
+/* 错题本结果：逐题明细 */
+.result-panel-lg{ max-height:86vh; overflow-y:auto; }
+.result-detail{ text-align:left; margin:10px 0 4px; border-top:1px solid #F0F1F6; padding-top:10px; }
+.result-detail .rd-title{ font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; }
+.result-detail-item{ display:flex; align-items:center; gap:7px; padding:6px 0; border-bottom:1px dashed #F0F1F6; font-size:12px; }
+.result-detail-item:last-child{ border-bottom:none; }
+.rd-status{ width:18px; height:18px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+.rd-status.correct{ background:#E8F8F0; color:#20A866; }
+.rd-status.wrong{ background:#FEECEC; color:#EF4444; }
+.rd-status.skip{ background:#F1F2F7; color:#98A0B2; }
+.rd-q{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#333; }
+.rd-tag{ font-size:9.5px; padding:1px 5px; border-radius:4px; font-weight:600; flex-shrink:0; }
+.rd-tag.mastery{ background:#E8F8F0; color:#1F7A4D; }
+.rd-tag.stubborn{ background:#FFF1F0; color:#EF4444; }
+.result-btns.wrong3{ gap:6px; }
+.result-btns.wrong3 .result-btn{ padding:0 4px; font-size:13px; }
+
 /* 系统判断：标签行 */
 .verdict-tags{ display:flex; flex-wrap:wrap; gap:8px; }
 .verdict-tag{
@@ -641,7 +689,7 @@ body{
 
 <!-- 成绩结果弹窗 -->
 <div class="result-mask" id="resultMask">
-  <div class="result-panel">
+  <div class="result-panel result-panel-lg">
     <div class="result-score"><span id="resultScore">0</span><span class="total" id="resultTotal">/0</span></div>
     <div class="result-label" id="resultLabel">本次练习完成</div>
     <div class="result-stats">
@@ -650,7 +698,8 @@ body{
       <div><b id="statSkip">0</b>未答</div>
       <div><b id="statTime">00:00</b>用时</div>
     </div>
-    <div class="result-btns">
+    <div class="result-detail" id="resultDetail"></div>
+    <div class="result-btns" id="resultBtns">
       <button class="result-btn exit" onclick="closePractice()">退出</button>
       <button class="result-btn review" onclick="reviewAnswers()">查看解析</button>
     </div>
@@ -819,11 +868,12 @@ var QUESTIONS = (function buildQuestions(){
     }
   ],
 
-  /* 错题本：演示 3 道（答错过的题，顽固标为 red） */
+  /* 错题本：演示 6 道（答错过的题；qid 与错题本首页对应；tag=错因标签；stats=全站统计演示） */
   wrong: [
     {
+      qid:'W01', path:'操作系统 → 操作系统概述 → 作用', tag:'confusion', wrongCount:2, stubborn:false,
       type:'single', chapter:'第1章 计算机基础', concept:'操作系统概述', difficulty:'中',
-      stubborn:false,
+      stats:{ avgSec:58, avgRate:42, okCount:2, failCount:2 },
       hotWrong:1,         /* 埋点：「提供用户界面」被高频错选（学生以为是应用层功能） */
       stem:'操作系统的作用不包括（ ）。',
       options:['管理硬件资源','提供用户界面','编译源程序','管理软件资源'],
@@ -832,8 +882,9 @@ var QUESTIONS = (function buildQuestions(){
       steps:['① 操作系统 = 资源管理 + 用户接口','② 编译器负责编译源程序，与操作系统无关']
     },
     {
+      qid:'W02', path:'操作系统 → 文件管理 → 扩展名', tag:'stubborn', wrongCount:3, stubborn:true,
       type:'judge', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
-      stubborn:true,
+      stats:{ avgSec:46, avgRate:55, okCount:1, failCount:3 },
       stem:'文件的扩展名相同，其内容一定相同。',
       options:['正确','错误'],
       answer:1,
@@ -841,12 +892,43 @@ var QUESTIONS = (function buildQuestions(){
       steps:['① 扩展名 = 类型标识，非内容保证','② 更改扩展名不影响文件内容']
     },
     {
+      qid:'W03', path:'操作系统 → 进程与线程 → 进程概念', tag:'confusion', wrongCount:2, stubborn:false,
       type:'fill', chapter:'第3章 操作系统', concept:'进程与线程', difficulty:'中',
-      stubborn:false,
+      stats:{ avgSec:72, avgRate:38, okCount:1, failCount:2 },
       stem:'______是程序的一次执行过程，也是操作系统进行资源分配的基本单位。',
       fill:'进程', keywords:['进程'],
       analysis:'<b>进程</b>是程序的一次执行过程，是系统进行资源分配和调度的基本单位；线程是 CPU 调度的基本单位。',
       steps:['① 进程 = 资源分配单位','② 线程 = CPU 调度单位']
+    },
+    {
+      qid:'W04', path:'操作系统 → 文件管理 → 回收站', tag:'memory', wrongCount:1, stubborn:false,
+      type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      stats:{ avgSec:40, avgRate:71, okCount:3, failCount:1 },
+      stem:'回收站中的文件被「还原」后，将恢复到（ ）。',
+      options:['桌面','我的文档','原位置','回收站'],
+      answer:2,
+      analysis:'还原 = 恢复到<b>被删除前所在位置</b>。',
+      steps:['① 还原语义 = 恢复原位']
+    },
+    {
+      qid:'W05', path:'电子表格 → 函数与公式 → 常用函数', tag:'operation', wrongCount:1, stubborn:false,
+      type:'multi', chapter:'第5章 电子表格', concept:'Excel 函数', difficulty:'中',
+      stats:{ avgSec:65, avgRate:56, okCount:2, failCount:1 },
+      stem:'下列属于 Excel 常用统计函数的有（ ）。',
+      options:['SUM','AVERAGE','IF','VLOOKUP'],
+      answer:[0,1,2,3],
+      analysis:'SUM 求和、AVERAGE 求均、IF 条件判断、VLOOKUP 查找——均为常用函数。',
+      steps:['① 逐一识别函数用途']
+    },
+    {
+      qid:'W06', path:'计算机网络 → 网络基础 → IP 地址', tag:'memory', wrongCount:1, stubborn:false,
+      type:'judge', chapter:'第2章 计算机网络', concept:'网络基础', difficulty:'低',
+      stats:{ avgSec:35, avgRate:78, okCount:4, failCount:1 },
+      stem:'IP 地址是网络中每台联网计算机的唯一标识。',
+      options:['正确','错误'],
+      answer:0,
+      analysis:'正确。IP 地址用于唯一标识网络中的一台主机（同一网络内不能重复）。',
+      steps:['① IP 地址 = 主机在网络中的身份证','② 同一时刻同一网络内不重复']
     }
   ],
 
@@ -882,6 +964,18 @@ var QUESTIONS = (function buildQuestions(){
   ]
 }[ENTRY] || [];
 })();
+
+/* ---------- 错题本入口：qid 详情定位 / scope 重练过滤（entry=wrong 专用） ---------- */
+var WRONG_QID = (location.search.match(/[?&]qid=([^&]*)/) || [])[1] || '';
+var WRONG_SCOPE = (location.search.match(/[?&]scope=(\w+)/) || [])[1] || 'all';
+if (ENTRY === 'wrong') {
+  if (WRONG_QID) {
+    var hitW = QUESTIONS.filter(function(q) { return q.qid === WRONG_QID; });
+    if (hitW.length) QUESTIONS = hitW;
+  } else if (WRONG_SCOPE === 'stubborn') {
+    QUESTIONS = QUESTIONS.filter(function(q) { return q.stubborn; });
+  }
+}
 
 /* ---------- 状态 ---------- */
 var MODE = 'exam';           /* exam 做题 / study 背题 */
@@ -1097,6 +1191,64 @@ function renderSubOptions(sub, subAns, reveal, subIdx) {
   });
   return html + '</div>';
 }
+/* ---------- 错题本：诊断卡 + 统计卡（entry=wrong 专用；PM 2026-09 拍板） ---------- */
+var DIAG_KEY = 'zsb_wrong_diag_v1';
+function loadDiag() { try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch(e) { return {}; } }
+function renderWrongDiag(q) {
+  var id = q.qid || (ENTRY + '-' + idx);
+  var cur = loadDiag()[id] || '';
+  var opts = [
+    { k:'ok', label:'✓ 已掌握', ok:true },
+    { k:'confusion', label:'✗ 概念混淆' },
+    { k:'memory', label:'✗ 记忆遗漏' },
+    { k:'operation', label:'✗ 操作失误' }
+  ];
+  var btns = '';
+  opts.forEach(function(o) {
+    btns += '<button class="diag-btn' + (o.ok ? ' ok' : '') + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
+  });
+  return '<div class="diag-card">'
+    + '<div class="diag-title">💡 这次为什么错了？</div>'
+    + '<div class="diag-desc">如实标记错因，错题本将按错因帮你强化同类考点（v5.0 同步后台）。</div>'
+    + '<div class="diag-actions">' + btns + '</div>'
+    + '</div>';
+}
+function setDiag(btn) {
+  var q = QUESTIONS[idx] || {};
+  var id = q.qid || (ENTRY + '-' + idx);
+  var k = btn.getAttribute('data-k');
+  var diag = loadDiag();
+  if (diag[id] === k) delete diag[id];
+  else diag[id] = k;
+  try { localStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch(e) {}
+  var cur = diag[id] || '';
+  var btns = btn.parentElement.querySelectorAll('.diag-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.toggle('active', btns[i].getAttribute('data-k') === cur);
+  }
+  showToast(k === 'ok' ? '已标记：已掌握' : '已标记错因，同类题重点巩固');
+}
+function renderWrongStats(q) {
+  var st = q.stats || { avgSec: 50, avgRate: 50, okCount: 1, failCount: 1 };
+  var diff = q.difficulty || '中';
+  var diffStar = (diff === '高') ? '★★★' : ((diff === '低') ? '★' : '★★');
+  return '<div class="wrong-stats-card">'
+    + '<div class="sec-head"><span class="ico ico-9">⏱</span><span class="name">本题统计</span></div>'
+    + '<div class="wrong-stats-grid">'
+    +   '<div class="ws-item"><span class="ws-label">我的答题时间</span><span class="ws-value blue">' + fmtMMSS(finalSec || 0) + '</span></div>'
+    +   '<div class="ws-item"><span class="ws-label">全站平均耗时</span><span class="ws-value">' + st.avgSec + '秒</span></div>'
+    +   '<div class="ws-item"><span class="ws-label">全站正确率</span><span class="ws-value ' + (st.avgRate >= 60 ? 'green' : 'red') + '">' + st.avgRate + '%</span></div>'
+    +   '<div class="ws-item"><span class="ws-label">本题难度</span><span class="ws-value">' + diffStar + ' ' + diff + '</span></div>'
+    + '</div>'
+    + '<div class="wrong-count-row">'
+    +   '<span>本题你作答：</span><span class="ok">✅ 对 ' + st.okCount + ' 次</span><span class="fail">❌ 错 ' + st.failCount + ' 次</span>'
+    + '</div>'
+    + '</div>';
+}
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').replace(/_{2,}/g, '____');
+}
+
 /* ---------- 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） ----------
    1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
    6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
@@ -1114,6 +1266,12 @@ function renderAnalysis(q, ans, reveal) {
   html += '<div class="ana-sec">'
     + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
     + resultLine + '</div>';
+
+  /* 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区展示） */
+  if (ENTRY === 'wrong') {
+    html += renderWrongDiag(q);
+    html += renderWrongStats(q);
+  }
 
   /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31） */
   var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
@@ -1497,7 +1655,51 @@ function showResult() {
     ? '本次考试完成，查看解析查漏补缺'
     : ((right === total) ? '全部答对，太棒了！' :
        (right >= Math.ceil(total * 0.6)) ? '本次练习完成，继续保持！' : '本次练习完成，加油！');
+  /* 错题本：逐题明细 + 三按钮（查看解析 / 再练错题 / 返回错题本） */
+  var detailBox = document.getElementById('resultDetail');
+  var btnsBox = document.getElementById('resultBtns');
+  if (ENTRY === 'wrong') {
+    var dh = '<div class="rd-title">逐题明细</div>';
+    for (var j = 0; j < total; j++) {
+      var rr = checkAnswer(QUESTIONS[j], answers[j]);
+      var stCls = (rr === true) ? 'correct' : ((rr === false) ? 'wrong' : 'skip');
+      var stTxt = (rr === true) ? '✓' : ((rr === false) ? '✗' : '—');
+      var tags = '';
+      if (rr === true) tags += '<span class="rd-tag mastery">新攻克</span>';
+      else if (QUESTIONS[j].stubborn) tags += '<span class="rd-tag stubborn">顽固</span>';
+      dh += '<div class="result-detail-item"><span class="rd-status ' + stCls + '">' + stTxt + '</span>'
+        + '<span class="rd-q">' + (j + 1) + '. ' + stripHtml(QUESTIONS[j].stem) + '</span>' + tags + '</div>';
+    }
+    detailBox.innerHTML = dh;
+    btnsBox.classList.add('wrong3');
+    btnsBox.innerHTML = ''
+      + '<button class="result-btn review" onclick="reviewAnswers()">查看解析</button>'
+      + '<button class="result-btn exit" onclick="redoWrong()">再练错题</button>'
+      + '<button class="result-btn exit" onclick="closePractice()">返回错题本</button>';
+  } else {
+    detailBox.innerHTML = '';
+    btnsBox.classList.remove('wrong3');
+    btnsBox.innerHTML = ''
+      + '<button class="result-btn exit" onclick="closePractice()">退出</button>'
+      + '<button class="result-btn review" onclick="reviewAnswers()">查看解析</button>';
+  }
   document.getElementById('resultMask').classList.add('show');
+}
+/* 错题本：再练本次答错的题（含未答）；全对则提示 */
+function redoWrong() {
+  var wrongQs = [];
+  for (var i = 0; i < total; i++) {
+    if (checkAnswer(QUESTIONS[i], answers[i]) !== true) wrongQs.push(QUESTIONS[i]);
+  }
+  if (wrongQs.length === 0) { showToast('全部攻克，太棒了！'); return; }
+  QUESTIONS = wrongQs;
+  total = QUESTIONS.length;
+  answers = {};
+  idx = 0;
+  submitted = false;
+  resetOp();
+  document.getElementById('resultMask').classList.remove('show');
+  renderQuestion();
 }
 function reviewAnswers() {
   document.getElementById('resultMask').classList.remove('show');

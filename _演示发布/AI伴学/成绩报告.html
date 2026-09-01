@@ -204,7 +204,7 @@ body {
 </div>
 
 <div class="report-actions" id="reportActions" style="display:none">
-  <button class="report-btn restart" onclick="restartPaper()">在此作答</button>
+  <button class="report-btn restart" onclick="restartPaper()">再次作答</button>
   <button class="report-btn review" onclick="reviewFrom()">查看解析</button>
 </div>
 
@@ -227,8 +227,8 @@ function render() {
   document.getElementById('rScore').textContent = r.score || 0;
   document.getElementById('rTotal').textContent = '/' + (r.fullScore || 0);
   document.getElementById('rLabel').textContent = (r.label || '本次考试') + '得分';
-  document.getElementById('rRank').textContent = r.rank ? (r.rank + '<span class="unit">名</span>') : '--';
-  document.getElementById('rBeat').textContent = r.beat || '--';
+  document.getElementById('rRank').innerHTML = r.rank ? (r.rank + '<span class="unit">名</span>') : '--';
+  document.getElementById('rBeat').innerHTML = r.beat || '--';
 
   /* 题型概况 */
   var ts = document.getElementById('typeStats');
@@ -269,7 +269,7 @@ function reviewFrom() {
   if (!REPORT) return;
   window.parent.postMessage({ type:'REPORT_REVIEW', data:{ q:0 } }, '*');
 }
-/* 在此作答 → 重新考试 */
+/* 再次作答 → 重新考试 */
 function restartPaper() {
   if (!REPORT) return;
   window.parent.postMessage({ type:'REPORT_RESTART', data:{ paperId:REPORT.paperId } }, '*');

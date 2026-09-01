@@ -268,7 +268,7 @@ body::before {
         <div class="entry-name">历年真题</div>
         <div class="entry-desc">2010-2025年真题</div>
       </button>
-      <button class="entry-card" onclick="goPractice('wrong')">
+      <button class="entry-card" onclick="openSubLayer('wrong')">
         <div class="entry-icon green">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
@@ -304,7 +304,7 @@ body::before {
 <div id="toast"></div>
 
 <!-- 二级层（覆盖题库首页，iframe 套选卷/刷题页，返回即收起保留状态）
-     chapter=章节刷题 / exam=模拟考场 / real=历年真题 -->
+     chapter=章节刷题 / exam=模拟考场 / real=历年真题 / wrong=错题本 -->
 <div class="sub-layer" id="chapterLayer">
   <iframe src="章节刷题.html"></iframe>
 </div>
@@ -313,6 +313,9 @@ body::before {
 </div>
 <div class="sub-layer" id="realLayer">
   <iframe src="历年真题.html"></iframe>
+</div>
+<div class="sub-layer" id="wrongLayer">
+  <iframe src="错题本.html"></iframe>
 </div>
 
 <script>
@@ -511,13 +514,14 @@ function goPractice(entry) {
 }
 
 /* ---------- 二级层（题库 tab 内部下钻） ----------
-   open：覆盖题库首页展开二级层（chapter=章节刷题 / exam=模拟考场 / real=历年真题）
+   open：覆盖题库首页展开二级层（chapter=章节刷题 / exam=模拟考场 / real=历年真题 / wrong=错题本）
    close：子页点返回 → 收起对应层回题库首页（展开状态保留在 iframe 内）
    子页内选卷/选考点 → 仍走 goPractice(总壳 practiceLayer 做题页) */
 var SUB_LAYERS = {
   chapter: document.getElementById('chapterLayer'),
   exam:    document.getElementById('examLayer'),
-  real:    document.getElementById('realLayer')
+  real:    document.getElementById('realLayer'),
+  wrong:   document.getElementById('wrongLayer')
 };
 /* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
 var activeSub = null;

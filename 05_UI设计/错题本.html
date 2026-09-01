@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>错题本</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一） ====
+   错题本页：题库首页「错题本」入口下钻二级页
+   结构：总览卡（攻克率/待攻克/顽固/全部 + 开始重练）→ 筛选 chip → 模块→章节→题目三级列表
+   数据：错题进程（待攻克/顽固/已攻克 + 错因标签），mock 演示期
+   交互：开始重练/集中攻克/再练 → 做题页(entry=wrong)；详情 → 做题页定位该题 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --accent-grad-end: #62CFA9;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 总览卡 ===== */
+.overview {
+  margin: 12px 16px 0;
+  border-radius: 18px 15px 20px 14px;
+  background: linear-gradient(135deg, #5B72F5 0%, #764BA2 100%);
+  color: #fff;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(91,114,245,.24);
+}
+.overview-top { display: flex; align-items: center; gap: 14px; }
+.ring {
+  width: 78px; height: 78px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ring-inner {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,.16);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-percent { font-size: 17px; font-weight: 800; line-height: 1; }
+.ring-label { font-size: 9px; opacity: .9; margin-top: 3px; }
+.home-stats { flex: 1; display: flex; justify-content: space-around; text-align: center; }
+.home-stats .num { font-size: 21px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.home-stats .num.danger { color: #FFD6D3; }
+.home-stats .label { font-size: 11px; opacity: .85; margin-top: 4px; }
+.archived-link {
+  text-align: center; font-size: 11px; opacity: .8; text-decoration: underline;
+  margin: 10px 0 12px; cursor: pointer;
+}
+.practice-btn {
+  width: 100%; height: 42px; border: none; border-radius: 21px;
+  background: #fff; color: var(--primary); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: transform .12s ease;
+}
+.practice-btn:active { transform: scale(.97); }
+/* ===== 筛选 chip 行 ===== */
+.filter-row {
+  display: flex; gap: 8px;
+  padding: 12px 16px 4px;
+  position: relative; z-index: 4;
+}
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #E5E8F0;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all .15s ease;
+}
+.chip:active { transform: scale(.96); }
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip .chip-count { font-size: 11px; opacity: .8; }
+
+/* ===== 列表（唯一滚动容器） ===== */
+.scroll-area { padding: 2px 16px 32px; }
+.module { margin-top: 10px; }
+.module-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 2px 8px; cursor: pointer;
+}
+.module-head:active { opacity: .7; }
+.module-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+.module-name .caret { font-size: 10px; color: var(--text-tertiary); transition: transform .18s ease; }
+.module.open .module-name .caret { transform: rotate(90deg); }
+.module-meta { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.module-meta .rate-low { color: var(--danger); font-weight: 600; }
+
+.chapter {
+  margin: 0 0 0 8px; padding-left: 11px;
+  border-left: 2px solid #E5E8F0;
+}
+.chapter-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 2px; cursor: pointer; font-size: 12.5px;
+  color: var(--text-secondary); font-weight: 600;
+}
+.chapter-head.weak { color: var(--danger); font-weight: 700; }
+.chapter-head:active { opacity: .7; }
+.chapter-count {
+  font-size: 10.5px; color: var(--text-tertiary);
+  background: #F1F2F7; padding: 1px 8px; border-radius: 9px;
+}
+.q-list { display: none; }
+.chapter.open .q-list { display: block; }
+
+/* 题目卡 */
+.q-card {
+  background: #fff;
+  border-radius: 13px 11px 15px 10px;
+  padding: 12px;
+  margin: 8px 0 9px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 5px 14px rgba(91,114,245,.06);
+}
+.q-card.stubborn { box-shadow: 0 0 0 1px #FECACA, 0 5px 14px rgba(91,114,245,.06); }
+.q-path { font-size: 10.5px; color: var(--primary); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-title { font-size: 13px; color: var(--text-primary); line-height: 1.45; margin-bottom: 7px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.q-meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-tertiary); margin-bottom: 9px; flex-wrap: wrap; }
+.q-tag { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.q-tag.stubborn { background: #FFF1F0; color: #EF4444; }
+.q-tag.confusion { background: #E8F3FF; color: #2F6FED; }
+.q-tag.memory { background: #F0FAF5; color: #20A866; }
+.q-tag.operation { background: #FFF4E5; color: #F28B3D; }
+.q-btns { display: flex; gap: 8px; }
+.q-btn {
+  flex: 1; height: 32px;
+  border: none; border-radius: 16px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: transform .12s ease;
+}
+.q-btn:active { transform: scale(.96); }
+.q-btn.primary { background: linear-gradient(100deg, #7169ED, #62CFA9); color: #fff; }
+.q-btn.ghost { background: #F5F6FA; color: var(--text-primary); border: 1px solid #E5E8F0; }
+.q-btn.detail { flex: 0 0 58px; }
+
+.empty {
+  padding: 48px 20px; text-align: center; color: var(--text-tertiary); font-size: 13px;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
+  background: rgba(30,33,48,.92); color: #fff;
+  padding: 9px 18px; border-radius: 22px; font-size: 13px;
+  opacity: 0; transition: opacity .25s ease; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+}
+
+</style>
+</head>
+<body>
+<div class="overview" id="overview">
+  <div class="overview-top">
+    <div class="ring" id="ring">
+      <div class="ring-inner">
+        <div class="ring-percent" id="ringPct">0%</div>
+        <div class="ring-label">已攻克</div>
+      </div>
+    </div>
+    <div class="home-stats">
+      <div><div class="num" id="stPending">0</div><div class="label">待攻克</div></div>
+      <div><div class="num danger" id="stStubborn">0</div><div class="label">顽固错题</div></div>
+      <div><div class="num" id="stTotal">0</div><div class="label">全部错题</div></div>
+    </div>
+  </div>
+  <div class="archived-link" id="archivedLink">已攻克 <span id="stSolved">0</span> 道（归档，点此查看）</div>
+  <button class="practice-btn" onclick="startPractice('all','')">开始重练</button>
+</div>
+
+<div class="filter-row">
+  <button class="chip active" data-filter="all" onclick="setFilter('all')">全部</button>
+  <button class="chip" data-filter="pending" onclick="setFilter('pending')">
+    待攻克 <span class="chip-count" id="cntPending"></span>
+  </button>
+  <button class="chip" data-filter="stubborn" onclick="setFilter('stubborn')">
+    顽固错题 <span class="chip-count" id="cntStubborn"></span>
+  </button>
+  <button class="chip" data-filter="solved" onclick="setFilter('solved')">
+    已攻克 <span class="chip-count" id="cntSolved"></span>
+  </button>
+</div>
+
+<div class="scroll-area" id="list"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   错题本 mock 数据（演示期；v5.0 接真实错题数据层）
+   字段口径：
+     qid        题目 id（与做题页 wrong 题集 qid 对齐，详情/再练定位用）
+     module/chapter  模块→章节 分组路径
+     tag        错因标签：stubborn顽固 / confusion概念混淆 / memory记忆遗漏 / operation操作错误
+     wrongCount 累计答错次数
+     status     待攻克 pending / 已攻克 solved（攻克后可归档）
+   ============================================================ */
+var WRONG_DATA = {
+  stats: { total: 6, pending: 4, stubborn: 1, solved: 2 },
+  modules: [
+    {
+      name: '操作系统（Windows 10）', rate: 62,
+      chapters: [
+        {
+          name: '进程与线程', weak: true,
+          questions: [
+            { qid: 'W03', path: '操作系统 → 进程与线程 → 进程概念', type: 'fill',
+              title: '______是程序的一次执行过程，也是操作系统进行资源分配的基本单位。',
+              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false }
+          ]
+        },
+        {
+          name: '文件管理', weak: true,
+          questions: [
+            { qid: 'W02', path: '操作系统 → 文件管理 → 扩展名', type: 'judge',
+              title: '文件的扩展名相同，其内容一定相同。',
+              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true },
+            { qid: 'W04', path: '操作系统 → 文件管理 → 回收站', type: 'single',
+              title: '回收站中的文件被「还原」后，将恢复到（ ）。',
+              tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false }
+          ]
+        },
+        {
+          name: '操作系统概述', weak: false,
+          questions: [
+            { qid: 'W01', path: '操作系统 → 操作系统概述 → 作用', type: 'single',
+              title: '操作系统的作用不包括（ ）。',
+              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false }
+          ]
+        }
+      ]
+    },
+    {
+      name: '计算机网络与信息检索', rate: 55,
+      chapters: [
+        {
+          name: '网络基础', weak: false,
+          questions: [
+            { qid: 'W06', path: '计算机网络 → 网络基础 → IP 地址', type: 'judge',
+              title: 'IP 地址是网络中每台联网计算机的唯一标识。',
+              tag: 'memory', wrongCount: 1, status: 'solved', stubborn: false }
+          ]
+        }
+      ]
+    },
+    {
+      name: '电子表格处理（Excel 2016）', rate: 70,
+      chapters: [
+        {
+          name: '函数与公式', weak: false,
+          questions: [
+            { qid: 'W05', path: '电子表格 → 函数与公式 → 常用函数', type: 'multi',
+              title: '下列属于 Excel 常用统计函数的有（ ）。',
+              tag: 'operation', wrongCount: 1, status: 'solved', stubborn: false }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
+var FILTER = 'all';
+
+/* 便捷遍历：收集所有题目 */
+function allQuestions() {
+  var arr = [];
+  WRONG_DATA.modules.forEach(function(m) {
+    m.chapters.forEach(function(c) { arr = arr.concat(c.questions); });
+  });
+  return arr;
+}
+/* ===== 渲染总览卡 ===== */
+function renderOverview() {
+  var s = WRONG_DATA.stats;
+  document.getElementById('stPending').textContent = s.pending;
+  document.getElementById('stStubborn').textContent = s.stubborn;
+  document.getElementById('stTotal').textContent = s.total;
+  document.getElementById('stSolved').textContent = s.solved;
+  var pct = Math.round(s.solved / s.total * 100);
+  document.getElementById('ringPct').textContent = pct + '%';
+  document.getElementById('ring').style.background = 'conic-gradient(#fff 0% ' + pct + '%, rgba(255,255,255,.25) ' + pct + '% 100%)';
+  updateChipCounts();
+}
+
+/* ===== 渲染列表 ===== */
+function renderList() {
+  var box = document.getElementById('list');
+  var html = '';
+  WRONG_DATA.modules.forEach(function(m, mi) {
+    var chapters = m.chapters
+      .map(function(c) {
+        return { c: c, qs: c.questions.filter(function(q) { return passFilter(q); }) };
+      })
+      .filter(function(x) { return x.qs.length > 0; });
+    if (chapters.length === 0) return;
+    html += '<div class="module open" id="mod' + mi + '">'
+      + '<div class="module-head" onclick="toggleModule(' + mi + ')">'
+      +   '<span class="module-name"><span class="caret">▶</span>' + m.name + '</span>'
+      +   '<span class="module-meta">' + m.chapters.reduce(function(n, c) { return n + c.questions.length; }, 0)
+      +      '道 · 正确率 <span class="' + (m.rate < 60 ? 'rate-low' : '') + '">' + m.rate + '%</span></span>'
+      + '</div>';
+    chapters.forEach(function(x) {
+      var c = x.c;
+      html += '<div class="chapter" id="chap' + mi + '">'
+        + '<div class="chapter-head' + (c.weak ? ' weak' : '') + '" onclick="toggleChapter(' + mi + ')">'
+        +   '<span>' + (c.weak ? '🔥 ' : '') + c.name + '</span>'
+        +   '<span class="chapter-count">' + c.questions.length + '道</span>'
+        + '</div>'
+        + '<div class="q-list">';
+      x.qs.forEach(function(q) { html += qCard(q); });
+      html += '</div></div>';
+    });
+    html += '</div>';
+  });
+  box.innerHTML = html || '<div class="empty">当前筛选下暂无错题</div>';
+  /* 默认展开各章节 */
+  WRONG_DATA.modules.forEach(function(m, mi) {
+    var el = document.getElementById('chap' + mi);
+    if (el) el.classList.add('open');
+  });
+}
+
+function qCard(q) {
+  var tagCls = ['stubborn','confusion','memory','operation'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
+  var action = q.stubborn ? '集中攻克' : '再练';
+  return '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '">'
+    + '<div class="q-path">📍 ' + q.path + '</div>'
+    + '<div class="q-title">' + q.title + '</div>'
+    + '<div class="q-meta">'
+    +   '<span class="q-tag ' + tagCls + '">' + (TAG_NAME[q.tag] || '错题') + '</span>'
+    +   '<span>错 ' + q.wrongCount + ' 次</span>'
+    +   (q.status === 'solved' ? '<span>已攻克</span>' : '')
+    + '</div>'
+    + '<div class="q-btns">'
+    +   '<button class="q-btn primary" onclick="startPractice(\'' + (q.stubborn ? 'stubborn' : 'qid') + '\',\'' + q.qid + '\')">' + action + '</button>'
+    +   '<button class="q-btn detail" onclick="goDetail(\'' + q.qid + '\')">详情</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function passFilter(q) {
+  if (FILTER === 'pending') return q.status === 'pending';
+  if (FILTER === 'stubborn') return q.stubborn;
+  if (FILTER === 'solved') return q.status === 'solved';
+  return true;
+}
+
+/* ===== 筛选 ===== */
+function setFilter(f) {
+  FILTER = f;
+  document.querySelectorAll('.chip').forEach(function(c) {
+    c.classList.toggle('active', c.dataset.filter === f);
+  });
+  renderList();
+}
+/* 归档链接 → 已攻克筛选 */
+document.getElementById('archivedLink').addEventListener('click', function() { setFilter('solved'); });
+
+function updateChipCounts() {
+  var qs = allQuestions();
+  var pending = qs.filter(function(q) { return q.status === 'pending'; }).length;
+  var stubborn = qs.filter(function(q) { return q.stubborn; }).length;
+  var solved = qs.filter(function(q) { return q.status === 'solved'; }).length;
+  document.getElementById('cntPending').textContent = pending ? '(' + pending + ')' : '';
+  document.getElementById('cntStubborn').textContent = stubborn ? '(' + stubborn + ')' : '';
+  document.getElementById('cntSolved').textContent = solved ? '(' + solved + ')' : '';
+}
+/* ===== 折叠 ===== */
+function toggleModule(mi) {
+  document.getElementById('mod' + mi).classList.toggle('open');
+}
+function toggleChapter(mi) {
+  document.getElementById('chap' + mi).classList.toggle('open');
+}
+
+/* ===== 进入做题页 =====
+   scope：all 全部重练 / stubborn 顽固集中攻克 / qid 单题再练
+   qid：详情定位该题 */
+function startPractice(scope, qid) {
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'wrong', scope: scope || 'all', qid: qid || '',
+      name: (scope === 'stubborn') ? '顽固错题集中攻克' : ((qid ? '单题再练' : '错题本重练'))
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始错题练习');
+  }
+}
+function goDetail(qid) {
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'wrong', scope:'qid', qid: qid || '', detail: 1, name:'错题详情'
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，查看错题详情');
+  }
+}
+
+/* ===== 返回：通知题库首页收起二级层 ===== */
+function goBack() {
+  try { window.parent.postMessage({ type:'CLOSE_CHAPTER' }, '*'); }
+  catch(e) { showToast('请从总壳返回'); }
+}
+
+/* ===== Toast ===== */
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+}
+
+renderOverview();
+renderList();
+</script>
+<!--__BODY_END__-->
+
+</body>
+</html>

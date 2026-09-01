@@ -1178,7 +1178,7 @@ function updateAppbar(name) {
   } else if (practiceLayer.classList.contains('show')) {
     t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
   } else if (chapterLayerOpen) {
-    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
+    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')
       ? (TAB_NAMES.flash || '闪卡')
@@ -1308,10 +1308,13 @@ function openPractice(entry, extra) {
   extra = extra || {};
   /* 考试/真题卷：标题用卷名（如「卷 01 · 2026 届全真模拟卷一」），笔试分/时长透传做题页 */
   practiceTitle = PRACTICE_TITLES[entry] || '今日学习';
-  if ((entry === 'exam' || entry === 'real') && extra.name) practiceTitle = extra.name;
+  if (extra.name) practiceTitle = extra.name;
   var url = '做题页.html?entry=' + (entry || 'today');
   if (entry === 'exam' || entry === 'real') {
     url += '&paperId=' + (extra.paperId || '') + '&minutes=' + (extra.minutes || '') + '&fullScore=' + (extra.fullScore || '');
+  } else if (entry === 'wrong') {
+    /* 错题本：qid 详情定位该题 / scope 重练范围（all 全部 · stubborn 顽固集中攻克） */
+    url += '&qid=' + encodeURIComponent(extra.qid || '') + '&scope=' + (extra.scope || 'all');
   }
   if (!practiceFrame.getAttribute('src')) {
     practiceFrame.setAttribute('src', url);
