@@ -32,12 +32,12 @@ html, body { width: 100%; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text-primary);
-  background-color: #F8F9FC;   /* 内容区底色（需求指定） */
+  background-color: #EDEFF7;   /* 闪卡同款内容区底色 */
   -webkit-overflow-scrolling: touch;
 }
 
-/* ===== 背景氛围图（与闪卡共用 ui切图/bg-flashcard-home.png）
-   固定视口层不随内容滚动（避免 cover 拉伸）；底部白色渐隐遮罩保持长列表可读 */
+/* ===== 背景氛围图（与闪卡共用 ui切图/bg-flashcard-home.png，保持完全一致）
+   固定视口层不随内容滚动（避免 cover 拉伸） */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -45,52 +45,55 @@ body::before {
   background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
   pointer-events: none;
 }
-/* ===== 顶部环境光（连续自然过渡，2026-09-01 PM 拍板）
-   不独立成 Banner —— 是整页背景的一部分，倒计时结束后蓝紫向浅灰白渐变消散
-   0-35% 蓝紫/靛青环境光（页面顶部主氛围）
-   35-50% 降饱和降透明度 → 浅蓝紫/浅灰白过渡
-   50-60% 仅保留轻微蓝紫环境光
-   60%+ 过渡到内容区底色，无横向分界线/色块边界 */
-body::after {
-  content: '';
-  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg,
-    rgba(67,88,215,0.16) 0%,     /* 顶部靛青微光 */
-    rgba(91,114,245,0.30) 10%,
-    rgba(91,114,245,0.46) 22%,
-    rgba(63,169,139,0.36) 34%,
-    rgba(91,114,245,0.20) 42%,   /* 35-50% 降饱和过渡 */
-    rgba(91,114,245,0.10) 50%,
-    rgba(91,114,245,0.05) 58%,   /* 50-60% 轻微 */
-    rgba(248,249,252,0.02) 70%,
-    #F8F9FC 100%);               /* 60%+ 到内容区底色 */
-}
 .content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; position: relative; z-index: 1; }
 
-/* ===== 顶部 Hero：倒计时头（环境光透出，无独立 Banner；2026-09-01 PM 拍板）
-   透明背景 → 蓝紫环境光从 body::after 自然透出并向下消散；
-   文字用深靛青（浅底上不用白字），与 AI 卡视觉衔接无断层 */
-.hero {
-  background: transparent;
-  padding: 24px 20px 36px;
-  color: var(--primary-dark);
+/* ===== 顶部 header（抄闪卡首页口径，2026-09-02 PM 拍板：与闪卡一致）
+   同款问候语 + 内联倒计时（图标+文案+天数+天）+ 右上角头像 */
+.header {
+  padding-top: 48px;
+  padding-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
-.hero .countdown {
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
+.greeting { font-size: 25px; line-height: 1.35; font-weight: 700; letter-spacing: -0.5px; }
+.countdown {
+  margin-top: 7px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--text-secondary);
 }
-.hero .label { font-size: 14px; font-weight: 600; color: var(--text-secondary); letter-spacing: .04em; }
-.hero .num-row { display: flex; align-items: baseline; gap: 5px; }
-.hero .num {
-  font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1px;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+.countdown-icon {
+  width: 16px; height: 16px;
+  border: 2px solid #A8B0C8; border-radius: 50%;
+  position: relative;
 }
-.hero .unit { font-size: 17px; font-weight: 700; color: var(--text-secondary); }
+.countdown-icon::before {
+  content: ""; position: absolute;
+  width: 1.5px; height: 5px; background: #A8B0C8;
+  left: 6px; top: 2px;
+}
+.countdown-icon::after {
+  content: ""; position: absolute;
+  width: 4px; height: 1.5px; background: #A8B0C8;
+  left: 6px; top: 7px; transform: rotate(25deg); transform-origin: left center;
+}
+/* 天数：深紫 + 加大加粗；"天" 保持次要灰小字（闪卡同款） */
+.countdown .days-num { color: #4A3FA0; font-size: 20px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.countdown .days-unit { font-size: 14px; color: var(--text-secondary); }
 
-/* ===== 主体（顶部环境光消散处留白，无硬叠） ===== */
-.body { padding: 0 16px; margin-top: 6px; }
+/* 头像（闪卡同款） */
+.avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(235,239,255,0.95));
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 8px 24px rgba(75,91,160,0.08);
+  flex-shrink: 0;
+}
+.avatar svg { width: 25px; height: 25px; stroke: var(--primary); }
+
+/* ===== 主体 ===== */
+.body { padding: 0 6px; }
 
 /* ===== AI 今日任务主卡（白色主体漂浮在环境光中，2026-09-01 PM 拍板）
    周围保留非常轻微的蓝紫光晕（低透明度，无边框/无玻璃拟态），自然嵌入过渡区。
@@ -214,16 +217,24 @@ body::after {
 
 <div class="content">
 
-  <!-- Hero：考试倒计时头（两级排版：上=距离X年山东专升本考试，下=209 大字+天） -->
-  <div class="hero">
-    <div class="countdown">
-      <span class="label" id="cdLabel">距离 2027 年山东专升本考试</span>
-      <div class="num-row">
-        <span class="num" id="cdDays">--</span>
-        <span class="unit">天</span>
+  <!-- 顶部 header（闪卡同款） -->
+  <header class="header">
+    <div>
+      <div class="greeting">你好，团团酱 👋</div>
+      <div class="countdown">
+        <div class="countdown-icon"></div>
+        <span>距离<span id="cdLabelYear">2027</span>届专升本考试还有</span>
+        <span class="days-num" id="cdDays">--</span>
+        <span class="days-unit">天</span>
       </div>
     </div>
-  </div>
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"></circle>
+        <path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path>
+      </svg>
+    </div>
+  </header>
 
   <div class="body">
 
@@ -414,8 +425,10 @@ function getCountdownTarget() {
 }
 function renderCountdown() {
   var t = getCountdownTarget();
-  document.getElementById('cdDays').textContent = t.days;
-  document.getElementById('cdLabel').textContent = '距离 ' + t.labelYear + ' 年山东专升本考试';
+  var elDays = document.getElementById('cdDays');
+  var elYear = document.getElementById('cdLabelYear');
+  if (elDays) elDays.textContent = t.days;
+  if (elYear) elYear.textContent = t.labelYear;
 }
 
 /* ---------- AI 今日任务卡（三态） ---------- */
