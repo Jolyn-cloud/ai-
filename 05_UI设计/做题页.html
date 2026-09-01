@@ -462,9 +462,35 @@ body{
 }
 .feedback-link:active{ color:var(--primary); }
 
-/* ===== 反馈弹窗（复用 .modal-mask 容器） ===== */
-.feedback-panel{ width:84%; max-width:340px; text-align:left; }
-.feedback-panel .modal-title{ text-align:center; margin-bottom:14px; }
+/* ===== 反馈浮窗（bottom sheet：遮罩 + 底部上滑面板，圆角顶 + 拖拽横条；题目/解析两独立实例） ===== */
+.fb-mask{
+  position:fixed; inset:0; background:rgba(22,27,46,.45); z-index:115;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; visibility:hidden; transition:opacity .22s ease, visibility .22s;
+}
+.fb-mask.show{ opacity:1; visibility:visible; }
+.fb-panel{
+  width:100%; max-width:520px; background:#fff;
+  border-radius:18px 18px 0 0; padding:8px 16px 22px;
+  max-height:74%; display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .28s cubic-bezier(.32,.72,.35,1);
+}
+.fb-mask.show .fb-panel{ transform:translateY(0); }
+.fb-grab{
+  width:42px; height:4px; border-radius:2px; background:#E3E6F0;
+  margin:0 auto 12px; flex-shrink:0;
+}
+.fb-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-shrink:0;
+}
+.fb-title{ font-size:16px; font-weight:700; color:var(--text-primary); }
+.fb-close{
+  width:28px; height:28px; border:none; background:none; cursor:pointer;
+  color:var(--text-tertiary); font-size:22px; line-height:1; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.fb-close:active{ background:#F0F1F6; }
+.fb-body{ overflow-y:auto; flex:1; }
 .feedback-sec{ margin-bottom:14px; }
 .feedback-sec-t{
   font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;
@@ -488,6 +514,17 @@ body{
   transition:border-color .15s ease;
 }
 .feedback-ta:focus{ border-color:var(--primary); background:#fff; }
+.fb-actions{
+  display:flex; gap:10px; margin-top:12px; flex-shrink:0;
+}
+.fb-btn{
+  flex:1; height:42px; border:none; border-radius:21px;
+  font-size:14px; font-weight:600; cursor:pointer;
+}
+.fb-btn.cancel{ background:#F5F6FA; color:var(--text-secondary); }
+.fb-btn.ok{ background:linear-gradient(100deg,#7169ED,#62CFA9); color:#fff; }
+/* 解析反馈入口：解析卡底部小字（与题目入口同款弱视觉） */
+.feedback-link.analysis-fb{ margin-top:10px; padding:4px 0; text-align:left; }
 
 /* ===== 答题卡：上滑遮罩浮窗 ===== */
 .sheet-mask{
@@ -651,28 +688,65 @@ body{
   </div>
 </div>
 
-<!-- 反馈弹窗：错误类型多选 + 补充说明，提交同步后台管理端 -->
-<div class="modal-mask" id="feedbackModal">
-  <div class="modal-panel feedback-panel">
-    <div class="modal-title">题目反馈</div>
-    <div class="feedback-sec">
-      <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
-      <div class="feedback-opts" id="fbOpts">
-        <span class="fb-chip" data-k="题干描述错" onclick="toggleFb(this)">题干描述错</span>
-        <span class="fb-chip" data-k="选项不严密" onclick="toggleFb(this)">选项不严密</span>
-        <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
-        <span class="fb-chip" data-k="解析错误" onclick="toggleFb(this)">解析错误</span>
-        <span class="fb-chip" data-k="错别字" onclick="toggleFb(this)">错别字</span>
-        <span class="fb-chip" data-k="其他" onclick="toggleFb(this)">其他</span>
+<!-- 反馈浮窗：题目反馈（bottom sheet，上滑；错误类型仅题目组，提交带 feedbackType=题目） -->
+<div class="fb-mask" id="fbModalQuestion" onclick="if(event.target===this) closeFeedback()">
+  <div class="fb-panel">
+    <div class="fb-grab"></div>
+    <div class="fb-head">
+      <div class="fb-title">题目反馈</div>
+      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭">×</button>
+    </div>
+    <div class="fb-body">
+      <div class="feedback-sec">
+        <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
+        <div class="feedback-opts" id="fbOptsQ">
+          <span class="fb-chip" data-k="题干文字错误" onclick="toggleFb(this)">题干文字错误</span>
+          <span class="fb-chip" data-k="选项错误" onclick="toggleFb(this)">选项错误</span>
+          <span class="fb-chip" data-k="题目重复" onclick="toggleFb(this)">题目重复</span>
+          <span class="fb-chip" data-k="题型标注错误" onclick="toggleFb(this)">题型标注错误</span>
+          <span class="fb-chip" data-k="归类错误" onclick="toggleFb(this)">归类错误</span>
+          <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
+        </div>
+      </div>
+      <div class="feedback-sec">
+        <div class="feedback-sec-t">补充说明（选填）</div>
+        <textarea class="feedback-ta" id="fbTextQ" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
       </div>
     </div>
-    <div class="feedback-sec">
-      <div class="feedback-sec-t">补充说明（选填）</div>
-      <textarea class="feedback-ta" id="fbText" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
+    <div class="fb-actions">
+      <button class="fb-btn cancel" onclick="closeFeedback()">取消</button>
+      <button class="fb-btn ok" onclick="submitFeedback()">提交</button>
     </div>
-    <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="closeFeedback()">取消</button>
-      <button class="modal-btn ok" onclick="submitFeedback()">提交</button>
+  </div>
+</div>
+
+<!-- 反馈浮窗：解析反馈（bottom sheet，上滑；错误类型仅解析组，提交带 feedbackType=解析） -->
+<div class="fb-mask" id="fbModalAnalysis" onclick="if(event.target===this) closeFeedback()">
+  <div class="fb-panel">
+    <div class="fb-grab"></div>
+    <div class="fb-head">
+      <div class="fb-title">解析反馈</div>
+      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭">×</button>
+    </div>
+    <div class="fb-body">
+      <div class="feedback-sec">
+        <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
+        <div class="feedback-opts" id="fbOptsA">
+          <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
+          <span class="fb-chip" data-k="解析文字错误" onclick="toggleFb(this)">解析文字错误</span>
+          <span class="fb-chip" data-k="解析逻辑错误" onclick="toggleFb(this)">解析逻辑错误</span>
+          <span class="fb-chip" data-k="解析不完整" onclick="toggleFb(this)">解析不完整</span>
+          <span class="fb-chip" data-k="图片解析有误" onclick="toggleFb(this)">图片解析有误</span>
+        </div>
+      </div>
+      <div class="feedback-sec">
+        <div class="feedback-sec-t">补充说明（选填）</div>
+        <textarea class="feedback-ta" id="fbTextA" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
+      </div>
+    </div>
+    <div class="fb-actions">
+      <button class="fb-btn cancel" onclick="closeFeedback()">取消</button>
+      <button class="fb-btn ok" onclick="submitFeedback()">提交</button>
     </div>
   </div>
 </div>
@@ -1283,7 +1357,9 @@ function renderAnalysis(q, ans, reveal) {
     + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span></div>'
     + '<div class="analysis-text">' + q.analysis + '</div>'
     + '<div class="analysis-img-placeholder"><span>🖼️</span>图片解析（流程图 / 截图）</div>'
-    + steps + '</div>';
+    + steps
+    + '<div class="feedback-link analysis-fb" onclick="openFeedback(\'analysis\')">解析有误？反馈</div>'
+    + '</div>';
 
   /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
   var compare = q.compare || mockCompare(q);
@@ -1694,42 +1770,62 @@ function reviewAnswers() {
   renderQuestion();
 }
 
-/* ---------- 题目反馈（错误类型多选 + 补充说明，提交同步后台管理端） ----------
+/* ---------- 题目/解析反馈（bottom sheet 浮窗，错误类型多选 + 补充说明，提交同步后台管理端） ----------
+   两独立浮窗：#fbModalQuestion（题目）/ #fbModalAnalysis（解析），各自只显示对应错误类型组。
    数据契约（v5.0 接后台反馈管理模块）：
-   { type:'QUESTION_FEEDBACK', questionId: 当前题id, entry: ENTRY, errorTypes:[...], detail:'...', ts:Date.now() }
+   { type:'QUESTION_FEEDBACK', questionId: 当前题id, entry: ENTRY, feedbackType:'题目'|'解析',
+     errorTypes:[...], detail:'...', ts:Date.now() }
    演示期：本地 console + Toast；真实接入由总壳 postMessage 转发或直接调 API。 */
-var FB_TYPES = [];
-function openFeedback() {
-  FB_TYPES = [];
-  var chips = document.querySelectorAll('#fbOpts .fb-chip');
+var FB_ACTIVE = null;             /* 当前打开浮窗类型：'question'|'analysis' */
+var FB_TYPES = [];                /* 当前选中错误类型（含"_t":'题目'|'解析' 隐藏维度会串，改用两套独立数组） */
+var FB_TYPES_Q = [];
+var FB_TYPES_A = [];
+
+function fbModal(id) { return document.getElementById(id); }
+
+function openFeedback(kind) {
+  kind = kind || 'question';
+  FB_ACTIVE = kind;
+  var modalId = (kind === 'question') ? 'fbModalQuestion' : 'fbModalAnalysis';
+  var optsId  = (kind === 'question') ? 'fbOptsQ'  : 'fbOptsA';
+  var textId  = (kind === 'question') ? 'fbTextQ'  : 'fbTextA';
+  /* 重置该浮窗已选 chip 与文本 */
+  var chips = document.querySelectorAll('#' + optsId + ' .fb-chip');
   for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on');
-  var ta = document.getElementById('fbText');
+  var ta = document.getElementById(textId);
   if (ta) ta.value = '';
-  document.getElementById('feedbackModal').classList.add('show');
+  var store = (kind === 'question') ? FB_TYPES_Q : FB_TYPES_A;
+  store.length = 0;
+  fbModal(modalId).classList.add('show');
 }
 function closeFeedback() {
-  document.getElementById('feedbackModal').classList.remove('show');
+  if (FB_ACTIVE === 'analysis') fbModal('fbModalAnalysis').classList.remove('show');
+  else fbModal('fbModalQuestion').classList.remove('show');
 }
 function toggleFb(el) {
   var k = el.getAttribute('data-k');
-  var i = FB_TYPES.indexOf(k);
-  if (i >= 0) { FB_TYPES.splice(i, 1); el.classList.remove('on'); }
-  else { FB_TYPES.push(k); el.classList.add('on'); }
+  var store = (FB_ACTIVE === 'analysis') ? FB_TYPES_A : FB_TYPES_Q;
+  var i = store.indexOf(k);
+  if (i >= 0) { store.splice(i, 1); el.classList.remove('on'); }
+  else { store.push(k); el.classList.add('on'); }
 }
 function submitFeedback() {
-  if (FB_TYPES.length === 0) {
+  var store = (FB_ACTIVE === 'analysis') ? FB_TYPES_A : FB_TYPES_Q;
+  if (store.length === 0) {
     showToast('请至少选择一种错误类型');
     return;
   }
-  var detail = (document.getElementById('fbText').value || '').trim();
+  var textId = (FB_ACTIVE === 'analysis') ? 'fbTextA' : 'fbTextQ';
+  var detail = (document.getElementById(textId).value || '').trim();
   var q = QUESTIONS[idx] || {};
   var payload = {
     type: 'QUESTION_FEEDBACK',
     questionId: q.id || (ENTRY + '-' + idx),   /* v5.0 接题库真实 id */
     entry: ENTRY,
+    feedbackType: (FB_ACTIVE === 'analysis') ? '解析' : '题目',
     chapter: q.chapter || '',
     concept: q.concept || '',
-    errorTypes: FB_TYPES.slice(),
+    errorTypes: store.slice(),
     detail: detail,
     ts: Date.now()
   };
