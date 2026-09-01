@@ -931,10 +931,10 @@ function renderChapters(){
         html += '<div class="l4-list"><div class="l4-inner">';
         l3.level4.forEach(function(l4){
           var l4fresh = l4.done===0;
-          /* 四级答题状态（PM 2026-09-02 拍板）：
-             ✔ 对题数 / ✖ 错题数 / 顽固 = 有答错过的题（wrong>0）即标，
-             与做题页「错过的题标顽固记忆点」语义一致；未做只提示 */
-          var l4Wrong = !l4fresh && l4.wrong>0;
+          /* 四级状态符号（题库顽固口径，题库.html §顽固标签规则）：
+             ✔ 答对题数 / ✖ 答错题数
+             顽固 = 考点级顽固：错题题数 ÷ 该考点总题数 × 100% ≥ 50%（与题库.html 口径一致） */
+          var l4Stubborn = !l4fresh && l4.total>0 && (l4.wrong/l4.total >= 0.5);
           html += '<div class="l4-item" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">';
           html += '<span class="l4-dot"></span>';
           html += '<span class="l4-title">'+l4.name+'</span>';
@@ -944,7 +944,7 @@ function renderChapters(){
           } else {
             if(l4.right>0) html += '<span class="l4-ok">✔ '+l4.right+'</span>';
             if(l4.wrong>0) html += '<span class="l4-no">✖ '+l4.wrong+'</span>';
-            if(l4Wrong) html += '<span class="l4-stubborn">顽固</span>';
+            if(l4Stubborn) html += '<span class="l4-stubborn">顽固</span>';
           }
           html += '</span>';
           html += '</div>'; // l4-item
