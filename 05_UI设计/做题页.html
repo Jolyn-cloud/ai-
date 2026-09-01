@@ -378,13 +378,14 @@ body{
 .op-swipe-hint .up-arrow{ font-size:16px; }
 /* 轻度黑色遮罩：能看清题干文字 */
 .op-mask{ position:absolute; inset:0; background:rgba(0,0,0,0.45); }
-/* 选项浮窗：底部弹出，内容自适应紧凑（不浪费下方空白），最高 70% 不挡题干大部分 */
+/* 选项浮窗：fixed 贴屏底，高度随内容自适应（上限70%），去除下方空白（PM 2026-09-02 拍板） */
 .op-sheet{
-  position:absolute; left:0; right:0; bottom:0;
+  position:fixed; left:0; right:0; bottom:0;
   background:#fff; border-radius:20px 20px 0 0;
   padding:8px 16px 14px;
   box-shadow:0 -8px 24px rgba(22,27,46,.15);
   max-height:70%; overflow-y:auto;
+  z-index:30;
 }
 .op-handle{ width:42px; height:4px; border-radius:2px; background:#E3E6F0; margin:0 auto 12px; }
 .op-sub-progress{ font-size:12px; color:var(--primary); font-weight:600; margin-bottom:8px; }
