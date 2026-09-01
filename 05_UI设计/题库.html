@@ -544,8 +544,9 @@ window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
   if (d.type === 'CLOSE_CHAPTER') { closeSubLayer(); return; }
-  if (d.type === 'REQ_PRACTICE') {
-    /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳） */
+  if (d.type === 'REQ_PRACTICE' || d.type === 'REQ_REPORT') {
+    /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳）
+       REQ_REPORT：模拟考场/历年真题「查看报告」→ 总壳存数据并打开报告层 */
     try { window.parent.postMessage(d, '*'); } catch(e) {}
     return;
   }

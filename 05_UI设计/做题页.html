@@ -1657,6 +1657,23 @@ function showToast(msg) {
   toastTimer2 = setTimeout(function(){ t.classList.remove('show'); }, 1500);
 }
 
+/* ---------- 报告页跳解析：收到 ENTER_REVIEW → 进入解析态并定位该题 ----------
+   来源：成绩报告页「查看解析」/答题卡点击 → 总壳 REPORT_REVIEW → 打开做题页 → 就绪后送 ENTER_REVIEW。
+   复用现有解析能力：submitted=true（解析态）+ jumpTo(q)（定位+渲染）。不改 URL 入口。 */
+window.addEventListener('message', function(evt) {
+  var d = evt.data;
+  if (!d || !d.type) return;
+  if (d.type === 'ENTER_REVIEW') {
+    submitted = true;
+    hideSubmit();
+    stopTimer();
+    /* 钳制到卷面题量范围：报告页答题卡题量可能大于做题页 mock 卷（演示期数据契约独立），越界回第 1 题 */
+    var q = (d.data && typeof d.data.q === 'number') ? d.data.q : 0;
+    if (q < 0 || q >= total) q = 0;
+    jumpTo(q);
+  }
+});
+
 /* ---------- 初始化 ---------- */
 startTimer();              /* 进入即起表（会话级计时） */
 renderQuestion();

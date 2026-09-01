@@ -633,10 +633,23 @@ body {
 .practice-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
 .practice-layer iframe { width: 100%; height: 100%; border: none; }
 
-/* 二级页面（答题页 / 闪卡单卡·列表·完成）：隐藏 tabBar，内容区/做题层扩展到底 */
+/* 成绩报告层（模拟考场/历年真题报告页；覆盖内容区，隐藏 tabBar） */
+.report-layer {
+  position: absolute;
+  top: 78px; left: 0; right: 0; bottom: 56px;   /* 内容区范围 */
+  z-index: 2100;               /* 高于内容 iframe */
+  background: #EDEFF7;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease;
+}
+.report-layer.show { opacity: 1; visibility: visible; pointer-events: auto; }
+.report-layer iframe { width: 100%; height: 100%; border: none; }
+
+/* 二级页面（答题页 / 闪卡单卡·列表·完成 / 报告页）：隐藏 tabBar，内容区/做题层扩展到底 */
 body.tab-hidden .tabbar { display: none; }
 body.tab-hidden .content-frame { bottom: 0; }
 body.tab-hidden .practice-layer { bottom: 0; }
+body.tab-hidden .report-layer { bottom: 0; }
 
 /* ============ 右侧逻辑说明面板 ============ */
 .logic-col {
@@ -802,6 +815,11 @@ body.tab-hidden .practice-layer { bottom: 0; }
         <!-- 统一做题层（题库/错题本/章节练习共用；覆盖内容区，tabBar 保留） -->
         <div class="practice-layer" id="practiceLayer">
           <iframe id="frame-practice" data-src="做题页.html"></iframe>
+        </div>
+
+        <!-- 成绩报告层（模拟考场/历年真题报告页；覆盖内容区，隐藏 tabBar） -->
+        <div class="report-layer" id="reportLayer">
+          <iframe id="frame-report" data-src="成绩报告.html"></iframe>
         </div>
 
         <!-- 专属福利弹层（首次进题库 tab 触发；判据=未领取+会话未关；领取 → 登录弹窗接管 → VIP 到账） -->
@@ -1036,6 +1054,49 @@ window.addEventListener('message', function(evt) {
     openPractice(d.data && d.data.entry, d.data || {});
     return;
   }
+  if (d.type === 'REQ_REPORT') {
+    /* 模拟考场/历年真题点「查看报告」→ 存数据 + 打开报告层 */
+    openReport(d.data || {});
+    return;
+  }
+  if (d.type === 'GET_REPORT') {
+    /* 报告页拉数据 → 回发 */
+    var rp = document.getElementById('frame-report');
+    if (rp && rp.contentWindow) {
+      rp.contentWindow.postMessage({ type: 'REPORT_DATA', data: REPORT_DATA || {} }, '*');
+    }
+    return;
+  }
+  if (d.type === 'CLOSE_REPORT') {
+    closeReport();
+    return;
+  }
+  if (d.type === 'REPORT_REVIEW') {
+    /* 报告页「查看解析」/答题卡跳题 → 关报告层 → 打开做题页(考试卷) → 就绪后进入解析定位该题 */
+    var rd = d.data || {};
+    if (REPORT_DATA && REPORT_DATA.paperId) {
+      var entry = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
+      openPractice(entry, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
+      closeReport();
+      /* 等做题页加载完再送入解析定位（考卷就绪后） */
+      setTimeout(function() {
+        var practice = document.getElementById('frame-practice');
+        if (practice && practice.contentWindow) {
+          practice.contentWindow.postMessage({ type: 'ENTER_REVIEW', data:{ q: rd.q || 0 } }, '*');
+        }
+      }, 900);
+    }
+    return;
+  }
+  if (d.type === 'REPORT_RESTART') {
+    /* 报告页「在此作答」→ 关报告层 → 重新考试（正常模式） */
+    if (REPORT_DATA && REPORT_DATA.paperId) {
+      var entry2 = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
+      openPractice(entry2, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
+      closeReport();
+    }
+    return;
+  }
   if (d.type === 'CLOSE_PRACTICE') {
     /* 做题页点关闭/完成 → 收起做题层回原页 */
     closePractice();
@@ -1112,7 +1173,9 @@ function updateAppbar(name) {
   if (!title) return;
   var n = name || currentTabName();
   var t;
-  if (practiceLayer.classList.contains('show')) {
+  if (reportLayer.classList.contains('show')) {
+    t = '成绩报告';                                          /* 报告页标题 */
+  } else if (practiceLayer.classList.contains('show')) {
     t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
   } else if (chapterLayerOpen) {
     t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
@@ -1131,13 +1194,18 @@ function updateAppbarExit() {
   if (!exit) return;
   var n = currentTabName();
   var show = false;
-  if (practiceLayer.classList.contains('show')) show = true;           /* 答题页 */
+  if (reportLayer.classList.contains('show')) show = true;            /* 报告页 */
+  else if (practiceLayer.classList.contains('show')) show = true;     /* 答题页 */
   else if (chapterLayerOpen) show = true;                            /* 题库 tab 内章节刷题二级层 */
   else if (n === 'flash' && flashView !== 'view-home' && flashView !== 'view-stats') show = true;  /* 闪卡二级 */
   exit.classList.toggle('show', show);
 }
 /* 左侧退出：返回上一级（答题页→回题库；章节层→收起回题库首页；闪卡二级→回闪卡首页） */
 function handleAppbarExit() {
+  if (reportLayer.classList.contains('show')) {
+    closeReport();
+    return;
+  }
   if (practiceLayer.classList.contains('show')) {
     closePractice();
     return;
@@ -1216,6 +1284,9 @@ function closeVip() {
 /* ---------- 统一做题层（题库/错题本/章节练习共用一页；覆盖内容区，二级页面隐藏 tabBar） ---------- */
 var practiceLayer = document.getElementById('practiceLayer');
 var practiceFrame = document.getElementById('frame-practice');
+var reportLayer = document.getElementById('reportLayer');
+var reportFrame = document.getElementById('frame-report');
+var REPORT_DATA = null;        /* 报告数据（模拟考场/历年真题 REQ_REPORT 注入） */
 var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
 
 /* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
@@ -1225,6 +1296,8 @@ function updateTabBar() {
   var show = true;
   if (practiceLayer.classList.contains('show')) {
     show = false;                                             /* 答题页（二级）→ 隐藏 */
+  } else if (reportLayer.classList.contains('show')) {
+    show = false;                                             /* 报告页（二级）→ 隐藏 */
   } else if (name === 'flash') {
     show = (flashView === 'view-home' || flashView === 'view-stats');  /* 闪卡单卡/列表/完成 → 隐藏 */
   }
@@ -1251,6 +1324,24 @@ function openPractice(entry, extra) {
 }
 function closePractice() {
   practiceLayer.classList.remove('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+
+/* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */
+function openReport(data) {
+  REPORT_DATA = data || REPORT_DATA;
+  if (!reportFrame.getAttribute('src')) {
+    reportFrame.setAttribute('src', '成绩报告.html');
+  } else {
+    try { reportFrame.contentWindow.location.href = '成绩报告.html'; } catch(e) { reportFrame.setAttribute('src', '成绩报告.html'); }
+  }
+  reportLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+}
+function closeReport() {
+  reportLayer.classList.remove('show');
   updateTabBar();
   updateAppbarUI();
 }
