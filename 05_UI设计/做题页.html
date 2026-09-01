@@ -632,11 +632,11 @@ body{
   </button>
 </div>
 
-<!-- 进度条：左 = 第 X 题；右 = Y/Z 进度 + 共 N 题 -->
+<!-- 进度条：左 = 第 X 题；右 = 当前进度 Y/Z -->
 <div class="progress-wrap">
   <div class="progress-top">
     <span class="q-num" id="qNum">第 1 题</span>
-    <span class="q-pos"><span id="navProgress">1/5</span> · <span id="qTotal">共 5 题</span></span>
+    <span class="q-pos" id="navProgress">1/5</span>
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
 </div>
@@ -1066,7 +1066,6 @@ var opSubIdx = 0;            /* 操作类题型当前子题索引 */
 var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', operation:'操作题', analysis:'分析题', comprehensive:'综合运用题', essay:'简答题' };
 var LETTERS = ['A','B','C','D','E','F','G','H'];
 
-document.getElementById('qTotal').textContent = '共 ' + total + ' 题';
 if (total === 0) {
   document.getElementById('qaBody').innerHTML = '<div style="padding:40px 20px;text-align:center;color:#98A0B2;font-size:13px;">暂无题目</div>';
 }
