@@ -125,6 +125,27 @@ body {
 .q-list { display: none; }
 .chapter.open .q-list { display: block; }
 
+/* 我的上传：横向滑动行
+   页面整体纵向滚动固定不变；仅「我的上传」这一行卡片并排，左右滑动查看 */
+.up-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 -16px;          /* 破边到屏幕左右边缘，卡片可滑出页边距 */
+  padding: 2px 16px 12px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+.up-strip::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.up-strip .q-card {
+  flex: 0 0 232px;
+  margin: 0;
+  scroll-snap-align: start;
+}
+.up-strip .q-card .q-img-thumb { height: 96px; }
+.up-hint { opacity: .75; }
+
 /* 题目卡 */
 .q-card {
   background: #fff;
@@ -527,15 +548,17 @@ function renderOverview() {
 function renderList() {
   var box = document.getElementById('list');
   var html = '';
-  /* 我的上传区（source=upload）：按筛选显示 */
+  /* 我的上传区（source=upload）：按筛选显示，卡片横向滑动一行 */
   var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); });
   if (ups.length > 0) {
     html += '<div class="module open">'
       + '<div class="module-head"><span class="module-name"><span class="caret">▶</span>我的上传</span>'
       + '<span class="module-meta">' + ups.length + ' 道 · 拍照录入</span></div>'
-      + '<div class="chapter open"><div class="q-list">';
+      + '<div class="up-strip">';
     ups.forEach(function(q) { html += qCard(q); });
-    html += '</div></div></div>';
+    html += '</div>'
+      + '<div class="module-head"><span class="module-name"><span class="up-hint">← → 左右滑动查看更多</span></span></div>';
+    html += '</div>';
   }
   WRONG_DATA.modules.forEach(function(m, mi) {
     var chapters = m.chapters
