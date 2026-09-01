@@ -174,7 +174,7 @@ body{
 
 /* ===== 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） =====
    1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
-   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
+   6 视频解析 / 7 答题时间·耗时分析（相关知识点卡已于 2026-09-01 删除）
    注：ico-2/verdict-* 为系统判断节遗留样式，已不用（PM 2026-08-31 删） */
 .ana-sec{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
 .ana-sec .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
@@ -198,7 +198,6 @@ body{
 .ico-4{ background:linear-gradient(135deg,#F28B3D,#FBA460); color:#fff; }      /* 考点对比 橙 */
 .ico-5{ background:linear-gradient(135deg,#722ED1,#9B6BD9); color:#fff; }     /* 举一反三 紫 */
 .ico-6{ background:linear-gradient(135deg,#FA8C16,#FFA940); color:#fff; }      /* 我的笔记 黄橙 */
-.ico-7{ background:linear-gradient(135deg,#13C2C2,#36CFC9); color:#fff; }     /* 相关知识点 青 */
 .ico-8{ background:linear-gradient(135deg,#5B72F5,#3FA98B); color:#fff; }      /* 视频解析 蓝绿 */
 .ico-9{ background:linear-gradient(135deg,#8A90A8,#B0B6CA); color:#fff; }     /* 答题时间 灰 */
 
@@ -306,15 +305,6 @@ body{
   font-size:12px; font-weight:600; padding:5px 14px; border-radius:8px; cursor:pointer;
 }
 .note-save-btn:active{ background:var(--primary); color:#fff; }
-
-/* 相关知识点：标签云 */
-.kp-cloud{ display:flex; flex-wrap:wrap; gap:8px; }
-.kp-tag{
-  font-size:12px; padding:5px 11px; border-radius:14px;
-  background:#F5F6FA; color:var(--text-secondary); border:1px solid #EEF0F6;
-  cursor:pointer; transition:all .12s;
-}
-.kp-tag:active{ background:var(--primary-light); color:var(--primary-dark); border-color:var(--primary); }
 
 /* 视频解析：视频卡 */
 .video-card{
@@ -1263,8 +1253,9 @@ function stripHtml(s) {
 
 /* ---------- 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） ----------
    1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
-   6 相关知识点 / 7 视频解析 / 8 答题时间·耗时分析
-   每题独立组装；演示期 3/4/6/7 mock，5 笔记本地存，8 接会话计时。 */
+   6 视频解析 / 7 答题时间·耗时分析
+   每题独立组装；演示期 3/4/6 mock，5 笔记本地存，7 接会话计时。
+   相关知识点卡已于 2026-09-01 删除 */
 function renderAnalysis(q, ans, reveal) {
   if (!reveal) return '';
   var correct = checkAnswer(q, ans);
@@ -1304,10 +1295,6 @@ function renderAnalysis(q, ans, reveal) {
 
   /* ⑥ 我的笔记（本地存 localStorage，按题 id） */
   html += renderNote(q);
-
-  /* ⑦ 相关知识点 — mock */
-  var kps = q.kp || mockKp(q);
-  html += renderKp(kps);
 
   /* ⑧ 视频解析 — mock */
   var vids = q.videos || mockVideos(q);
@@ -1406,21 +1393,6 @@ function saveNote() {
   saveNotes(notes);
   showToast(_noteDraft && _noteDraft.trim() ? '笔记已保存' : '笔记已清空');
   renderQuestion();
-}
-
-/* ⑦ 相关知识点 mock */
-function mockKp(q) {
-  var base = (q.chapter || '').replace(/^第\d+章\s*/, '');
-  return [base + ' 概述', q.concept || '核心概念', q.concept + ' 的应用', q.concept + ' 易错点', '相关真题题型'];
-}
-function renderKp(kps) {
-  var html = '<div class="ana-sec">'
-    + '<div class="sec-head"><span class="ico ico-7">⌗</span><span class="name">相关知识点</span></div>'
-    + '<div class="kp-cloud">';
-  kps.forEach(function(k) {
-    html += '<span class="kp-tag" onclick="showToast(\'知识点：' + k + '（v5.0 接知识图谱）\')">' + k + '</span>';
-  });
-  return html + '</div></div>';
 }
 
 /* ⑧ 视频解析 mock */
