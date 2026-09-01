@@ -424,19 +424,6 @@ body {
   margin-top: 2px; display: flex; align-items: center; gap: 4px;
 }
 
-/* 轻量进度提示（非传统进度条：○ ○ ○ ○ + 文本） */
-.ob-progress {
-  display: flex; align-items: center; gap: 8px;
-  margin: 4px 4px 0; padding: 6px 2px;
-}
-.ob-progress-label { font-size: 12px; color: var(--text-tertiary); }
-.onboard-dots { display: flex; align-items: center; gap: 5px; }
-.onboard-dots i {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #DDE2F0; transition: all .25s ease;
-}
-.onboard-dots i.on { background: var(--primary); box-shadow: 0 0 0 2px rgba(91,114,245,0.16); }
-
 /* 两步式选择器：展开的候选列表 */
 .ob-list { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .28s ease, opacity .25s ease; }
 .ob-list.open { max-height: 240px; opacity: 1; overflow-y: auto; }
@@ -586,11 +573,7 @@ body {
 再告诉我一些你的情况，我就能更懂你的备考需求。</div>
                   </div>
 
-                  <!-- 轻量进度提示：○ ○ ○ ○（非传统进度条，仅告知需完成少量信息） -->
-                  <div class="ob-progress">
-                    <span class="ob-progress-label" id="obProgressLabel">学习画像 · 0/4</span>
-                    <span class="onboard-dots" id="obDots"></span>
-                  </div>
+                  <!-- 进度信息由各卡片标题自带「第 N 项 / 总数 · 标题」，此处不再重复置顶部进度条 -->
 
                   <!-- 画像选择区（对话式卡片轮播：4 项依次回答，每步显示一张卡片） -->
                   <div class="onboard-chip" id="obChip0">
@@ -855,27 +838,9 @@ function obUpdatePromptTexts() {
     el.innerHTML = '<b>第 ' + num + ' 项 / ' + total + ' · ' + names[idx] + '</b>　' + tpl;
   });
 }
-function obProgressLabel() {
-  return '学习画像 · ' + Math.min(obStep, obVisibleNum()) + '/' + obVisibleNum();
-}
 function obRerender() {
   obUpdatePromptTexts();
-  /* 进度圆点数量 = 动态总项数（其他=4，大一/二/三=3），与「已有 N/总数」对应，不写死 4 个 */
-  var count = obVisibleNum();
-  var dotsWrap = document.getElementById('obDots');
-  if (dotsWrap) {
-    while (dotsWrap.children.length > count) dotsWrap.removeChild(dotsWrap.lastChild);
-    while (dotsWrap.children.length < count) {
-      var dotEl = document.createElement('i');
-      dotsWrap.appendChild(dotEl);
-    }
-  }
   var visibleIdx = obVisibleIndex(obStep);
-  /* 已填项点亮（i < obStep） */
-  var dots = document.querySelectorAll('.onboard-dots i');
-  dots.forEach(function(d, i) { d.classList.toggle('on', i < obStep); });
-  var label = document.getElementById('obProgressLabel');
-  if (label) label.textContent = obProgressLabel();
   /* 轮播：只显示当前执行项卡片 */
   ['obChip0','obChip1','obChip2','obChip3'].forEach(function(id, i) {
     var el = document.getElementById(id);
