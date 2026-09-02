@@ -193,6 +193,25 @@ check('「展开」→ 第1个二级+其三级四级全开', r.openSubS === 0 &&
 r = await evalJs(`(function(){ document.querySelector('.ch-collapse').click(); return { openSubS: openSub, lbl: document.querySelector('.ch-collapse').textContent }; })()`);
 check('再点 → 全部收起', r.openSubS === null && r.lbl === '展开', JSON.stringify(r));
 
+/* ===== 6b. 三级顽固示例：第2章展开「算法基础」→「基本算法」行带顽固标签 ===== */
+r = await evalJs(`(function(){
+  var items = [...document.querySelectorAll('.lv-item')];
+  items[1].click();                       // 切到第2章（计算思维）
+  document.querySelectorAll('.sub-arrow')[1].click();  // 展开「算法基础」（顺带默认开第一个三级）
+  var l3rows = [...document.querySelectorAll('.lv3-row')];
+  var basic = l3rows.find(row => row.querySelector('.lv3-title').textContent === '基本算法');
+  return {
+    openSubS: openSub,
+    basicTitle: basic ? basic.querySelector('.lv3-title').textContent : '',
+    l3Stubborn: basic ? !!basic.querySelector('.lv3-meta .m-stubborn') : false,
+    metaTxt: basic ? basic.querySelector('.lv3-meta').textContent.replace(/\\s+/g,' ').trim() : '',
+    chHeadMetrics: document.querySelector('.ch-metrics').textContent.replace(/\\s+/g,' ').trim()
+  };
+})()`);
+check('二级手风琴展开「算法基础」', r.openSubS === 1, r.openSubS);
+check('基本算法行带三级顽固标签', r.basicTitle === '基本算法' && r.l3Stubborn === true, r.metaTxt);
+check('第2章数据自洽(21/48·错9)', r.chHeadMetrics.indexOf('21/48') >= 0 && r.chHeadMetrics.indexOf('错 9') >= 0, r.chHeadMetrics);
+
 /* ===== 7. 四级整行 → REQ_PRACTICE l4（切回来第1章） ===== */
 r = await evalJs(`(function(){
   var items = [...document.querySelectorAll('.lv-item')];
