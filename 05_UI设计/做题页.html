@@ -138,6 +138,17 @@ body{
 .fill-input:focus{ border-color:var(--primary); }
 .fill-input.correct{ border-color:var(--success); background:#F0FBF4; color:#1F7A4D; }
 .fill-input.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
+.fill-input.committed{ border-color:var(--primary); background:#F2F5FF; color:#333; }   /* 回车确认态：蓝色回显 */
+/* 填空/简答 轻提交按钮 */
+.fill-submit, .essay-submit{
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  width:100%; height:42px; margin-top:10px; border:none; border-radius:21px;
+  background:linear-gradient(100deg,var(--primary),var(--primary-dark)); color:#fff;
+  font-size:14px; font-weight:600; cursor:pointer;
+  box-shadow:0 4px 12px rgba(91,114,245,.2); transition:transform .12s ease, opacity .15s ease;
+}
+.fill-submit:active, .essay-submit:active{ transform:scale(.98); opacity:.9; }
+.fill-submit:disabled, .essay-submit:disabled{ opacity:.5; cursor:default; }
 /* 简答 */
 .essay-wrap{ padding:0 16px 12px; }
 .essay-textarea{
@@ -146,6 +157,7 @@ body{
   resize:vertical; background:#fff; color:#333; line-height:1.6;
 }
 .essay-textarea:focus{ border-color:var(--primary); }
+.essay-textarea.committed{ border-color:var(--primary); background:#F2F5FF; color:#333; }   /* 回车确认态 */
 
 /* ===== 解析区 ===== */
 .analysis-area{ background:#F5F6FA; padding:0 12px 16px; flex-shrink:0; display:none; }
@@ -1087,6 +1099,8 @@ var answers = {};            /* { 题索引: 作答 } */
 var submitted = false;       /* 做题模式已交卷 */
 var total = QUESTIONS.length;
 var fav = {}, marked = {};   /* 收藏 / 标记状态 { 题索引: true } */
+var committed = {};          /* 填空/简答已回车确认（文字回显蓝态）{ 题索引: true } */
+var reviewed = {};           /* 背题填空/简答已点轻提交看解析 { 题索引: true } */
 var OP_TYPES = ['operation','analysis','comprehensive'];   /* 分屏遮罩式题型 */
 var opPhase = 'stem';        /* 操作类题型：stem=题干页 / sub=小题页 */
 var opSubIdx = 0;            /* 操作类题型当前子题索引 */
@@ -1174,7 +1188,10 @@ function formatUserAnswer(q, ans) {
 function renderQuestion() {
   if (!total) return;
   var q = QUESTIONS[idx];
-  var reveal = submitted || (MODE === 'study' && getAnswered(q, answers[idx]));
+  /* 背题模式下填空/简答：解析需点「轻提交」确认后才显示（打字即弹已改，PM 2026-09-02）；
+     其它题型保持已答即显示解析 */
+  var studyReveal = (q.type === 'fill' || q.type === 'essay') ? !!reviewed[idx] : getAnswered(q, answers[idx]);
+  var reveal = submitted || (MODE === 'study' && studyReveal);
 
   /* 标签 */
   var tags = '<span class="tag type">' + (TYPE_NAME[q.type] || '题目') + '</span>'
@@ -1207,12 +1224,24 @@ function renderQuestion() {
 function renderBody(q, ans, reveal) {
   if (q.type === 'single' || q.type === 'judge' || q.type === 'multi') return renderOptions(q, ans, reveal);
   if (q.type === 'fill') {
-    var cls = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : '';
-    return '<div class="fill-wrap"><input class="fill-input' + cls + '" id="fillInput" value="' + (ans || '') + '" placeholder="请输入答案…" oninput="onFillInput(this.value)"' + (reveal ? ' disabled' : '') + '></div>';
+    var cls = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : (committed[idx] ? ' committed' : '');
+    var dis = reveal ? ' disabled' : '';
+    var fillBtn = reveal ? '' : '<button class="fill-submit" id="fillSubmit" onclick="submitTextAnswer()">√ <span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span></button>';
+    return '<div class="fill-wrap">'
+      + '<input class="fill-input' + cls + '" id="fillInput" value="' + (ans || '') + '" placeholder="请输入答案…"'
+      + ' oninput="onFillInput(this.value)" onkeydown="onTextKeydown(event)"' + dis + '>'
+      + fillBtn
+      + '</div>';
   }
   if (q.type === 'operation') return renderOperation(q, ans, reveal);
   if (q.type === 'essay') {
-    return '<div class="essay-wrap"><textarea class="essay-textarea" placeholder="请输入你的作答…" oninput="onEssayInput(this.value)"' + (reveal ? ' disabled' : '') + '>' + (ans || '') + '</textarea></div>';
+    var clsE = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : (committed[idx] ? ' committed' : '');
+    var dfe = reveal ? ' disabled' : '';
+    var essayBtn = reveal ? '' : '<button class="essay-submit" id="fillSubmit" onclick="submitTextAnswer()">√ <span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span></button>';
+    return '<div class="essay-wrap">'
+      + '<textarea class="essay-textarea' + clsE + '" placeholder="请输入你的作答…" oninput="onEssayInput(this.value)" onkeydown="onTextKeydown(event)"' + dfe + '>' + (ans || '') + '</textarea>'
+      + essayBtn
+      + '</div>';
   }
   return '';
 }
@@ -1557,7 +1586,12 @@ function renderTiming(q) {
 /* ---------- 答题交互 ---------- */
 function canEdit() {
   if (submitted) return false;
-  if (MODE === 'study' && getAnswered(QUESTIONS[idx], answers[idx])) return false;
+  var q = QUESTIONS[idx];
+  /* 填空/简答：背题下看了解析才锁定，未看可编辑（回车确认后仍需可改文字/换行） */
+  if (MODE === 'study') {
+    if (q && (q.type === 'fill' || q.type === 'essay')) return !reviewed[idx];
+    if (getAnswered(q, answers[idx])) return false;
+  }
   return true;
 }
 function onSelectOption(optIndex) {
@@ -1577,11 +1611,47 @@ function onSelectOption(optIndex) {
 function onFillInput(v) {
   if (!canEdit()) return;
   answers[idx] = v;
-  if (MODE === 'study') renderQuestion();
+  /* 输入中不重渲染（避免丢焦点/锁死）；确认态在回车/轻提交时由 confirmTextAnswer() 统一重建 */
 }
 function onEssayInput(v) {
   if (!canEdit()) return;
   answers[idx] = v;
+}
+/* 填空/简答：回车=确认写回（文字回显+蓝色确认态）；其它键交还给输入框（简答多行用 Shift+Enter） */
+function onTextKeydown(e) {
+  if (!canEdit()) return;
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    confirmTextAnswer();
+  }
+}
+/* 填空/简答：确认答案并回显。背题→锁定输入，做题→保持可编辑继续改 */
+function confirmTextAnswer() {
+  if (!canEdit()) return;
+  var q = QUESTIONS[idx];
+  if (!q || (q.type !== 'fill' && q.type !== 'essay')) return;
+  var v = (answers[idx] || '').toString().trim();
+  if (!v) { showToast('请先填写答案'); return; }
+  committed[idx] = true;
+  renderQuestion();   /* 重建输入框显示确认态；输入值来自 answers[idx] */
+}
+/* 填空/简答：轻提交按钮。背题→显示解析（reviewed）；做题→下一步（打开解析或直接下一题） */
+function submitTextAnswer() {
+  if (!canEdit()) return;
+  var q = QUESTIONS[idx];
+  if (!q || (q.type !== 'fill' && q.type !== 'essay')) return;
+  var v = (answers[idx] || '').toString().trim();
+  if (!v) { showToast('请先填写答案'); return; }
+  committed[idx] = true;
+  if (MODE === 'study') {
+    /* 背题：显示答案解析 */
+    reviewed[idx] = true;
+    renderQuestion();
+  } else {
+    /* 做题：轻提交 = 下一道题（最后一题则留在本题） */
+    if (idx < total - 1) { idx++; resetOp(); renderQuestion(); }
+    else if (!submitted) showToast('已是最后一题，可交卷');
+  }
 }
 function onSubSelect(subIdx, optIdx) {
   if (!canEdit()) return;
@@ -1831,6 +1901,8 @@ function redoWrong() {
   answers = {};
   idx = 0;
   submitted = false;
+  committed = {};
+  reviewed = {};
   resetOp();
   renderQuestion();
 }
