@@ -398,6 +398,19 @@ var SHARE_DATA = {
     if (arr.length) SHARE_DATA.uploads = arr.concat(SHARE_DATA.uploads);
   } catch(e) {}
 })();
+/* 渲染前重读 localStorage 合并（跨页最终一致）：拍照搜题页保存后本页能立即看到。
+   以 localStorage 为准 + 保留 seed（U01 演示）；按 qid 去重防止重复渲染 */
+function syncUploads() {
+  try {
+    var arr = JSON.parse(localStorage.getItem('zsb_share_uploads_v1') || '[]');
+    if (arr.length) {
+      var seed = SHARE_DATA.uploads.filter(function(u) {
+        return arr.every(function(a) { return a.qid !== u.qid; });
+      });
+      SHARE_DATA.uploads = arr.concat(seed);
+    }
+  } catch(e) {}
+}
 
 var CHAPTERS = [
   { id:1, name:"信息与计算机基础知识", icon:"monitor", ici:"ici-1",
@@ -903,6 +916,7 @@ function aggregate(items){
 var currentFilter = 'all';
 
 function renderChapters(){
+  syncUploads();
   var list = document.getElementById('chapterList');
   var html = '';
   // 「我的上传」区块：搜题导入题（除只看未做/只看错题外恒显示）

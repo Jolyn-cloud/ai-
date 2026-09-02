@@ -283,7 +283,7 @@ body::before {
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
         <div class="q-name">收藏本</div>
       </button>
-      <button class="quick-item" onclick="showToast('拍照搜题')">
+      <button class="quick-item" onclick="openSubLayer('cam')">
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
         <div class="q-name">拍照搜题</div>
       </button>
@@ -316,6 +316,9 @@ body::before {
 </div>
 <div class="sub-layer" id="wrongLayer">
   <iframe src="错题本.html"></iframe>
+</div>
+<div class="sub-layer" id="camLayer">
+  <iframe src="拍照搜题.html"></iframe>
 </div>
 
 <script>
@@ -521,7 +524,8 @@ var SUB_LAYERS = {
   chapter: document.getElementById('chapterLayer'),
   exam:    document.getElementById('examLayer'),
   real:    document.getElementById('realLayer'),
-  wrong:   document.getElementById('wrongLayer')
+  wrong:   document.getElementById('wrongLayer'),
+  cam:     document.getElementById('camLayer')
 };
 /* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
 var activeSub = null;
@@ -535,6 +539,15 @@ function openSubLayer(sub) {
   activeSub = sub;
   SUB_LAYERS[sub].classList.add('show');
   notifyShellChapter(true, sub);
+  /* 拍照搜题/错题录入保存跨页同步：chapter/wrong 层打开时重渲染
+     （消费页渲染前会 syncUploads 读最新 localStorage） */
+  if (sub === 'chapter' || sub === 'wrong') {
+    try {
+      var inner = SUB_LAYERS[sub].querySelector('iframe').contentWindow;
+      if (sub === 'chapter') { inner.renderChapters(); }
+      else if (sub === 'wrong') { inner.renderOverview(); inner.renderList(); }
+    } catch(e) {}
+  }
 }
 function closeSubLayer() {
   if (activeSub) SUB_LAYERS[activeSub].classList.remove('show');

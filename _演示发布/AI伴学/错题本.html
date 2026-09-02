@@ -472,15 +472,10 @@ body {
 var WRONG_DATA = {
   stats: { total: 8, pending: 6, stubborn: 1, solved: 2 },
   /* 拍照录入的上传题（source=upload；mode:text 文字题 / image 图片题）
-     qid 前缀 U，进入做题页时映射到 mock 题集（演示） */
-  uploads: [
-    { qid:'U01', source:'upload', mode:'text', path:'我的上传 → 拍照录入', type:'single', tag:'memory',
-      title:'【草稿】下列中断类型中，属于可屏蔽中断的是（ ）。',
-      ocr: '下列中断类型中，属于可屏蔽中断的是（ ）。',
-      createdAt:'2026-08-28 21:10', wrongCount:1, status:'pending', stubborn:false },
-    { qid:'U02', source:'upload', mode:'image', path:'我的上传 → 拍照录入', type:'image', tag:'confusion',
-      title:'', img:'', ocr:'', createdAt:'2026-08-29 09:40', wrongCount:1, status:'pending', stubborn:false }
-  ],
+     qid 前缀 U，进入做题页时映射到 mock 题集（演示）
+     单点数据源：zsb_wrong_uploads_v1（错题本页 + 拍照搜题页错题录入共用），
+     本页预设 U01/U02 仅在 localStorage 空时 seed 一次，此后以 localStorage 为准 */
+  uploads: [],
   modules: [
     {
       name: '操作系统（Windows 10）', rate: 62,
@@ -543,7 +538,37 @@ var WRONG_DATA = {
   ]
 };
 
+/* ===== 「我的上传」单点数据源（与拍照搜题页错题录入共用 zsb_wrong_uploads_v1）
+   localStorage 空 → seed 预设 U01/U02；非空 → 全量以 localStorage 为准（错题本保存也写回此 key） */
+(function initUpLoads() {
+  var KEY = 'zsb_wrong_uploads_v1';
+  var seed = [
+    { qid:'U01', source:'upload', mode:'text', path:'我的上传 → 拍照录入', type:'single', tag:'memory',
+      title:'【草稿】下列中断类型中，属于可屏蔽中断的是（ ）。',
+      ocr: '下列中断类型中，属于可屏蔽中断的是（ ）。',
+      createdAt:'2026-08-28 21:10', wrongCount:1, status:'pending', stubborn:false },
+    { qid:'U02', source:'upload', mode:'image', path:'我的上传 → 拍照录入', type:'image', tag:'confusion',
+      title:'', img:'', ocr:'', createdAt:'2026-08-29 09:40', wrongCount:1, status:'pending', stubborn:false }
+  ];
+  var loaded = null;
+  try { loaded = JSON.parse(localStorage.getItem(KEY) || ''); } catch(e) {}
+  if (!loaded || !loaded.length) {
+    WRONG_DATA.uploads = seed.slice();
+    try { localStorage.setItem(KEY, JSON.stringify(WRONG_DATA.uploads)); } catch(e) {}
+  } else {
+    WRONG_DATA.uploads = loaded;
+  }
+})();
+
 var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
+
+/* 与 localStorage 同步（跨页最终一致）：拍照页/本页均写 zsb_wrong_uploads_v1。
+   渲染前调用：以 localStorage 为准整体替换（本页自己的保存都已写回 storage）。 */
+function syncUploads() {
+  var loaded = null;
+  try { loaded = JSON.parse(localStorage.getItem('zsb_wrong_uploads_v1') || ''); } catch(e) {}
+  if (loaded && loaded.length) WRONG_DATA.uploads = loaded;
+}
 var FILTER = 'all';
 
 /* 便捷遍历：收集所有题目 */
@@ -577,6 +602,7 @@ function renderOverview() {
 
 /* ===== 渲染列表 ===== */
 function renderList() {
+  syncUploads();
   var box = document.getElementById('list');
   var html = '';
   /* 我的上传区（source=upload）：按筛选显示 */
@@ -898,6 +924,8 @@ function saveUpload() {
   /* 新上传：错 1 次、待攻克，默认不进顽固 */
   if (!WRONG_DATA.uploads) WRONG_DATA.uploads = [];
   WRONG_DATA.uploads.push(item);
+  /* 单点数据源：写回 localStorage（拍照搜题页错题录入也读此 key） */
+  try { localStorage.setItem('zsb_wrong_uploads_v1', JSON.stringify(WRONG_DATA.uploads)); } catch(e) {}
   /* 刷新统计（renderOverview 内已重算）+ 刷新列表 + chips */
   renderOverview();
   renderList();

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>拍照搜题</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5 ====
+   拍照搜题页：题库首页「拍照搜题」下钻二级页（独立相机）
+   结构：顶栏（返回 + 搜题/错题录入切换）→ 取景区 → 底栏（相册·快门·手电筒）→ OCR → 结果编辑
+   交互：拍照 → OCR 动画 → 识别成功（AI 题型/知识点/错题标签可编辑）或未识别（图片题）→ 保存
+   保存分流：搜题 → 章节刷题「我的上传」（zsb_share_uploads_v1）；
+            错题录入 → 错题本「我的上传」（zsb_wrong_uploads_v1，与错题本页共享）
+   AI 规则：题型 哪些/多选→多选；是否正确/判断→判断；____→填空；默认单选
+            知识点 章节关键词→对应模块；默认「待归类」；错题标签 概念>操作>记忆关键词 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --accent-grad-end: #62CFA9;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  height: 100%; overflow: hidden;
+}
+
+/* ===== 拍照 mask（整页，常驻显示） ===== */
+.cam-mask {
+  position: fixed; inset: 0; z-index: 1000;
+  background: #000;
+  display: flex; flex-direction: column;
+  color: #fff;
+}
+.cam-topbar {
+  height: 64px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 10px; padding-top: env(safe-area-inset-top);
+  font-size: 15px; font-weight: 600;
+}
+.cam-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 8px 10px; }
+.cam-close.placeholder { visibility: hidden; }
+/* 顶部模式切换：搜题 / 错题录入（默认搜题） */
+.cam-mode { flex: 1; display: flex; justify-content: center; }
+.cam-mode-inner {
+  display: flex; gap: 2px;
+  background: rgba(255,255,255,.12);
+  border-radius: 999px; padding: 3px;
+}
+.cam-mode-btn {
+  border: none; background: none; color: rgba(255,255,255,.72);
+  font-size: 13px; font-weight: 600; padding: 5px 15px; border-radius: 999px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cam-mode-btn.active { background: #fff; color: var(--primary); }
+.cam-viewport {
+  flex: 1; position: relative; overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,.08) 0%, transparent 60%),
+    linear-gradient(160deg, #1a2030 0%, #2a3450 55%, #1c2438 100%);
+}
+.cam-hint {
+  position: absolute; left: 0; right: 0; top: 18px; text-align: center;
+  opacity: .8; font-weight: 500; font-size: 12.5px;
+  letter-spacing: .5px; z-index: 99;
+}
+.cam-frame {
+  position: absolute; left: 50%; top: 46%;
+  width: 76%; aspect-ratio: 3 / 4;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255,255,255,.95);
+  border-radius: 14px;
+  box-shadow: 0 0 0 999px rgba(0,0,0,.55);
+}
+.cam-frame::before, .cam-frame::after {
+  content: ''; position: absolute; width: 26px; height: 26px;
+  border-color: var(--primary); border-style: solid;
+}
+.cam-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 12px 0 0 0; }
+.cam-frame::after { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 12px 0; }
+.cam-guide {
+  position: absolute; left: 0; right: 0; top: 76%; text-align: center;
+  font-size: 12.5px; color: rgba(255,255,255,.75); letter-spacing: .5px;
+}
+.cam-shade { position: absolute; inset: 0; background: rgba(2,6,18,.5); z-index: 98; pointer-events: none; }
+.cam-bottombar {
+  flex-shrink: 0; height: 140px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 34px; padding-bottom: env(safe-area-inset-bottom);
+}
+.cam-side {
+  width: 60px; display: flex; flex-direction: column; gap: 5px; align-items: center;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,.88); font-size: 11px;
+}
+.cam-side svg { width: 24px; height: 24px; }
+.cam-side:active { opacity: .7; }
+.cam-torch { color: rgba(255,255,255,.88); }
+.cam-torch.active { color: #FFD666; }
+.cam-shutter {
+  width: 66px; height: 66px; border-radius: 50%;
+  background: #fff; border: 4px solid rgba(255,255,255,.4);
+  cursor: pointer; position: relative; flex-shrink: 0;
+}
+.cam-shutter:active { transform: scale(.94); }
+
+/* ===== OCR 动画 ===== */
+.cam-ocr {
+  position: absolute; inset: 0; z-index: 1001;
+  background: rgba(2,6,18,.82);
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  color: #fff;
+}
+.cam-ocr.on { display: flex; }
+.ocr-ring {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.18);
+  border-top-color: var(--primary);
+  animation: ocrspin 1s linear infinite;
+}
+@keyframes ocrspin { to { transform: rotate(360deg); } }
+.ocr-text { font-size: 14px; opacity: .85; letter-spacing: 1px; }
+
+/* ===== 识别结果编辑 ===== */
+.cam-result {
+  position: absolute; inset: 0; z-index: 1002;
+  background: #F3F5FB; color: var(--text-primary);
+  display: none; flex-direction: column;
+}
+.cam-result.on { display: flex; }
+.result-head {
+  height: 56px; flex-shrink: 0; padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.result-head .tt { font-size: 16px; font-weight: 700; }
+.result-head .rbtn { background:none; border:none; font-size:15px; cursor:pointer; color: var(--text-secondary); }
+.result-head .rbtn.dark { color: var(--text-primary); font-weight: 600; }
+.result-body { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
+.result-tagbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 8px; }
+.tag-pill {
+  padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  background: #fff; border: 1.5px solid #E5E8F0; color: var(--text-secondary); cursor: pointer;
+}
+.tag-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.result-thumb-img {
+  height: 150px; border-radius: 12px; margin-top: 12px;
+  background:
+    repeating-linear-gradient(45deg, #E9ECF6 0 10px, #F3F5FB 10px 20px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text-tertiary);
+}
+.result-btnbar {
+  flex-shrink: 0; height: 76px; padding: 10px 16px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.result-btnbar button { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; }
+.result-btnbar .save { background: var(--primary); color: #fff; }
+.result-btnbar .save:active { background: var(--primary-dark); }
+.result-btnbar .cancel2 { background: #fff; color: var(--text-secondary); border: 1px solid #E5E8F0; }
+.result-oa { width: 100%; min-height: 96px; resize: vertical; border: 1.5px solid #D9DEEF; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.6; font-family: inherit; background: #fff; color: var(--text-primary); outline: none; }
+.result-oa:focus { border-color: var(--primary); }
+.result-airow { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12.5px; color: var(--text-tertiary); }
+.result-airow label { flex-shrink: 0; font-weight: 600; }
+.ai-input { flex: 1; min-width: 0; border: 1.5px solid #D9DEEF; border-radius: 9px; padding: 7px 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: var(--text-primary); outline: none; }
+.ai-input:focus { border-color: var(--primary); }
+.result-preview { font-size: 12.5px; color: var(--text-tertiary); margin-top: 10px; }
+.result-preview b { color: var(--primary); }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
+  background: rgba(30,33,48,.92); color: #fff;
+  padding: 9px 18px; border-radius: 22px; font-size: 13px;
+  opacity: 0; transition: opacity .25s ease; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<!-- 拍照页（整页常驻，回到题库走返回） -->
+<div class="cam-mask" id="camMask">
+  <div class="cam-topbar">
+    <button class="cam-close" onclick="goBack()" title="返回">✕</button>
+    <div class="cam-mode">
+      <div class="cam-mode-inner">
+        <button class="cam-mode-btn active" id="modeSearch" onclick="setCamMode('search')">搜题</button>
+        <button class="cam-mode-btn" id="modeCapture" onclick="setCamMode('capture')">错题录入</button>
+      </div>
+    </div>
+    <button class="cam-close placeholder">✕</button>
+  </div>
+  <div class="cam-viewport">
+    <div class="cam-hint" id="camHint">拍下题目，AI 搜索题库匹配</div>
+    <div class="cam-frame"></div>
+    <div class="cam-guide">将题目及四个选项完整拍进框内</div>
+    <div class="cam-shade" id="camShade" style="display:none"></div>
+  </div>
+  <div class="cam-bottombar">
+    <button class="cam-side" onclick="camAlert('从相册导入（演示）')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>相册
+    </button>
+    <button class="cam-shutter" onclick="takePhoto()"></button>
+    <button class="cam-side cam-torch" id="camTorch" onclick="toggleFlash()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18l6-12H10L6 21h6l5-15"/>
+      </svg>手电筒
+    </button>
+  </div>
+
+  <!-- OCR 动画 -->
+  <div class="cam-ocr" id="camOcr">
+    <div class="ocr-ring"></div>
+    <div class="ocr-text">正在识别文字…</div>
+  </div>
+
+  <!-- 识别成功：编辑题干 + AI 题型/知识点/错题标签 -->
+  <div class="cam-result" id="camResult">
+    <div class="result-head">
+      <button class="rbtn" onclick="closeResult()">取消</button>
+      <span class="tt" id="resultTitle">识别成功</span>
+      <button class="rbtn dark" onclick="saveUpload()">保存</button>
+    </div>
+    <div class="result-body">
+      <textarea class="result-oa" id="resultTxt" placeholder="识别出的题干，可手动修改">请检查识别文字</textarea>
+      <div class="result-airow"><label>题型</label><input class="ai-input" id="resultType" placeholder="AI 题型" /></div>
+      <div class="result-airow"><label>知识点</label><input class="ai-input" id="resultConcept" placeholder="AI 知识点" /></div>
+      <div class="result-tagbar" id="resultTags"></div>
+      <div id="resultImgWrap"></div>
+      <div class="result-preview" id="resultPreview"></div>
+    </div>
+    <div class="result-btnbar">
+      <button class="cancel2" onclick="closeResult()">返回</button>
+      <button class="save" onclick="saveUpload()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   拍照搜题（题库首页「拍照搜题」下钻二级页）
+   - 相机页整页常驻，顶部 ✕ → CLOSE_CHAPTER 回题库首页（题库.html 收起 camLayer）
+   - 保存分流：
+       search  搜题 → 章节刷题「我的上传」  localStorage zsb_share_uploads_v1（qid 前缀 S）
+       capture 错题录入 → 错题本「我的上传」  localStorage zsb_wrong_uploads_v1（qid 前缀 U）
+     localStorage 两 key 均为单点数据源（章节刷题/错题本页各自读取合并）
+   ============================================================ */
+
+var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
+var TYPE_NAME = { single:'单选', multi:'多选', judge:'判断', fill:'填空', image:'图片' };
+var CONCEPT_CATS = [
+  { kw:/操作系统|文件系统|进程|线程|内存|磁盘|死锁|调度/, label:'操作系统' },
+  { kw:/网络|IP|域名|TCP|UDP|OSI|协议|浏览器|网址/, label:'计算机网络' },
+  { kw:/Word|文档|段落|字体|页眉|页脚|分栏|样式/, label:'Word 文档处理' },
+  { kw:/Excel|函数|单元格|公式|工作表|SUM|VLOOKUP|筛选/, label:'Excel 电子表格' },
+  { kw:/PPT|PowerPoint|演示文稿|幻灯片|动画|母版/, label:'PowerPoint' },
+  { kw:/数据库|SQL|表|查询|主键|范式/, label:'数据库' },
+  { kw:/信息安全|病毒|木马|防火墙|加密|黑客/, label:'信息安全' },
+  { kw:/人工智能|机器学习|大数据|云计算|物联网|区块链|算法|大模型/, label:'新一代信息技术' },
+  { kw:/冯·诺依曼|计算机组成|CPU|存储器|二进制|数制|数据单位/, label:'计算机基础' }
+];
+
+var CAM_FLASH = false;
+var CAM_SHOTS = 0;
+/* 模式：search 搜题（默认）/ capture 错题录入 */
+var CAM_MODE = 'search';
+
+/* 返回：通知题库页收起二级层（回题库首页） */
+function goBack() {
+  try { window.parent.postMessage({ type: 'CLOSE_CHAPTER' }, '*'); }
+  catch(e) { showToast('请从题库首页返回'); }
+}
+
+function setCamMode(mode) {
+  CAM_MODE = mode;
+  document.getElementById('modeSearch').classList.toggle('active', mode === 'search');
+  document.getElementById('modeCapture').classList.toggle('active', mode === 'capture');
+  document.getElementById('camHint').textContent =
+    mode === 'search' ? '拍下题目，AI 搜索题库匹配' : '对准题目纸，保持光线充足';
+  closeResult();
+}
+/* 手电筒亮/暗：暗色盖层 + 图标高亮 */
+function toggleFlash() { setFlash(!CAM_FLASH); }
+function setFlash(on) {
+  CAM_FLASH = on;
+  var sh = document.getElementById('camShade');
+  var torch = document.getElementById('camTorch');
+  sh.style.display = on ? 'none' : 'block';
+  if (torch) torch.classList.toggle('active', on);
+}
+function camAlert(msg) { showToast(msg); }
+function resetCamState() {
+  document.getElementById('camOcr').classList.remove('on');
+  document.getElementById('camResult').classList.remove('on');
+}
+
+/* 拍照 → OCR 1s → 出结果（演示：奇数次成功 / 偶数次未识别） */
+function takePhoto() {
+  CAM_SHOTS++;
+  var ocr = document.getElementById('camOcr');
+  ocr.classList.add('on');
+  setTimeout(function() {
+    ocr.classList.remove('on');
+    if (CAM_SHOTS % 2 === 1) showResult(true);
+    else showResult(false);
+  }, 1000);
+}
+
+/* AI 引擎 */
+function suggestType(text) {
+  var t = String(text || '');
+  if (/哪些|多选|以下.*几项|多于一项/.test(t)) return 'multi';
+  if (/是否正确|对不对|对或错|判断|是否正确说法/.test(t)) return 'judge';
+  if (/____|___|______|　_/.test(t)) return 'fill';
+  return 'single';
+}
+function suggestConcept(text) {
+  var t = String(text || '');
+  for (var i = 0; i < CONCEPT_CATS.length; i++) {
+    if (CONCEPT_CATS[i].kw.test(t)) return CONCEPT_CATS[i].label;
+  }
+  return '待归类';
+}
+/* 错题标签关键词：概念类 > 操作类 > 记忆类（概念在前避免「操作系统」误判） */
+function suggestTag(text) {
+  var t = String(text || '');
+  if (/概念|特征|区别|原理|定义|分类|特点/.test(t)) return 'confusion';
+  if (/快捷键|操作|步骤|点击|按钮|工具栏/.test(t)) return 'operation';
+  if (/记忆|口诀|背诵|顺序|规律/.test(t)) return 'memory';
+  return 'confusion';
+}
+
+function showResult(ok) {
+  var res = document.getElementById('camResult');
+  res.classList.add('on');
+  if (ok) {
+    /* 成功：AI 题型 + 知识点 + 错题标签 + 可编辑题干 */
+    var mockTxt = CAM_MODE === 'search'
+      ? '以下选项中，Excel 中可以进行单元格引用的运算符是（ ）。'
+      : '下列选项属于文件系统管理功能的是（ ）。';
+    document.getElementById('resultTitle').textContent = '识别成功';
+    document.getElementById('resultTxt').value = mockTxt;
+    document.getElementById('resultTxt').style.display = 'block';
+    document.getElementById('resultImgWrap').innerHTML = '';
+    var type = suggestType(mockTxt);
+    var concept = suggestConcept(mockTxt);
+    document.getElementById('resultType').value = TYPE_NAME[type];
+    document.getElementById('resultConcept').value = concept;
+    var tag = suggestTag(mockTxt);
+    renderTagPills(tag);
+    document.getElementById('resultPreview').innerHTML =
+      'AI 已识别 <b>1 道题</b> · 系统推荐标签：<b>' + (TAG_NAME[tag] || tag) + '</b>';
+  } else {
+    /* 失败：图片占位 */
+    document.getElementById('resultTitle').textContent = '未识别出文字';
+    document.getElementById('resultTxt').value = '';
+    document.getElementById('resultTxt').style.display = 'none';
+    document.getElementById('resultType').value = '图片';
+    document.getElementById('resultConcept').value = '待归类';
+    document.getElementById('resultImgWrap').innerHTML =
+      '<div class="result-thumb-img">📷 未识别出文字，已保存为图片</div>';
+    renderTagPills('confusion');
+    document.getElementById('resultPreview').innerHTML =
+      '未识别出文字，已保存为<b>图片题</b>，后续可重新拍照或从相册替换';
+  }
+}
+
+function renderTagPills(active) {
+  var box = document.getElementById('resultTags');
+  var order = ['confusion','memory','operation','stubborn'];
+  var html = '';
+  order.forEach(function(k) {
+    html += '<button class="tag-pill' + (k === active ? ' active' : '') + '"'
+      + ' data-tag="' + k + '" onclick="selectTag(this,\'' + k + '\')">'
+      + (TAG_NAME[k] || k) + '</button>';
+  });
+  box.innerHTML = html;
+}
+function selectTag(btn, k) {
+  document.querySelectorAll('#resultTags .tag-pill').forEach(function(p) {
+    p.classList.toggle('active', p === btn);
+  });
+  CURRENT_UPLOAD_TAG = k;
+}
+var CURRENT_UPLOAD_TAG = 'confusion';
+
+/* 保存：按模式分流（均有 localStorage 单点数据源） */
+function saveUpload() {
+  var txt = document.getElementById('resultTxt').value;
+  var mode = txt ? 'text' : 'image';
+  var typeTxt = document.getElementById('resultType').value;
+  var concept = document.getElementById('resultConcept').value;
+  var typeKey = { '单选':'single', '多选':'multi', '判断':'judge', '填空':'fill', '图片':'image' }[typeTxt] || 'single';
+  var now = new Date();
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  var createdAt = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  var item = {
+    qid: '', source: 'upload',
+    mode: mode,
+    path: '我的上传 → ' + (CAM_MODE === 'search' ? '拍照搜题' : '拍照录入'),
+    type: typeKey,
+    title: mode === 'text' ? txt : '',
+    img: '', ocr: txt, tag: CURRENT_UPLOAD_TAG,
+    concept: concept,
+    createdAt: createdAt, wrongCount: 1, status: 'pending', stubborn: false
+  };
+
+  var KEY = CAM_MODE === 'search' ? 'zsb_share_uploads_v1' : 'zsb_wrong_uploads_v1';
+  var PREFIX = CAM_MODE === 'search' ? 'S' : 'U';
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+  var maxN = 0;
+  arr.forEach(function(u) {
+    var n = parseInt((u.qid || '').replace(PREFIX, ''), 10);
+    if (!isNaN(n) && n > maxN) maxN = n;
+  });
+  item.qid = PREFIX + pad(maxN + 1).slice(-2);
+  arr.unshift(item);
+  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
+
+  resetCamState();
+  showToast(CAM_MODE === 'search'
+    ? '已保存到章节刷题「我的上传」'
+    : '已保存到错题本「我的上传」');
+}
+
+function closeResult() { resetCamState(); }
+
+/* ===== Toast ===== */
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+}
+
+/* 初始：手电筒默认亮 */
+setFlash(true);
+</script>
+</body>
+</html>

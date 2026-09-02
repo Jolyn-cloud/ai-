@@ -807,7 +807,7 @@ var ENTRY = (function(){
   return m ? m[1] : 'today';
 })();
 /* 标题已上移到总壳小程序栏（appbar），做题页内部不显示 */
-var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题' }[ENTRY] || '今日学习';
+var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传' }[ENTRY] || '今日学习';
 
 /* ---------- 考试模式（entry=exam 模拟考 / real 历年真题）①：试卷元数据 ----------
    总分值无低case：满分 150，分值分布在题目 score 字段，切题 validator 会按 entry 调整
@@ -1037,7 +1037,31 @@ var QUESTIONS = (function buildQuestions(){
       analysis:'正确。IP 地址用于唯一标识网络中的一台主机（同一网络内不能重复）。',
       steps:['① IP 地址 = 主机在网络中的身份证','② 同一时刻同一网络内不重复']
     }
-  ]
+  ],
+
+  /* 我的上传（entry=upload）：拍照识别导入的题（qid 定位复用错题本机制）
+     只收文字题（mode=text）；图片题未收录答案，列表不提供「去刷」
+     演示占位：识别题统一转判断题，解析标注 AI 收录为占位 */
+  upload: (function() {
+    var arr = [];
+    ['zsb_share_uploads_v1','zsb_wrong_uploads_v1'].forEach(function(key) {
+      var list = [];
+      try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+      list.forEach(function(u) {
+        if (u.mode !== 'text' || !u.title) return;
+        arr.push({
+          qid: u.qid, type: 'judge',
+          chapter: (u.concept && u.concept !== '待归类') ? u.concept : '我的上传',
+          concept: u.concept || '待归类', difficulty: '中',
+          stem: u.title,
+          options: ['正确','错误'], answer: 0,
+          analysis: '该题为拍照识别导入（演示）：AI 题型「判断题」为占位，正式版按搜索命中的题库答案收录。',
+          steps: ['① 拍照识别','② AI 匹配题库','③ 收录答案（演示占位）']
+        });
+      });
+    });
+    return arr;
+  })()
 }[ENTRY] || [];
 })();
 
@@ -1050,6 +1074,13 @@ if (ENTRY === 'wrong') {
     if (hitW.length) QUESTIONS = hitW;
   } else if (WRONG_SCOPE === 'stubborn') {
     QUESTIONS = QUESTIONS.filter(function(q) { return q.stubborn; });
+  }
+}
+if (ENTRY === 'upload') {
+  /* 我的上传：qid 定位该题（章节刷题「去刷」/拍照搜题首题） */
+  if (WRONG_QID) {
+    var hitU = QUESTIONS.filter(function(q) { return q.qid === WRONG_QID; });
+    if (hitU.length) QUESTIONS = hitU;
   }
 }
 
