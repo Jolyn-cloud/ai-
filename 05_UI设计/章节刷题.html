@@ -48,7 +48,7 @@ body {
   overflow: hidden;
 }
 
-/* ===== 左侧：一级章节导航（宽 16-18%，短名，独立滚，无数据/进度） ===== */
+/* ===== 左侧：一级章节导航 + 我的上传（宽 16-18%，短名，独立滚，无数据/进度） ===== */
 .lv-nav {
   width: 18%; min-width: 76px;
   flex-shrink: 0;
@@ -80,27 +80,29 @@ body {
   width: 3.5px; border-radius: 0 4px 4px 0;
   background: var(--primary);
 }
-/* 章图标小圆标（左栏仅展示图标+短名，不放数据/进度/正确率） */
-.lv-item .lavy-icon {
+/* 我的上传：左栏底部独立入口，与章节分隔线隔开
+   无图标，文字短名槽位；选中态样式复用 .lv-item.active */
+.lv-divider {
+  height: 1px; margin: 8px 14px; background: #EEF0F7;
+}
+.lv-upload {
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 5px;
-  width: 30px; height: 30px; border-radius: 9px;
+  gap: 6px;
+  margin: 2px 10px;
+  padding: 12px 8px;
+  font-size: 12px; font-weight: 700; color: var(--brand-teal);
+  background: #F2FBF8;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s ease;
+  -webkit-user-select: none; user-select: none;
 }
-.lv-item .lavy-icon svg {
-  width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2;
+.lv-upload:active { background: #E4F5EF; }
+.lv-upload svg {
+  width: 14px; height: 14px;
+  fill: none; stroke: var(--brand-teal); stroke-width: 2;
 }
-.lv-item.active .lavy-icon { box-shadow: 0 3px 8px rgba(91,114,245,.35); }
-/* 10 章各一色渐变（另出一套，不复用闪卡单色） */
-.ici-1 { background: linear-gradient(135deg, #5B72F5, #4358D7); }   /* 信息与计算机基础 蓝靛 */
-.ici-2 { background: linear-gradient(135deg, #722ED1, #9B6BD9); }   /* 计算思维 紫 */
-.ici-3 { background: linear-gradient(135deg, #13C2C2, #36CFC9); }  /* 操作系统 青 */
-.ici-4 { background: linear-gradient(135deg, #1677FF, #4096FF); }  /* Word 蓝 */
-.ici-5 { background: linear-gradient(135deg, #20A866, #52C41A); }  /* Excel 绿 */
-.ici-6 { background: linear-gradient(135deg, #F28B3D, #FFA940); }  /* PowerPoint 橙 */
-.ici-7 { background: linear-gradient(135deg, #5B72F5, #3FA98B); }  /* 数据库 蓝绿 */
-.ici-8 { background: linear-gradient(135deg, #2F54EB, #597EF7); }  /* 网络 靛蓝 */
-.ici-9 { background: linear-gradient(135deg, #EF4444, #F87171); } /* 信息安全 红 */
-.ici-10{ background: linear-gradient(135deg, #FA541C, #FF7A45); }  /* 新一代技术 橙红 */
+.lv-upload.active { background: #E4F5EF; color: var(--brand-mid); }
 
 /* ===== 右侧：当前章内容（独立滚动 + 展开动效） ===== */
 .lv-content {
@@ -312,7 +314,8 @@ body {
 .up-ocr-tip { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
 .up-meta { margin-top: 5px; display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-tertiary); }
 .up-meta .tag-pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; background: #E9F7F3; color: var(--brand-teal); }
-.up-meta .tag-pill.concept { background: #E8F3FF; color: #2F6FED; }
+/* 题型标签：蓝系，传达「题库类型」而非来源/概念 */
+.up-meta .tag-pill.type { background: #E8F3FF; color: #2F6FED; }
 .up-btn {
   flex-shrink: 0; height: 28px; padding: 0 13px; border-radius: 14px;
   background: var(--primary); color: #fff; border: none;
@@ -890,6 +893,7 @@ function aggregate(items){
 
 /* ===== 渲染 ===== */
 var currentChapter = 0;              // 当前一级章节 index（初始第 1 章）
+var showUpload = false;              // 当前是否处于「我的上传」视图（左栏底部入口）
 /* 手风琴展开状态（同级只允许一个展开，见核心交互规则）：
    openSub：当前章内展开的二级 index（null=全部收起）
    openL3：该二级下展开的三级 index（null=全部收起）
@@ -900,35 +904,69 @@ var openSub = null, openL3 = null;
 function shortName(name){
   var map = {
     '信息与计算机基础知识':'信计', '计算思维':'计思', '操作系统（Windows 10）':'Win10',
-    '文档处理（Word 2016）':'Word', '电子表格处理（Excel 2016）':'Excel',
+    '文档处理（Word 2016）':'Word2016', '电子表格处理（Excel 2016）':'Excel2016',
     '演示文稿制作（PowerPoint 2016）':'PPT', '数据库技术':'数据库', '计算机网络与信息检索':'网络检索',
     '信息安全与社会责任':'信息安全', '新一代信息技术':'信息技术'
   };
   return map[name] || name;
 }
 
-/* ===== 左侧一级导航（独立滚动） ===== */
+/* ===== 左侧导航（独立滚动）：一级章节短名 + 底部「我的上传」入口 ===== */
 function renderNav(){
   var nav = document.getElementById('lvNav');
   var html = '<div class="lv-nav-inner">';
   CHAPTERS.forEach(function(ch, idx){
-    html += '<div class="lv-item'+(idx===currentChapter?' active':'')+'"'
+    /* 左栏只展示文字短名（无图标，规格：不要在左侧展示题量/正确率/进度）；当前选中高亮 */
+    html += '<div class="lv-item'+(idx===currentChapter && !showUpload?' active':'')+'"'
       + ' data-cix="'+idx+'" onclick="switchChapter('+idx+')">'
-      + '<div class="lavy-icon '+ch.ici+'"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[ch.icon]||'')+'</svg></div>'
       + '<span>'+shortName(ch.name)+'</span>'
       + '</div>';
   });
+  /* 我的上传：左栏底部独立入口（分隔线隔开），点击右侧切到上传列表 */
+  html += '<div class="lv-divider"></div>'
+    + '<div class="lv-upload'+(showUpload?' active':'')+'" onclick="switchUpload()">'
+    + '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 5 19 12"/></svg>'
+    + '<span>我的上传</span>'
+    + '</div>';
   html += '</div>';
   nav.innerHTML = html;
 }
 
 /* ===== 切换一级章节：重置开合状态，右侧重渲染 ===== */
 function switchChapter(idx){
+  showUpload = false;
   currentChapter = idx;
   openSub = null; openL3 = null;
   renderNav();
   renderContent();
   document.getElementById('lvContent').scrollTop = 0;
+}
+
+/* ===== 我的上传视图：左栏底部入口点击 → 右侧切到上传题列表 ===== */
+function switchUpload(){
+  showUpload = true;
+  renderNav();
+  renderUpload();
+  document.getElementById('lvContent').scrollTop = 0;
+}
+
+function renderUpload(){
+  var box = document.getElementById('lvContent');
+  syncUploads();
+  var ups = SHARE_DATA.uploads || [];
+  var html = '<div class="base-card ch-head">'
+    + '<div class="ch-title-row"><span class="ch-name">我的上传</span></div>'
+    + '<div class="ch-metrics"><span class="m-done">共 <strong>'+ups.length+'</strong> 道</span></div>'
+    + '</div>';
+  if(ups.length){
+    html += '<div class="base-card" style="margin-top:10px;padding:6px 15px 10px;">';
+    ups.forEach(function(q){ html += uploadCard(q); });
+    html += '</div>';
+  } else {
+    html += '<div class="base-card" style="text-align:center;color:var(--text-tertiary);font-size:12.5px;padding:28px 0;">'
+      + '暂无上传题目<br>在拍照搜题中保存题目后会出现在这里</div>';
+  }
+  box.innerHTML = html;
 }
 
 /* ===== 右侧当前章四级内容 ===== */
@@ -962,17 +1000,6 @@ function renderContent(){
     html += '<div class="ch-progress"><div class="ch-progress-inner" style="width:'+pct+'%"></div></div>';
   }
   html += '</div>'; // ch-head
-
-  /* 我的上传（搜题导入） */
-  syncUploads();
-  var ups = SHARE_DATA.uploads || [];
-  if(ups.length){
-    html += '<div class="base-card upload-section">'
-      + '<div class="upload-head"><span class="upload-title">我的上传</span>'
-      + '<span class="upload-tip">搜题导入 · '+ups.length+' 道</span></div>';
-    ups.forEach(function(q){ html += uploadCard(q); });
-    html += '</div>';
-  }
 
   /* 二级 → 三级 → 四级（手风琴单开）
      二级：点标题→进练习；点右侧⌄ → 展开，三级+四级同时出现
@@ -1072,17 +1099,14 @@ function collapseAll(){
   renderContent();
 }
 
-/* 「我的上传」卡片渲染 */
+/* 「我的上传」卡片渲染：meta 只显示「题库类型」= 题型 */
+var TYPE_NAME = { single:'单选', multi:'多选', judge:'判断', fill:'填空' };
 function uploadCard(q) {
-  var tagCls = (q.tag === 'confusion' || q.tag === 'memory' || q.tag === 'operation') ? q.tag : 'confusion';
   var body = (q.mode === 'image')
     ? '<div class="up-ocr-tip">OCR 未识别 · 图片题</div>'
     : '<div class="up-title">' + (q.title || '') + '</div>';
-  var metaHtml = '';
-  metaHtml += '<span class="tag-pill">📷 拍照</span>';
-  if (q.tag) metaHtml += '<span class="tag-pill">AI:' + (TAG_NAME[q.tag] || q.tag) + '</span>';
-  if (q.concept) metaHtml += '<span class="tag-pill concept">' + q.concept + '</span>';
-  if (q.createdAt) metaHtml += '<span>' + q.createdAt + '</span>';
+  var type = TYPE_NAME[q.type] || '单选';
+  var metaHtml = '<span class="tag-pill type">' + type + '</span>';
   return '<div class="up-card" data-qid="' + q.qid + '">'
     + '<div class="up-thumb">' + (q.mode === 'image' ? '📷' : '📄') + '</div>'
     + '<div class="up-body">' + body
@@ -1091,7 +1115,6 @@ function uploadCard(q) {
     + '<button class="up-btn" onclick="goUpload(\'' + q.qid + '\')">去刷</button>'
     + '</div>';
 }
-var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
 
 function escapeName(s){ return s.replace(/'/g,"\\'"); }
 

@@ -70,10 +70,14 @@ await evalJs(`(function(){
 })()`);
 let r = await evalJs(`(function(){
   var items = [...document.querySelectorAll('.lv-item')];
+  var uploadNav = document.querySelector('.lv-upload');
   return {
     navCount: items.length,
     labels: items.map(i => i.textContent.trim()),
     activeIdx: items.findIndex(i => i.classList.contains('active')),
+    noIcon: !items.some(i => i.querySelector('.lavy-icon') || i.querySelector('svg')),
+    uploadNavExists: !!uploadNav,
+    uploadActive: !!uploadNav && uploadNav.classList.contains('active'),
     chName: document.querySelector('.ch-name').textContent,
     metrics: document.querySelector('.ch-metrics').textContent.replace(/\\s+/g,' ').trim(),
     hasProgress: !!document.querySelector('.ch-progress'),
@@ -82,7 +86,9 @@ let r = await evalJs(`(function(){
   };
 })()`);
 check('左栏 10 项', r.navCount === 10, r.navCount);
-check('左栏短名', r.labels[0] === '信计' && r.labels[1] === '计思' && r.labels[3] === 'Word' && r.labels[7] === '网络检索', r.labels.join(','));
+check('左栏短名(规格)', r.labels[0] === '信计' && r.labels[1] === '计思' && r.labels[3] === 'Word2016' && r.labels[4] === 'Excel2016' && r.labels[7] === '网络检索', r.labels.join(','));
+check('左栏无图标', r.noIcon === true, r.noIcon);
+check('左栏底部有「我的上传」入口(未选中)', r.uploadNavExists === true && r.uploadActive === false, JSON.stringify(r.uploadNavExists));
 check('初始第1章选中', r.activeIdx === 0, r.activeIdx);
 check('右侧章全名', r.chName === '信息与计算机基础知识', r.chName);
 check('章数据 已做96/120·错27·72%', r.metrics.indexOf('96/120') >= 0 && r.metrics.indexOf('错 27') >= 0 && r.metrics.indexOf('72%') >= 0, r.metrics);
@@ -198,6 +204,39 @@ r = await evalJs(`(function(){
   return { name: name, msgs: window.__msgs.slice(-1)[0] };
 })()`);
 check('四级整行点击 → REQ_PRACTICE chapter/l4', r.msgs && r.msgs.type === 'REQ_PRACTICE' && r.msgs.data.entry === 'chapter' && r.msgs.data.level === 'l4' && r.msgs.data.cid === 1 && r.msgs.data.name === r.name, JSON.stringify(r.msgs));
+
+/* ===== 8. 「我的上传」入口：左栏底部 → 右侧切上传列表 ===== */
+r = await evalJs(`(function(){
+  document.querySelector('.lv-upload').click();   // 切到我的上传视图
+  var freshBox = document.getElementById('lvContent');
+  var uploadCard = freshBox.querySelector('.up-card');
+  return {
+    showUploadS: showUpload,
+    cn: freshBox.querySelector('.ch-name').textContent,
+    metric: freshBox.querySelector('.ch-metrics').textContent.replace(/\\s+/g,' ').trim(),
+    uploadCardExists: !!uploadCard,
+    uploadTitle: uploadCard ? uploadCard.querySelector('.up-title').textContent : '',
+    typeTag: uploadCard ? uploadCard.querySelector('.tag-pill').textContent.trim() : '',
+    uploadNavActive: document.querySelector('.lv-upload').classList.contains('active'),
+    noChapActive: [...document.querySelectorAll('.lv-item')].some(i => i.classList.contains('active'))
+  };
+})()`);
+check('点我的上传 → 右侧显示上传列表', r.showUploadS === true && r.cn === '我的上传' && r.metric.indexOf('1') >= 0, JSON.stringify(r));
+check('上传卡片标题存在', r.uploadCardExists === true && r.uploadTitle.indexOf('Excel 中可以进行单元格引用') >= 0, r.uploadTitle);
+check('上传卡片标签只显示题型「单选」', r.typeTag === '单选', r.typeTag);
+check('我的上传入口选中 + 章节无选中', r.uploadNavActive === true && r.noChapActive === false, JSON.stringify(r));
+
+/* ===== 9. 切回任意章节 → 回到章节视图且我的上传取消选中 ===== */
+r = await evalJs(`(function(){
+  [...document.querySelectorAll('.lv-item')][1].click();   // 切到第2章
+  return {
+    showUploadS: showUpload,
+    cn: document.querySelector('.ch-name').textContent,
+    uploadActive: document.querySelector('.lv-upload').classList.contains('active'),
+    chapActive: [...document.querySelectorAll('.lv-item')].find(i => i.classList.contains('active'))?.textContent.trim()
+  };
+})()`);
+check('切回章节 → 我的上传视图退出', r.showUploadS === false && r.cn === '计算思维' && r.uploadActive === false && r.chapActive === '计思', JSON.stringify(r));
 
 console.log('\n' + (failed === 0 ? 'ALL PASS' : failed + ' FAILED'));
 chrome.kill(); server.close(); process.exit(failed === 0 ? 0 : 1);
