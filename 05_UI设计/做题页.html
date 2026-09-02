@@ -415,7 +415,7 @@ body{
   background:rgba(255,255,255,.92); color:var(--text-secondary);
   font-size:13px; font-weight:600; cursor:pointer;
 }
-/* 标记过标签 */
+/* 已标记标签 */
 .tag.marked{ background:#FFF7E6; color:#FA8C16; font-weight:600; }
 
 /* ===== 操作/分析/综合运用题：题干背景 + 选项浮窗（轻度黑色遮罩） ===== */
@@ -1253,7 +1253,7 @@ function renderQuestion() {
     + '<span class="tag concept">📍 ' + (q.concept || '') + '</span>'
     + '<span class="tag difficulty">难度:' + q.difficulty + '</span>';
   if (q.stubborn) tags += '<span class="tag stubborn">顽固</span>';
-  if (marked[idx]) tags += '<span class="tag marked">标记过</span>';
+  if (marked[idx]) tags += '<span class="tag marked">已标记</span>';
   document.getElementById('tagArea').innerHTML = tags;
 
   /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染） */
@@ -2108,8 +2108,8 @@ function toggleFav() {
 }
 function toggleMark() {
   marked[idx] = !marked[idx];
-  renderQuestion();          /* 刷新 tag 区【标记过】 */
-  showToast(marked[idx] ? '已标记，题目标签显示【标记过】' : '已取消标记');
+  renderQuestion();          /* 刷新 tag 区【已标记】 */
+  showToast(marked[idx] ? '已标记，题目标签显示【已标记】' : '已取消标记');
 }
 function openShare() {
   var q = QUESTIONS[idx];
