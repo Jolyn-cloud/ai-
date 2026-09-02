@@ -34,13 +34,15 @@ body{
   border-bottom:1px solid #F0F1F6;
 }
 /* .nav-back 已删（2026-08-31）：内部退出按钮由总壳 appbar 接管，避免重复 */
-.mode-switch{ display:flex; background:#F0F1F6; border-radius:16px; padding:2px; }
+.mode-switch{ display:flex; background:#F0F1F6; border-radius:18px; padding:3px; gap:2px; }
 .mode-btn{
-  padding:5px 14px; font-size:12px; border-radius:13px; border:none;
+  padding:7px 18px; font-size:13px; border-radius:14px; border:none;
   background:none; color:var(--text-secondary); cursor:pointer; font-weight:500;
+  line-height:1; transition:all .15s ease;
 }
-.mode-btn.active{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-/* 右侧计时：偏右、不加重、字号小、灰色——弱化存在感，避免给学生压力 */
+.mode-btn.active{ background:#fff; color:var(--primary); font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+/* 右侧计时：偏右、不加重、字号小、灰色——弱化存在感，避免给学生压力。
+   练习类（非考试）已隐藏（见 startTimer），考试模式显示剩余倒计时 */
 .nav-timer{
   margin-left:auto;
   font-size:11px; font-weight:400; color:var(--text-tertiary);
@@ -1665,6 +1667,10 @@ function startTimer() {
   if (timerId) return;
   timerId = setInterval(tickTimer, 1000);
   tickTimer();
+  /* 练习类（非考试）不显示计时：navTimer 仅考试模式展示剩余倒计时。
+     后台仍在计时，结果页/报告的「本次用时」照常取 finalSec。 */
+  var nt = document.getElementById('navTimer');
+  if (nt) nt.style.display = IS_PAPER ? '' : 'none';
 }
 function stopTimer() {
   /* 交卷定格：考试模式剩余时间已归零（navTimer 展示剩余），statTime 用【实际用时】 */
@@ -1990,7 +1996,7 @@ window.addEventListener('message', function(evt) {
 });
 
 /* ---------- 初始化 ---------- */
-startTimer();              /* 进入即起表（会话级计时） */
+startTimer();              /* 进入即起表（会话级计时；练习类在后台计时不显示 UI） */
 renderQuestion();
 </script>
 </body>
