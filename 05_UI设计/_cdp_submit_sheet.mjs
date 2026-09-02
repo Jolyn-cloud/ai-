@@ -71,7 +71,7 @@ check('答题卡有确认交卷按钮', r.sheetSubmitBtn === true, r.btnTxt);
 r = await evalJs(`(function(){
   var cells = document.querySelectorAll('.sheet-cell');
   var done = document.querySelectorAll('.sheet-cell.done').length;
-  return { total: cells.length, doneCells: done, lgDone: document.getElementById('lgDone').textContent, lgTodo: document.getElementById('lgTodo').textContent };
+  return { total: cells.length, doneCells: done, lgDone: document.getElementById('lgRight').textContent, lgTodo: document.getElementById('lgTodo').textContent };
 })()`);
 check('答题卡题号数>0', r.total >= 3, r.total);
 
@@ -81,32 +81,31 @@ await sleep(200);
 await evalJs(`document.getElementById('btnSubmit').click()`);
 r = await evalJs(`(function(){
   return { sheetOpen: document.getElementById('sheetMask').classList.contains('show'),
-    lgDone: document.getElementById('lgDone').textContent,
+    lgDone: document.getElementById('lgRight').textContent,
     lgTodo: document.getElementById('lgTodo').textContent };
 })()`);
 check('答一题后点交卷→答题卡仍先出', r.sheetOpen === true);
-// 简校：lgDone + lgTodo == total
+// 简校：lgDone(lgRight) + lgTodo == total
 r = await evalJs(`(function(){
   var total = document.querySelectorAll('.sheet-cell').length;
-  var done = parseInt(document.getElementById('lgDone').textContent);
+  var done = parseInt(document.getElementById('lgRight').textContent);
   var todo = parseInt(document.getElementById('lgTodo').textContent);
   return { sumOk: done + todo === total, total: total, done: done, todo: todo };
 })()`);
 check('图例已答+未答=总题数', r.sumOk, JSON.stringify(r));
 check('图例已答=1, 未答=total-1', r.done === 1 && r.todo === r.total - 1, JSON.stringify(r));
 
-/* ===== 4. 答题卡点确认交卷 → 出成绩结果 ===== */
+/* ===== 4. 答题卡点确认交卷 → 交卷态（直接进解析，resultMask 旧弹窗已废弃） ===== */
 await evalJs(`document.getElementById('sheetSubmitBtn').click()`);
 await sleep(400);
 r = await evalJs(`(function(){
-  return { resultOpen: document.getElementById('resultMask').classList.contains('show'),
+  return { submitted: submitted,
     sheetClosed: !document.getElementById('sheetMask').classList.contains('show'),
-    submitted: submitted,
-    score: document.getElementById('resultScore').textContent };
+    reviewShown: document.getElementById('analysisArea').classList.contains('show') };
 })()`);
-check('点确认交卷→成绩弹窗出现', r.resultOpen === true);
+check('交卷后 submitted=true', r.submitted === true);
 check('答题卡已收起', r.sheetClosed === true, r.sheetClosed);
-check('submitted=true', r.submitted === true);
+check('交卷后进入解析态', r.reviewShown === true, '');
 
 /* ===== 5. 未答满也照交（无特判）：直接开卡→交卷 ===== */
 await gotoT(`http://localhost:${PORT}/做题页.html?entry=chapter`);
@@ -120,9 +119,10 @@ check('未答直接交卷也能开答题卡', r.sheetOpen === true, 'lgTodo=' + 
 await evalJs(`document.getElementById('sheetSubmitBtn').click()`);
 await sleep(300);
 r = await evalJs(`(function(){
-  return { resultOpen: document.getElementById('resultMask').classList.contains('show'), submitted };
+  return { submitted: submitted,
+    reviewShown: document.getElementById('analysisArea').classList.contains('show') };
 })()`);
-check('未答满点确认交卷→照常出成绩', r.resultOpen === true && r.submitted === true);
+check('未答满点确认交卷→照常交卷进解析', r.submitted === true && r.reviewShown === true, JSON.stringify(r));
 
 /* ===== 6. 考试模式：确认交卷按钮存在 + 正常流程不受影响 ===== */
 await gotoT(`http://localhost:${PORT}/做题页.html?entry=exam&paperId=exam1&minutes=5&fullScore=150`);
@@ -138,9 +138,13 @@ check('考试模式倒计时仍显示', r.navTimerShown === true);
 await evalJs(`document.getElementById('sheetSubmitBtn').click()`);
 await sleep(300);
 r = await evalJs(`(function(){
-  return { resultOpen: document.getElementById('resultMask').classList.contains('show'), submitted };
+  var posted = typeof _lastReportPosted !== 'undefined';
+  return { submitted: submitted,
+    sheetClosed: !document.getElementById('sheetMask').classList.contains('show'),
+    posted: posted };
 })()`);
-check('考试模式确认交卷→照常出成绩', r.resultOpen === true && r.submitted === true);
+/* 考试模式交卷 → 上报成绩报告（REQ_REPORT，总壳报告层），不经本地解析区（report 跳解析由总壳 ENTER_REVIEW 触发） */
+check('考试模式确认交卷→submitted + 答题卡收起', r.submitted === true && r.sheetClosed === true, JSON.stringify(r));
 
 console.log('\n' + (failed === 0 ? 'ALL PASS' : failed + ' FAILED'));
 chrome.kill(); server.close(); process.exit(failed === 0 ? 0 : 1);
