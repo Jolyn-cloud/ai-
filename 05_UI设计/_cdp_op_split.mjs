@@ -81,7 +81,7 @@ r = await evalJs(`(function(){
 })()`);
 check('分屏三区结构存在', r.exists, JSON.stringify(r));
 check('横向导航 tab 数 = 子题数5', r.tabs === 5, 'tabs='+r.tabs);
-check('分屏内底部有操作按钮行', r.hasNavRow === true, '');
+check('分屏无底部操作按钮行', r.hasNavRow === false, 'hasNavRow='+r.hasNavRow);
 check('题干区自身可滚动 (overflow-y)', r && r.stemOverflow === 'auto', r && r.stemOverflow);
 
 /* 3. 默认比例 40% + 题干不被遮罩 + 题干/子题同步可见 */
@@ -145,18 +145,20 @@ check('超过65%被钳制到≈65%', r && Math.abs(r.capped-0.65)<0.05, 'capped=
 check('低于25%被钳制到≈25%', r && Math.abs(r.floored-0.25)<0.05, 'floored='+r.floored);
 check('opRatio 变量同步钳制', r && (r.capped <= 0.65+0.02) && (r.floored >= 0.25-0.02), 'opRatio='+r.opRatio);
 
-/* 6. 底部按钮：不是最后子题 → 显示「下一题」；最后子题 → 显示「完成操作题」 */
+/* 6. 无底部按钮行（切换子题只用 tab）；tab 点击仍生效 */
 r = await evalJs(`(function(){
-  opJumpSub(0);
-  var b1 = document.querySelector('.op-nav-btn.primary').textContent.trim();
-  opJumpSub(4);
-  var btnLast = document.querySelector('.op-nav-btn.primary').textContent.trim();
-  return { b1: b1, btnLast: btnLast };
+  var hasNavRow = !!document.querySelector('.op-nav-row');
+  var navBtns = document.querySelectorAll('.op-nav-btn').length;
+  var tabCount = document.querySelectorAll('.op-tab').length;
+  opJumpSub(2);
+  var activeIdx = Array.prototype.indexOf.call(document.querySelectorAll('.op-tab'), document.querySelector('.op-tab.active'));
+  return { hasNavRow: hasNavRow, navBtns: navBtns, tabCount: tabCount, activeIdx: activeIdx };
 })()`);
-check('第1题底部按钮 = 下一题', r.b1 === '下一题', r.b1);
-check('最后子题底部按钮 = 完成操作题', r.btnLast === '完成操作题', r.btnLast);
+check('分屏无底部按钮行', r.hasNavRow === false && r.navBtns === 0, 'navBtns='+r.navBtns);
+check('tab 个数=子题数5', r.tabCount === 5, 'tabCount='+r.tabCount);
+check('点 tab 切换到对应子题', r.activeIdx === 2, 'activeIdx='+r.activeIdx);
 
-/* 7. 完成操作题：全部子题答完 → 进入下一道普通题（exam 卷操作题在第4题=中间位，可前进） */
+/* 7. 全答后自动前进到下一道普通题（scheduleAutoNext，exam 卷操作题在第4题=中间位） */
 await gotoT(`http://localhost:${PORT}/做题页.html?entry=exam&paperId=exam1&minutes=100&fullScore=150`);
 r = await evalJs(`(async function(){
   for (var i=0;i<QUESTIONS.length;i++) if (QUESTIONS[i].type==='operation') { idx=i; break; }
@@ -168,33 +170,32 @@ r = await evalJs(`(async function(){
     all[i] = (s.type==='single'||s.type==='judge') ? s.answer : (s.fill || 'x');
   }
   answers[idx] = all;
-  renderQuestion();
   var posBefore = idx;
-  opJumpSub(q0.sub.length-1);        /* 最后一个子题 → 显示「完成操作题」 */
-  await new Promise(r=>setTimeout(r,60));
-  var btnLab = document.querySelector('.op-nav-btn.primary').textContent.trim();
-  opNextSub();                       /* 点「完成操作题」 */
-  await new Promise(r=>setTimeout(r,80));
+  /* 全部子题已答 → 触发 scheduleAutoNext（最后子题答完 0.6s 后自动进下一题） */
+  scheduleAutoNext();
+  await new Promise(r=>setTimeout(r,800));
   var qNext = QUESTIONS[idx];
-  return { posBefore: posBefore, newIdx: idx, moved: idx>posBefore, btnLab: btnLab,
+  return { posBefore: posBefore, newIdx: idx, moved: idx>posBefore,
            nextType: qNext.type, nextNotOp: qNext.type!=='operation', subCount: q0.sub.length };
 })()`);
-check('全答后点完成 → 前进到下一道普通题', r && r.moved && r.nextNotOp, JSON.stringify(r));
-check('完成按钮文案检查在前置（最后一子题）', r && r.btnLab === '完成操作题', 'btnLab='+r.btnLab);
+check('全答后自动前进到下一道普通题', r && r.moved && r.nextNotOp, JSON.stringify(r));
 
-/* 8. 未全答点完成 → 不跳转 + Toast */
-await gotoT(`http://localhost:${PORT}/做题页.html?entry=today`);
-r = await evalJs(`(async function(){
+/* 8. 交卷解析当作单题解析：上方平铺子题+答案，下方逐子题解析 */
+r = await evalJs(`(function(){
   for (var i=0;i<QUESTIONS.length;i++) if (QUESTIONS[i].type==='operation') { idx=i; break; }
-  resetOp(true); renderQuestion();
-  opJumpSub(4); await new Promise(r=>setTimeout(r,50));
-  var before = idx;
-  opNextSub();
-  await new Promise(r=>setTimeout(r,60));
-  var toastText = document.querySelector('.toast') ? document.querySelector('.toast').textContent : '';
-  return { moved: idx!==before, idx: idx, toast: toastText };
+  resetOp(true);
+  submitted = true; renderQuestion();
+  var subCards = document.querySelectorAll('.sub-q').length;              /* 上方题目区平铺 */
+  var subAnas = document.querySelectorAll('.sub-ana').length;             /* 解析区逐子题解析 */
+  var totalAna = document.querySelector('.op-total-ana') ? document.querySelector('.op-total-ana').textContent.slice(0,10) : '';
+  var resLine = document.querySelector('.answer-line') ? document.querySelector('.answer-line').textContent : '';
+  submitted = false;
+  return { subCards: subCards, subAnas: subAnas, totalAna: totalAna, resLine: resLine };
 })()`);
-check('未全答点完成 → 不跳转', r.moved === false, JSON.stringify(r));
+check('交卷后上方平铺全部子题(=5)', r.subCards === 5, 'subCards='+r.subCards);
+check('解析区逐子题解析卡片数=5', r.subAnas === 5, 'subAnas='+r.subAnas);
+check('有整题总评', r.totalAna && r.totalAna.length > 0, r.totalAna);
+check('答题结果不展开长串答案', r.resLine && r.resLine.indexOf('小题') < 0, r.resLine);
 
 /* 9. 交卷后 → 纵向平铺全部子题（renderOperationAll），有空态 */
 r = await evalJs(`(function(){
