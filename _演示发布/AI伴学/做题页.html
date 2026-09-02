@@ -581,6 +581,21 @@ body{
   display:grid; grid-template-columns:repeat(auto-fill, minmax(46px, 1fr));
   gap:10px; padding:14px 4px 6px; overflow-y:auto;
 }
+/* 答题卡底部：确认交卷按钮（网格滚动区之外，常驻） */
+.sheet-submit{
+  flex-shrink:0; margin-top:10px; padding-top:10px; border-top:1px solid #F0F1F6;
+}
+.sheet-submit-btn{
+  width:100%; height:46px; border:none; border-radius:23px;
+  background:linear-gradient(100deg,var(--primary),var(--primary-dark)); color:#fff;
+  font-size:15px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  box-shadow:0 6px 16px rgba(91,114,245,.28);
+  transition:transform .12s ease, opacity .15s ease;
+}
+.sheet-submit-btn:active{ transform:scale(.98); opacity:.92; }
+.sheet-submit-btn svg{ width:18px; height:18px; }
+.sheet-submit-tip{ margin-top:6px; text-align:center; font-size:11px; color:var(--text-tertiary); }
 .sheet-cell{
   position:relative;
   aspect-ratio:1; border-radius:10px; border:1.5px solid #C9CEDA;
@@ -687,6 +702,13 @@ body{
       <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
     </div>
     <div class="sheet-grid" id="sheetGrid"></div>
+    <div class="sheet-submit">
+      <button class="sheet-submit-btn" id="sheetSubmitBtn" onclick="submitFromSheet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <span>确认交卷</span>
+      </button>
+      <div class="sheet-submit-tip">核对已答/未答后交卷，未答多了一道也照交</div>
+    </div>
   </div>
 </div>
 
@@ -749,18 +771,6 @@ body{
     <div class="fb-actions">
       <button class="fb-btn cancel" onclick="closeFeedback()">取消</button>
       <button class="fb-btn ok" onclick="submitFeedback()">提交</button>
-    </div>
-  </div>
-</div>
-
-<!-- 交卷确认弹窗 -->
-<div class="modal-mask" id="submitModal">
-  <div class="modal-panel">
-    <div class="modal-title">确认交卷？</div>
-    <div class="modal-desc" id="submitDesc">已作答 0/5 题</div>
-    <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="hideSubmit()">继续答题</button>
-      <button class="modal-btn ok" onclick="doSubmit()">交卷</button>
     </div>
   </div>
 </div>
@@ -1616,12 +1626,18 @@ function updateBottomBar() {
   document.getElementById('btnMark').classList.toggle('on', !!marked[idx]);
 }
 function openSubmit() {
-  var answered = countAnswered();
-  document.getElementById('submitDesc').textContent = '已作答 ' + answered + '/' + total + ' 题，未答 ' + (total - answered) + ' 题';
-  document.getElementById('submitModal').classList.add('show');
+  /* 交卷入口：直接上滑答题卡核对（不弹确认弹窗），答题卡底部「确认交卷」才提交 */
+  openSheet();
 }
 function hideSubmit() {
-  document.getElementById('submitModal').classList.remove('show');
+  /* 交卷确认弹窗已废弃（交卷→答题卡核对）。保留防残留：弹窗 DOM 已删，这里幂等不报错 */
+  var el = document.getElementById('submitModal');
+  if (el) el.classList.remove('show');
+}
+/* 答题卡点「确认交卷」→ 收卡并提交出成绩（自动交卷/正常交卷统一走此） */
+function submitFromSheet() {
+  closeSheet();
+  doSubmit();
 }
 /* ---------- 答题计时（会话级；进入即起，交卷即停，结果页记录耗时） ----------
    模式：
@@ -1653,6 +1669,7 @@ function tickTimer() {
     /* 到点自动交卷 */
     if (sec === 0 && !AUTO_SUBMIT_DONE && !submitted) {
       AUTO_SUBMIT_DONE = true;
+      closeSheet();            /* 答题卡开着时先收起，避免盖在成绩结果上 */
       doSubmit();
       return;
     }
