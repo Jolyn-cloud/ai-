@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录流程图（游客体验卷方案）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #EDEFF7; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #202533;
+  }
+  .page {
+    width: 1420px; margin: 0 auto;
+    background:
+      radial-gradient(900px 300px at 70% -40px, rgba(91,114,245,0.08) 0%, transparent 60%),
+      #F6F7FB;
+    padding: 34px 30px 44px;
+  }
+  .header { text-align: center; margin-bottom: 26px; }
+  .header .title { font-size: 30px; font-weight: 800; letter-spacing: 0.5px; }
+  .header .meta {
+    display: inline-block; margin-top: 10px;
+    font-size: 13px; color: #6E778B; background: #fff;
+    border: 1px solid #E3E8F2; border-radius: 14px; padding: 7px 14px;
+  }
+  .header .meta b { color: #4358D7; }
+
+  .node {
+    display: inline-block;
+    background: #FFFFFF;
+    border: 1.5px solid #D8DEE9;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14.5px; font-weight: 600; line-height: 1.5;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(54,66,108,0.06);
+  }
+  .node .sub { display: block; font-size: 11.5px; font-weight: 400; color: #6E778B; margin-top: 4px; line-height: 1.45; }
+  .node.start { background: linear-gradient(135deg, #20A866, #17A05A); border-color: transparent; color: #fff; }
+  .node.end { background: #EDEFF3; border-color: #D8DEE9; color: #8A93A6; font-weight: 500; }
+  .node.dec {
+    background: linear-gradient(180deg, #FFFFFF, #F4F7FF);
+    border-color: #5B72F5; color: #4358D7; position: relative;
+  }
+  .node.dec::before {
+    content: '判断';
+    position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    background: #5B72F5; color: #fff;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 8px; white-space: nowrap;
+  }
+  .node.login { background: linear-gradient(135deg, #F28B3D, #F07A2A); border-color: transparent; color: #fff; }
+  .node.success { background: linear-gradient(135deg, #5B72F5, #4358D7); border-color: transparent; color: #fff; }
+  .node.small { font-size: 13px; padding: 8px 12px; }
+  .node.hl { border-color: #20A866; color: #17A05A; background: linear-gradient(180deg,#fff,#F0FAF5); }
+
+  .arrow {
+    width: 100%; text-align: center;
+    color: #9AA3B8; font-size: 15px; line-height: 1;
+    padding: 7px 0 6px;
+  }
+  .arrow.lbl { font-size: 11.5px; font-weight: 600; color: #6E778B; }
+
+  .fork { display: flex; gap: 12px; align-items: stretch; width: 100%; margin-top: 2px; }
+  .fork-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .fork-label {
+    font-size: 11.5px; font-weight: 700;
+    background: #fff; border: 1px solid #D8DEE9; border-radius: 10px;
+    padding: 3px 10px; margin: 6px 0 5px;
+    color: #4358D7; white-space: nowrap;
+  }
+  .fork-label.no { color: #B0442E; }
+  .fork-label.ok { color: #20A866; }
+  .fork-label.plain { color: #6E778B; }
+  .fork-side {
+    border: 1.5px dashed #C9D1E0; border-radius: 12px;
+    background: rgba(255,255,255,0.55);
+    padding: 8px; display: flex; flex-direction: column; align-items: center;
+  }
+  .chain { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+  .top-chain { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 0 0 24px; }
+  .top-chain .arrow { width: auto; padding: 0 6px; }
+
+  .lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+  .lane {
+    background: #fff; border-radius: 18px; border: 1px solid #E6EAF4;
+    overflow: hidden; box-shadow: 0 8px 24px rgba(54,66,108,0.05);
+  }
+  .lane-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16.5px; font-weight: 800; color: #fff;
+    padding: 13px 16px; letter-spacing: 0.3px;
+  }
+  .lane-title .tag {
+    margin-left: auto; font-size: 11px; font-weight: 600;
+    background: rgba(255,255,255,0.2); border-radius: 8px; padding: 3px 9px; white-space: nowrap;
+  }
+  .lane-body { padding: 18px 14px 22px; display: flex; flex-direction: column; align-items: center; }
+  .lane-1 .lane-title { background: linear-gradient(135deg, #5B72F5, #4358D7); }
+  .lane-2 .lane-title { background: linear-gradient(135deg, #20A866, #17A05A); }
+  .lane-3 .lane-title { background: linear-gradient(135deg, #F28B3D, #F07A2A); }
+  .lane-foot {
+    margin-top: 10px; width: 100%; text-align: center;
+    font-size: 11.5px; color: #98A0B2;
+    background: #F5F6FB; border-radius: 10px; padding: 6px 8px;
+  }
+
+  .footer-merge {
+    margin-top: 26px;
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+  }
+  .merge-box {
+    background: linear-gradient(135deg, #5B72F5, #4358D7); color: #fff;
+    border-radius: 16px; padding: 14px 26px; text-align: center;
+    box-shadow: 0 10px 26px rgba(91,114,245,0.28);
+  }
+  .merge-box .t1 { font-size: 16px; font-weight: 800; }
+  .merge-box .t2 { font-size: 12.5px; opacity: 0.92; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="title">登录流程图（游客体验卷方案）</div>
+    <div class="meta">
+      方案基线：<b>游客体验卷 → 登录转化</b> · 冷启动落题库 tab · 登录唯一入口：总壳登录 Sheet · 解析门禁只看 <b>STATE.logged</b>
+    </div>
+  </div>
+
+  <!-- ============ 启动链 ============ -->
+  <div class="top-chain">
+    <div class="node start">启动</div>
+    <div class="arrow">▼</div>
+    <div class="node start">闪屏 → 题库 tab<br><span class="sub">冷启动落点，学习页懒加载</span></div>
+    <div class="arrow">▼</div>
+    <div class="node">VIP 领取弹窗<br><span class="sub">未领取（vipClaimed=false）必弹，可关闭</span></div>
+  </div>
+
+  <div class="lanes">
+
+  <!-- ============ 第一线 · 冷启动主线（VIP → 体验卷） ============ -->
+  <div class="lane lane-1">
+    <div class="lane-title">第一线 · 冷启动主线 <span class="tag">VIP → 体验卷</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node dec">是否领取 VIP？<span class="sub">领取 → 登录/VIP到账；关闭 → 不领</span></div>
+      </div>
+
+      <div class="fork" style="margin-top:6px">
+        <div class="fork-col" style="flex:1.15">
+          <div class="fork-label no">关闭（点X/图外）</div>
+          <div class="node small">本会话不再弹</div>
+          <div class="arrow">▼</div>
+          <div class="node hl">停留题库页 → 免费体验卷（15题）</div>
+          <div class="arrow lbl">免登录 · 约5分钟</div>
+          <div class="node">交卷 → 成绩报告</div>
+          <div class="arrow">▼</div>
+          <div class="node">查看解析 → 弹登录（见第三线）</div>
+        </div>
+        <div class="fork-col" style="flex:1.55">
+          <div class="fork-label ok">领取</div>
+          <div class="node dec">是否已登录？</div>
+          <div class="fork" style="margin-top:6px">
+            <div class="fork-col" style="flex:1.2">
+              <div class="fork-label no">未登录</div>
+              <div class="node login">登录 Sheet</div>
+              <div class="arrow">▼</div>
+              <div class="node success">登录成功 → VIP 到账</div>
+              <div class="arrow lbl">Toast「登录成功，VIP权益已到账」</div>
+              <div class="node small">停留题库页</div>
+            </div>
+            <div class="fork-col" style="flex:1">
+              <div class="fork-label ok">已登录</div>
+              <div class="node small">VIP 直接到账<br><span class="sub">Toast「领取成功」</span></div>
+              <div class="arrow">▼</div>
+              <div class="node small">停留题库页</div>
+            </div>
+          </div>
+          <div class="arrow lbl">两条都 → 免费体验卷（见第二线）</div>
+        </div>
+      </div>
+
+      <div class="fork-side" style="margin-top:12px; width:100%">
+        <div class="fork-label plain">领取后 · 登录时拒绝</div>
+        <div class="node small">草稿保留，不领 VIP</div>
+        <div class="arrow">▼</div>
+        <div class="node small">停留题库页 → 体验卷 → 报告 → 查看解析 → 弹登录</div>
+      </div>
+
+      <div class="lane-foot">已领取（vipClaimed=true）→ 冷启动不再弹 VIP，停留题库页正常使用；画像已移出冷启动主链路，仅学习页软引导</div>
+    </div>
+  </div>
+
+  <!-- ============ 第二线 · 题库页游客态（体验卷入口规则） ============ -->
+  <div class="lane lane-2">
+    <div class="lane-title">第二线 · 题库页游客态 <span class="tag">体验卷入口</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node dec">当前状态？<span class="sub">logged（登录） × trialDone（已体验，zsb_trial_done_v1 持久化）</span></div>
+      </div>
+
+      <div class="fork" style="margin-top:6px">
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label no">游客 · 未体验</div>
+          <div class="node">显示「免费体验卷」卡<br><span class="sub">15题 · 免登录 · 高亮 CTA</span></div>
+          <div class="arrow lbl">正式功能入口（章节/模拟/真题/错题）</div>
+          <div class="node small">点击 → 弹登录（锁）</div>
+        </div>
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label plain">游客 · 已体验</div>
+          <div class="node">隐藏体验卷卡<br><span class="sub">避免同一套卷反复推</span></div>
+          <div class="arrow lbl">正式功能入口（点击弹登录）</div>
+          <div class="node small">弹登录后解锁完整题库</div>
+        </div>
+        <div class="fork-col" style="flex:1">
+          <div class="fork-label ok">已登录</div>
+          <div class="node">完整功能，无体验卷<br><span class="sub">不推免费体验卷</span></div>
+          <div class="arrow lbl">正常进入各刷题模式</div>
+          <div class="node small">体验卷入口隐藏</div>
+        </div>
+      </div>
+
+      <div class="chain" style="margin-top:14px">
+        <div class="node hl">点「开始体验」→ 做题页 trial（15题）</div>
+        <div class="arrow lbl">交卷 → REQ_REPORT → 写 trialDone 标记 → 报告层</div>
+        <div class="node">成绩报告页</div>
+        <div class="arrow">▼</div>
+        <div class="node">查看解析 / 答题卡跳题（见第三线）</div>
+      </div>
+
+      <div class="lane-foot">游客作答存本地会话、不落库不进错题本；登录后仅本次解析，v5.0 接数据层再定合并</div>
+    </div>
+  </div>
+
+  <!-- ============ 第三线 · 报告 → 解析门禁（review 登录来源） ============ -->
+  <div class="lane lane-3">
+    <div class="lane-title">第三线 · 解析门禁 <span class="tag">review 来源</span></div>
+    <div class="lane-body">
+      <div class="chain">
+        <div class="node">报告页「查看解析」/答题卡跳题</div>
+        <div class="arrow">▼</div>
+        <div class="node dec">是否已登录？<span class="sub">只看 STATE.logged，与 vipClaimed 无关</span></div>
+      </div>
+
+      <div class="fork" style="margin-top:6px">
+        <div class="fork-col" style="flex:1.1">
+          <div class="fork-label ok">已登录</div>
+          <div class="node success">直接进解析<br><span class="sub">ENTER_REVIEW 定位该题</span></div>
+        </div>
+        <div class="fork-col" style="flex:1.4">
+          <div class="fork-label no">未登录</div>
+          <div class="node login">弹登录 Sheet（from=review）<br><span class="sub">记住 pendingReviewQ 题号</span></div>
+          <div class="fork" style="margin-top:6px">
+            <div class="fork-col" style="flex:1.4">
+              <div class="fork-label ok">登录成功</div>
+              <div class="node success">直接进解析<br><span class="sub">定位原题 · 免再找入口</span></div>
+            </div>
+            <div class="fork-col" style="flex:1">
+              <div class="fork-label no">拒绝</div>
+              <div class="node small">停留报告页<br><span class="sub">可再次作答 / 稍后登录</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lane-foot">登录 Sheet 关闭后状态全局同步：题库页游客态刷新（体验卷卡消失 / 正式入口解锁）</div>
+    </div>
+  </div>
+
+  </div><!-- /.lanes -->
+
+  <!-- ============ 底部统一收尾 ============ -->
+  <div class="footer-merge">
+    <div class="node login">登录</div>
+    <div class="arrow">▼</div>
+    <div class="node success">登录成功</div>
+    <div class="arrow">▼</div>
+    <div class="merge-box">
+      <div class="t1">broadcast() 状态全局同步</div>
+      <div class="t2">题库页游客态刷新 · 解析直达（review 回跳）· 学习页/我的/闪卡一致</div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+</body>
+</html>
+
