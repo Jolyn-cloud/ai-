@@ -85,9 +85,6 @@ body{
 .stem-wrap{ padding:12px 16px 10px; }
 .stem{ font-size:15px; line-height:1.7; color:#333; }
 .stem .q-num{ color:var(--primary); font-weight:600; margin-right:4px; }
-.sub-q{ margin:10px 0; padding:10px 12px; background:#FAFBFF; border-radius:10px; }
-.sub-q .sub-label{ font-size:11px; font-weight:700; color:var(--primary); margin-bottom:6px; }
-.sub-q .sub-stem{ font-size:13px; line-height:1.6; margin-bottom:8px; color:#333; }
 .options{ padding:0 16px 12px; display:flex; flex-direction:column; gap:8px; }
 .option{
   display:flex; align-items:flex-start; gap:10px;
@@ -187,10 +184,6 @@ body{
 .sub-ana-head .sub-ana-ans{ font-weight:400; color:var(--text-secondary); margin-left:6px; }
 .sub-ana-stem{ font-size:13px; color:#333; line-height:1.6; margin-bottom:6px; }
 .sub-ana-detail{ font-size:12px; color:#667; line-height:1.65; }
-.op-total-ana{
-  font-size:13px; color:#555; line-height:1.7; margin-top:10px; padding-top:10px;
-  border-top:1px dashed #EDEFF3;
-}
 /* 解析图片占位：表示该解析可能带图片（流程图/截图），接真实题源后替换 */
 .analysis-img-placeholder{
   margin-top:10px; height:120px; border-radius:10px;
@@ -465,6 +458,11 @@ body{
 }
 .op-divider:active .op-grip{ background:var(--primary); }
 .op-dragging, .op-dragging *{ user-select:none !important; -webkit-user-select:none !important; }
+/* 解析态分屏：不占满、分界线隐藏、题干区与作答区取自然高度，把空间留给下方解析区 */
+.op-wrap.reveal{ height:auto !important; }
+.op-wrap.reveal .op-divider{ display:none; }
+.op-wrap.reveal .op-stem-pane{ max-height:42vh; }   /* 题干过长时限高可滚，不挤占解析区 */
+.op-wrap.reveal .op-answer-pane{ flex:0 0 auto; overflow:visible; }
 /* 子题作答区：上=横向小题导航；下=当前子题内容+底部切换钮 */
 .op-answer-pane{ flex:1; min-height:0; display:flex; flex-direction:column; background:#fff; }
 .op-tabs{
@@ -483,6 +481,15 @@ body{
 .op-tab.done{ color:var(--success); }
 .op-tab.done::after{ content:"✓"; margin-left:3px; color:var(--success); }
 .op-tab.done.active::after{ color:var(--primary); }
+/* 解析态 tab：答对(✓)/答错(✗)/未答(—) */
+.op-tab.right{ color:var(--success); }
+.op-tab.right::after{ content:"✓"; margin-left:3px; color:var(--success); }
+.op-tab.wrong{ color:var(--danger); }
+.op-tab.wrong::after{ content:"✗"; margin-left:3px; color:var(--danger); }
+.op-tab.todo{ color:var(--text-tertiary); }
+.op-tab.todo::after{ content:"—"; margin-left:3px; color:var(--text-tertiary); }
+.op-tab.right.active::after,
+.op-tab.wrong.active::after{ color:var(--primary); }
 .op-answer-scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px 8px; }
 .op-sub-label{ font-size:11px; font-weight:700; color:var(--primary); margin-bottom:8px; }
 .op-sub-stem{ font-size:14px; line-height:1.7; color:#333; margin-bottom:12px; }
@@ -1331,8 +1338,9 @@ function renderQuestion() {
   document.getElementById('navProgress').textContent = (idx+1) + '/' + total;
   document.getElementById('progressFill').style.width = ((idx+1)/total*100) + '%';
   updateBottomBar();
-  /* 操作题分屏：渲染后按容器实测高度校准（拖拽/切换子题后也会重建渲染） */
-  if (OP_TYPES.indexOf(q.type) >= 0 && !reveal) {
+  /* 操作题分屏：渲染后按容器实测高度校准（拖拽/切换子题后也会重建渲染）；
+     解析态同样调用以切换 reveal 布局（不占满、分界线隐藏） */
+  if (OP_TYPES.indexOf(q.type) >= 0) {
     applyOpLayout();
     if (!('_opInited' in window)) { window._opInited = 1; setTimeout(function(){ applyOpLayout(); }, 60); }
   }
@@ -1395,10 +1403,8 @@ function renderOptions(q, ans, reveal) {
   return html + '</div>';
 }
 function renderOperation(q, ans, reveal) {
-  if (reveal) {
-    /* 交卷/背题已答 → 一次性显示全部子题（纵向）便于看解析 */
-    return renderOperationAll(q, ans);
-  }
+  /* 上下分屏：题干阅读区 + 可拖拽分界线 + 子题作答区（PM 2026-09-02）
+     作答态与解析态同结构；解析态下子题作答组件带对错着色、输入禁用、tab 切换同步解析区（单题解析） */
   /* ---------- 上下分屏：题干阅读区 + 可拖拽分界线 + 子题作答区（PM 2026-09-02） ---------- */
   /* ① 题干区（默认 40% 顶，独立滚动；题型/考点/难度标签已在顶部 tagArea，不重复） */
   var stemPane = '<div class="op-stem-pane">'
@@ -1414,7 +1420,13 @@ function renderOperation(q, ans, reveal) {
   var tabs = '<div class="op-tabs">';
   for (var t = 0; t < q.sub.length; t++) {
     var done = getAnswered(q.sub[t], ans ? ans[t] : undefined);
-    tabs += '<div class="op-tab' + (t === opSubIdx ? ' active' : '') + (done ? ' done' : '') + '" onclick="opJumpSub(' + t + ')">第 ' + (t+1) + ' 题</div>';
+    var tabCls = 'op-tab' + (t === opSubIdx ? ' active' : '');
+    if (reveal) {
+      /* 解析态：tab 标答对(✓)/答错(✗)/未答(—)，替代作答态的"已答✓" */
+      var ok = checkAnswer(q.sub[t], ans ? ans[t] : undefined);
+      tabCls += (ok === true ? ' right' : (ok === false ? ' wrong' : ' todo'));
+    } else if (done) tabCls += ' done';
+    tabs += '<div class="' + tabCls + '" onclick="opJumpSub(' + t + ')">第 ' + (t+1) + ' 题</div>';
   }
   tabs += '</div>';
   var sub = q.sub[opSubIdx];
@@ -1437,21 +1449,6 @@ function renderOperation(q, ans, reveal) {
 function renderSubFill(sub, subAns, reveal, subIdx) {
   var cls = reveal ? (checkAnswer(sub, subAns) ? ' correct' : (subAns ? ' wrong' : '')) : '';
   return '<input class="fill-input' + cls + '" value="' + (subAns || '') + '" placeholder="请输入答案…" oninput="onSubFillInput(' + subIdx + ',this.value)"' + (reveal ? ' disabled' : '') + '>';
-}
-function renderOperationAll(q, ans) {
-  var html = '';
-  q.sub.forEach(function(sub, i) {
-    var subAns = ans ? ans[i] : undefined;
-    html += '<div class="sub-q"><div class="sub-label">第 ' + (i+1) + ' 小题</div><div class="sub-stem">' + sub.stem + '</div>';
-    if (sub.type === 'single' || sub.type === 'judge') {
-      html += renderSubOptions(sub, subAns, true, i);
-    } else if (sub.type === 'fill') {
-      var cls = checkAnswer(sub, subAns) ? ' correct' : (subAns ? ' wrong' : '');
-      html += '<input class="fill-input' + cls + '" value="' + (subAns || '') + '" disabled>';
-    }
-    html += '</div>';
-  });
-  return html;
 }
 function renderSubOptions(sub, subAns, reveal, subIdx) {
   var sel = subAns === undefined || subAns === null ? -1 : subAns;
@@ -1560,27 +1557,27 @@ function renderAnalysis(q, ans, reveal) {
 
   /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31）
      · 部分解析带图片（流程图/截图），文字下方显示图片占位，接真实题源后替换为实际图
-     · 操作题：先逐子题列解析（题目+答案+详解），再附整题总析（PM 2026-09-02：操作题按多道小题分别解析） */
+     · 操作题（PM 2026-09-02 拍板）：分屏单题解析——只渲染当前 tab 选中子题（opSubIdx）的
+       答案+你的答案+该子题详解，tab 切换子题时与题目区同步；不再平铺全部子题、无整题总评 */
   var steps = (q.steps && q.steps.length) ? '<div class="step-list">解题步骤：<br>' + q.steps.join('<br>') + '</div>' : '';
   var opSubs = '';
   if (isOp && q.sub) {
-    q.sub.forEach(function(s, i) {
-      var ok = checkAnswer(s, ans ? ans[i] : undefined);
-      var icon = ok === true ? '✅' : (ok === false ? '❌' : '—');
-      var subAnsText = formatSubAnswerText(s, ans ? ans[i] : undefined);
-      opSubs += '<div class="sub-ana">'
-        + '<div class="sub-ana-head">' + icon + ' 第 ' + (i+1) + ' 题' + (s.type === 'fill' ? '（填空）' : '') + ' <span class="sub-ana-ans">答案：' + formatSubAnswerText(s, undefined) + (subAnsText ? '　你的答案：' + subAnsText : '') + '</span></div>'
-        + '<div class="sub-ana-stem">' + s.stem + '</div>'
-        + '<div class="sub-ana-detail">' + (s.analysis || '') + '</div>'
-        + '</div>';
-    });
+    var s = q.sub[opSubIdx] || q.sub[0];
+    var i = opSubIdx;
+    var ok = checkAnswer(s, ans ? ans[i] : undefined);
+    var icon = ok === true ? '✅' : (ok === false ? '❌' : '—');
+    var subAnsText = formatSubAnswerText(s, ans ? ans[i] : undefined);
+    opSubs = '<div class="sub-ana">'
+      + '<div class="sub-ana-head">' + icon + ' 第 ' + (i+1) + ' 题' + (s.type === 'fill' ? '（填空）' : '') + ' <span class="sub-ana-ans">答案：' + formatSubAnswerText(s, undefined) + (subAnsText ? '　你的答案：' + subAnsText : '') + '</span></div>'
+      + '<div class="sub-ana-stem">' + s.stem + '</div>'
+      + '<div class="sub-ana-detail">' + (s.analysis || '') + '</div>'
+      + '</div>';
   }
   html += '<div class="ana-sec">'
     + '<div class="sec-head"><span class="ico ico-3">📖</span><span class="name">解析</span></div>'
-    + (opSubs ? '<div class="op-sub-anas">' + opSubs + '</div>' : '')
-    + (opSubs ? '<div class="op-total-ana">整题总评：' + q.analysis + '</div>' : '<div class="analysis-text">' + q.analysis + '</div>')
+    + (opSubs ? '<div class="op-sub-anas">' + opSubs + '</div>' : '<div class="analysis-text">' + q.analysis + '</div>')
     + '<div class="analysis-img-placeholder"><span>🖼️</span>图片解析（流程图 / 截图）</div>'
-    + steps
+    + (isOp ? '' : steps)
     + '<div class="feedback-link analysis-fb" onclick="openFeedback(\'analysis\')">解析有误？反馈</div>'
     + '</div>';
 
@@ -2211,6 +2208,19 @@ function applyOpRatio(ratio) {
 function applyOpLayout() {
   var wrap = document.querySelector('.op-wrap');
   if (!wrap) return;
+  var q = QUESTIONS[idx];
+  var reveal = submitted || (MODE === 'study' && (q && (q.type === 'fill' || q.type === 'essay') ? !!reviewed[idx] : getAnswered(q, answers[idx])));
+  /* 解析态：分屏不占满、取自然高度，把空间留给下方解析区；分界线隐藏不可拖 */
+  if (reveal) {
+    wrap.style.height = '';
+    wrap.classList.add('reveal');
+    var stem = wrap.querySelector('.op-stem-pane');
+    var ap = wrap.querySelector('.op-answer-pane');
+    if (stem) stem.style.height = '';
+    if (ap) { ap.style.flex = ''; ap.style.overflow = ''; }
+    return;
+  }
+  wrap.classList.remove('reveal');
   var qArea = document.getElementById('questionArea');
   var areaH = qArea ? qArea.clientHeight : window.innerHeight;
   /* 底部 feedback-entry 占约 36px，分屏高度让出，避免外层触发滚动 */

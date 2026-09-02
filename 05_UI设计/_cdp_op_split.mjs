@@ -180,31 +180,38 @@ r = await evalJs(`(async function(){
 })()`);
 check('全答后自动前进到下一道普通题', r && r.moved && r.nextNotOp, JSON.stringify(r));
 
-/* 8. 交卷解析当作单题解析：上方平铺子题+答案，下方逐子题解析 */
+/* 8. 交卷解析=单题分屏：分屏 tab + 仅当前子题解析 + 无整题总评 */
 r = await evalJs(`(function(){
   for (var i=0;i<QUESTIONS.length;i++) if (QUESTIONS[i].type==='operation') { idx=i; break; }
   resetOp(true);
   submitted = true; renderQuestion();
-  var subCards = document.querySelectorAll('.sub-q').length;              /* 上方题目区平铺 */
-  var subAnas = document.querySelectorAll('.sub-ana').length;             /* 解析区逐子题解析 */
-  var totalAna = document.querySelector('.op-total-ana') ? document.querySelector('.op-total-ana').textContent.slice(0,10) : '';
+  var hasWrap = !!document.querySelector('.op-wrap');                 /* 仍是分屏结构 */
+  var isReveal = document.querySelector('.op-wrap.reveal') ? 1 : 0;    /* 解析态 reveal 布局 */
+  var tabs = document.querySelectorAll('.op-tab').length;             /* 子题 tab 数 */
+  var subAnas = document.querySelectorAll('.sub-ana').length;          /* 仅当前子题解析=1 */
+  var totalAna = document.querySelector('.op-total-ana') ? 1 : 0;     /* 无整题总评=0 */
   var resLine = document.querySelector('.answer-line') ? document.querySelector('.answer-line').textContent : '';
   submitted = false;
-  return { subCards: subCards, subAnas: subAnas, totalAna: totalAna, resLine: resLine };
+  return { hasWrap: hasWrap, isReveal: isReveal, tabs: tabs, subAnas: subAnas, totalAna: totalAna, resLine: resLine };
 })()`);
-check('交卷后上方平铺全部子题(=5)', r.subCards === 5, 'subCards='+r.subCards);
-check('解析区逐子题解析卡片数=5', r.subAnas === 5, 'subAnas='+r.subAnas);
-check('有整题总评', r.totalAna && r.totalAna.length > 0, r.totalAna);
+check('交卷后仍为分屏结构(op-wrap)', r.hasWrap, 'hasWrap');
+check('交卷后分屏带 reveal 布局', r.isReveal === 1, 'isReveal='+r.isReveal);
+check('子题 tab 数=5', r.tabs === 5, 'tabs='+r.tabs);
+check('解析区仅当前子题解析卡片=1', r.subAnas === 1, 'subAnas='+r.subAnas);
+check('无整题总评', r.totalAna === 0, 'totalAna='+r.totalAna);
 check('答题结果不展开长串答案', r.resLine && r.resLine.indexOf('小题') < 0, r.resLine);
 
-/* 9. 交卷后 → 纵向平铺全部子题（renderOperationAll），有空态 */
+/* 9. 交卷后切 tab → 解析区同步切到对应子题 */
 r = await evalJs(`(function(){
-  submitted = true; renderQuestion();
-  var subs = document.querySelectorAll('.sub-q').length;
+  submitted = true;
+  resetOp(true); renderQuestion();            /* opSubIdx=0 */
+  var stem0 = document.querySelector('.sub-ana-stem') ? document.querySelector('.sub-ana-stem').textContent.slice(0,8) : '';
+  opJumpSub(2);                               /* 切到第3子题 */
+  var stem2 = document.querySelector('.sub-ana-stem') ? document.querySelector('.sub-ana-stem').textContent.slice(0,8) : '';
   submitted = false;
-  return { subCards: subs };
+  return { stem0: stem0, stem2: stem2, changed: stem0 !== stem2 };
 })()`);
-check('交卷后平铺全部子题(=5)', r.subCards === 5, 'subCards='+r.subCards);
+check('切 tab 后解析区同步切换', r.changed, JSON.stringify(r));
 
 console.log('\n' + (failed === 0 ? 'ALL PASS' : failed + ' FAILED'));
 chrome.kill(); server.close(); process.exit(failed === 0 ? 0 : 1);
