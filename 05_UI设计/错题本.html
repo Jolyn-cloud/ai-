@@ -199,6 +199,8 @@ body {
 /* 上传题结构化 tag（题型/考点） */
 .q-tag.type-tag { background: #EEF1FE; color: var(--primary); }
 .q-tag.concept-tag { background: #F3F0FF; color: #7C6BD9; }
+.q-tag.img-tag { background: #F3F0FF; color: #7C6BD9; cursor: pointer; }
+.q-orig-link { font-size: 11px; color: var(--primary); margin-top: 4px; cursor: pointer; }
 .q-path-sub { color: var(--text-tertiary); font-weight: 400; }
 
 /* ===== 拍照录入 mask（全屏取景） ===== */
@@ -431,7 +433,7 @@ body {
   <div class="cam-bottombar">
     <!-- 第一层：记笔记 / AI搜题 / 录错题 -->
     <div class="cam-actions">
-      <button class="cam-action" onclick="camAlert('记笔记（演示）')">
+      <button class="cam-action" onclick="takeNote()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
         记笔记
       </button>
@@ -726,17 +728,19 @@ function qCard(q) {
   var tagCls = ['stubborn','confusion','memory','operation'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
   var action = q.stubborn ? '集中攻克' : '再练';
   var isUpload = q.source === 'upload';
-  /* 图片题：OCR 未识别的图片占位 */
+  /* 图片题：OCR 未识别的图片占位；文字题有原图则附查看入口 */
   var body = (q.mode === 'image')
-    ? '<div class="q-img-thumb"><span>📷</span>OCR 未识别 <em>点击查看原图</em></div>'
-    : '<div class="q-title">' + (q.title || q.ocr) + '</div>';
-  /* 上传题：结构化展示 AI 识别的 题型/考点/错因 + 时间 */
+    ? '<div class="q-img-thumb" onclick="camAlert(\'查看原图（演示）\')"><span>📷</span>OCR 未识别 <em>点击查看原图</em></div>'
+    : '<div class="q-title">' + (q.title || q.ocr) + '</div>'
+      + (q.img ? '<div class="q-orig-link" onclick="camAlert(\'查看原图（演示）\')">📷 查看原图</div>' : '');
+  /* 上传题：结构化展示 AI 识别的 题型/考点/错因 + 原图 + 时间 */
   var metaExtra = '';
   if (isUpload) {
     var typeLbl = TYPE_NAME[q.type] || '图片题';
     metaExtra = '<span class="q-tag upload">📷 拍照</span>'
       + '<span class="q-tag type-tag">' + typeLbl + '</span>'
       + (q.concept && q.concept !== '待归类' ? '<span class="q-tag concept-tag">' + q.concept + '</span>' : '')
+      + (q.img ? '<span class="q-tag img-tag" onclick="event.stopPropagation();camAlert(\'查看原图（演示）\')">📷 原图</span>' : '')
       + '<span>' + (q.createdAt || '') + '</span>';
   }
   var pathLine = isUpload
@@ -846,9 +850,10 @@ function camAlert(msg) {
   showToast(msg);
 }
 
-/* 拍照 → OCR 动画 1s → 出结果 */
+/* 拍照 → OCR 动画 1s → 出结果（每次拍照生成图片标识 camshot_时间戳，供关联原图） */
 function takePhoto() {
   CAM_SHOTS++;
+  CUR.img = 'camshot_' + Date.now();
   var ocr = document.getElementById('camOcr');
   ocr.classList.add('on');
   setTimeout(function() {
@@ -857,6 +862,27 @@ function takePhoto() {
     if (CAM_SHOTS % 2 === 1) showResult(true);
     else showResult(false);
   }, 1000);
+}
+
+/* 记笔记：拍照不识别，直接以图片形式存笔记本（不走 OCR/AI）
+   存 zsb_notes_v1，笔记本页后建 */
+function takeNote() {
+  var imgId = 'camshot_' + Date.now();
+  var now = new Date();
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  var createdAt = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  var item = { nid:'N'+pad(Date.now()%1000000), source:'note', mode:'image',
+    img: imgId, ocr:'', title:'', createdAt: createdAt };
+  var KEY = 'zsb_notes_v1';
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+  arr.unshift(item);
+  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
+  var ocr = document.getElementById('camOcr');
+  ocr.classList.add('on');
+  setTimeout(function() { ocr.classList.remove('on'); }, 600);
+  showToast('✓ 已存入笔记本，可在笔记本查看');
 }
 
 var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆不清', operation:'操作失误' };
@@ -895,7 +921,7 @@ function suggestTag(text) {
 }
 
 /* 当前结果页识别态（供 saveUpload 读取） */
-var CUR = { ocr:'', type:'single', concept:'待归类', tag:'confusion', imgMode:false };
+var CUR = { ocr:'', type:'single', concept:'待归类', tag:'confusion', imgMode:false, img:'' };
 
 function showResult(ok) {
   var res = document.getElementById('camResult');
@@ -1025,9 +1051,10 @@ function saveUpload() {
     path: '我的上传 → 拍照录入',
     type: CUR.type,
     title: mode === 'text' ? txt : '',
-    img: '', ocr: txt, tag: CUR.tag,
+    img: CUR.img, ocr: txt, tag: CUR.tag,
     concept: CUR.concept,
-    createdAt: createdAt, wrongCount: 1, status: 'pending', stubborn: false
+    createdAt: createdAt, wrongCount: 1, status: 'pending', stubborn: false,
+    review: 'pending'
   };
   if (CAM_MODE === 'search') {
     /* 搜题：存章节刷题「我的上传」（qid 前缀 S） */
@@ -1042,7 +1069,7 @@ function saveUpload() {
     arr.unshift(item);
     try { localStorage.setItem('zsb_share_uploads_v1', JSON.stringify(arr)); } catch(e) {}
     closeCam();
-    showToast('✓ 已加入「我的上传」，可去刷题页练习');
+    showToast('✓ 已提交，等待审核通过后计入章节刷题');
     return;
   }
   /* 错题录入：存错题本（qid 前缀 U，数字递增） */
@@ -1059,7 +1086,7 @@ function saveUpload() {
   renderList();
   updateChipCounts();
   closeCam();
-  showToast('✓ 已加入错题本待攻克，继续加油');
+  showToast('✓ 已提交，等待审核通过后计入错题本');
 }
 
 function closeResult() {

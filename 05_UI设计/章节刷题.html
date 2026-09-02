@@ -299,6 +299,8 @@ body {
   display: flex; align-items: center; justify-content: center;
   color: var(--text-tertiary); font-size: 18px;
 }
+.up-thumb.has-img { border-style: solid; border-color: #C7CEE4; background: linear-gradient(135deg, #E9ECF6, #F3F5FC); color: var(--primary); }
+.up-thumb.has-img svg { width: 22px; height: 22px; }
 .up-body { flex: 1; min-width: 0; }
 .up-title {
   font-size: 12.5px; line-height: 1.45; font-weight: 500;
@@ -310,6 +312,7 @@ body {
 .up-meta .tag-pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; background: #E9F7F3; color: var(--brand-teal); }
 /* 题型标签：蓝系，传达「题库类型」而非来源/概念 */
 .up-meta .tag-pill.type { background: #E8F3FF; color: #2F6FED; }
+.up-meta .tag-pill.img-tag { background: #F3F0FF; color: #7C6BD9; cursor: pointer; }
 .up-btn {
   flex-shrink: 0; height: 28px; padding: 0 13px; border-radius: 14px;
   background: var(--primary); color: #fff; border: none;
@@ -1090,16 +1093,20 @@ function collapseAll(){
   renderContent();
 }
 
-/* 「我的上传」卡片渲染：meta 只显示「题库类型」= 题型 */
-var TYPE_NAME = { single:'单选', multi:'多选', judge:'判断', fill:'填空' };
+/* 「我的上传」卡片渲染：meta 显示题型；关联原图缩略（PM 2026-09-03） */
+var TYPE_NAME = { single:'单选', multi:'多选', judge:'判断', fill:'填空', image:'图片题' };
 function uploadCard(q) {
+  var hasImg = !!q.img;
   var body = (q.mode === 'image')
     ? '<div class="up-ocr-tip">OCR 未识别 · 图片题</div>'
     : '<div class="up-title">' + (q.title || '') + '</div>';
   var type = TYPE_NAME[q.type] || '单选';
-  var metaHtml = '<span class="tag-pill type">' + type + '</span>';
+  var metaHtml = '<span class="tag-pill type">' + type + '</span>'
+    + (hasImg ? '<span class="tag-pill img-tag" onclick="event.stopPropagation();alert(\'查看原图（演示）\')">📷 原图</span>' : '');
   return '<div class="up-card" data-qid="' + q.qid + '">'
-    + '<div class="up-thumb">' + (q.mode === 'image' ? '📷' : '📄') + '</div>'
+    + '<div class="up-thumb' + (hasImg ? ' has-img' : '') + '">'
+    + (hasImg ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' : (q.mode === 'image' ? '📷' : '📄'))
+    + '</div>'
     + '<div class="up-body">' + body
     +   '<div class="up-meta">' + metaHtml + '</div>'
     + '</div>'
