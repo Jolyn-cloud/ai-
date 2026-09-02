@@ -90,19 +90,18 @@ body {
   gap: 6px;
   margin: 2px 10px;
   padding: 12px 8px;
-  font-size: 12px; font-weight: 700; color: var(--brand-teal);
-  background: #F2FBF8;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
   border-radius: 10px;
   cursor: pointer;
   transition: background .15s ease;
   -webkit-user-select: none; user-select: none;
 }
-.lv-upload:active { background: #E4F5EF; }
+.lv-upload:active { background: #F2F3F8; }
 .lv-upload svg {
   width: 14px; height: 14px;
-  fill: none; stroke: var(--brand-teal); stroke-width: 2;
+  fill: none; stroke: currentColor; stroke-width: 2;
 }
-.lv-upload.active { background: #E4F5EF; color: var(--brand-mid); }
+.lv-upload.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 700; }
 
 /* ===== 右侧：当前章内容（独立滚动 + 展开动效） ===== */
 .lv-content {
@@ -194,17 +193,17 @@ body {
 .sub-rate.mid { color: var(--warning); }
 .sub-rate.high { color: var(--success); }
 .sub-rate.void { color: var(--text-tertiary); font-weight: 600; font-size: 11px; }
-/* 二级右侧展开按钮（独立热区） */
+/* 二级右侧展开按钮（轻量：无底色小灰箭头，独立热区） */
 .sub-arrow {
   flex-shrink: 0;
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: var(--primary); font-weight: 800;
-  background: var(--primary-light); border-radius: 50%;
+  font-size: 11px; color: #B9C0CE;  /* 淡灰，弱化 */
   cursor: pointer;
-  transition: background .12s ease, transform .25s ease;
+  transition: color .15s ease;
 }
-.sub-arrow:active { background: rgba(91,114,245,.25); }
+.sub-arrow:hover { color: var(--primary); }
+.sub-arrow:active { color: var(--primary-dark); }
 /* 有任一二级展开时，未展开的二级压缩距+与展开卡连排（无展开二级不相连时各自有下圆角） */
 .sub-row.flat { margin-bottom: 0; border-radius: 12px 12px 0 0; border-bottom-color: #F0F1F7; }
 
@@ -227,17 +226,17 @@ body {
   transition: background .12s ease;
 }
 .lv3-row:active { background: rgba(91,114,245,.05); }
-/* 三级右侧展开按钮（独立热区） */
+/* 三级右侧展开按钮（轻量：无底色小灰箭头，独立热区） */
 .lv3-row .pick {
   flex-shrink: 0;
   width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: var(--primary);
-  background: var(--primary-light); border-radius: 50%;
+  font-size: 11px; font-weight: 700; color: #B9C0CE;  /* 淡灰，弱化 */
   cursor: pointer;
-  transition: background .12s ease;
+  transition: color .15s ease;
 }
-.lv3-row .pick:active { background: rgba(91,114,245,.25); }
+.lv3-row .pick:hover { color: var(--primary); }
+.lv3-row .pick:active { color: var(--primary-dark); }
 .lv3-row.open .pick { transform: none; }   /* 收起/展开用 ⌃/▸ 符号切换，不旋转 */
 .lv3-title {
   flex: 1; min-width: 0;
@@ -270,10 +269,7 @@ body {
   transition: background .12s ease;
 }
 .lv4-row:active { background: rgba(91,114,245,.045); }
-.lv4-row .pick {
-  flex-shrink: 0; width: 15px;
-  font-size: 15px; font-weight: 800; color: #C7CDD9;
-}
+/* 四级无箭头：整行点击即刷（PM 2026-09-02 拍板取消） */
 .lv4-title {
   flex: 1; min-width: 0;
   font-size: 11.5px; font-weight: 500; color: #68748D;
@@ -1047,7 +1043,6 @@ function renderContent(){
         var l4fresh = l4.done===0;
         var l4Stubborn = !l4fresh && l4.total>0 && (l4.wrong/l4.total>=0.5);
         html += '<div class="lv4-row" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">'
-          + '<span class="pick">›</span>'
           + '<span class="lv4-title">'+l4.name+'</span>'
           + '<span class="lv4-meta">'
           + (l4fresh ? '<span class="m-total">'+l4.total+'题·未做</span>'
