@@ -210,12 +210,17 @@ check('定位待回跳原题(第4题)', r.idx === 3, r.idx);
 
 console.log('\n== G. 游客体验卷卡已撤（登录后无体验卷入口） ==');
 r = await evalIn('quiz', `(function(){
-  return { hasTrial: document.getElementById('aiCard').querySelector('.trial-card') !== null,
-    hasAi: document.getElementById('aiCard').querySelector('.ai-task-title') !== null,
-    trialCardClass: document.getElementById('aiCard').className };
+  var card = document.getElementById('aiCard');
+  var cta = card.querySelector('.start-btn');
+  return { hasTrial: card.querySelector('.trial-card') !== null,
+    hasAi: card.querySelector('.ai-task-title') !== null,
+    ctaText: cta ? cta.textContent.replace(/\\s+/g,' ').trim() : '',
+    noProfileCard: card.querySelector('.ai-empty-title') === null,   /* 2026-09-02：登录后不再有「完善资料」卡 */
+    trialCardClass: card.className };
 })()`);
 check('已登录不再显示体验卷卡', r.hasTrial === false, r.hasTrial);
 check('恢复 AI 今日任务卡', r.hasAi === true);
+check('登录后直接显示「开始今日学习」(无完善资料卡)', r.noProfileCard === true && r.ctaText === '开始今日学习', r.ctaText);
 
 /* ===== 单开：游客已体验 → 正式入口弹登录 ===== */
 console.log('\n== H. 刷新后游客已体验 → 正式入口弹登录 ==');

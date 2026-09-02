@@ -492,31 +492,14 @@ function trialExperienced() {
 }
 function renderAiCard() {
   var box = document.getElementById('aiCard');
-  var s = SHELL_STATE || { profileLevel: 'none' };
   box.classList.add('ai-card');   /* 默认白主卡样式；游客体验卷卡切换时移除 */
 
   /* ④ 游客 · 未体验 → 免费体验卷高亮卡（替换 AI 卡位置；PRD §七（二）：免登录 · CTA「开始体验」）
-     已体验游客 / 已登录 → 走下方三态（画像引导 / 今日任务） */
+     其余用户（已登录 / 游客已体验）→ 一律直接渲染 AI 定制今日任务卡，不再要求完善画像
+     2026-09-02 PM 拍板：体验卷完成后登录用户直接开始今日学习，不跳 AI 首页、不再显示「完善资料」卡 */
   if (isGuest() && !trialExperienced()) {
     box.classList.remove('ai-card');   /* 体验卷卡独立样态（蓝紫渐变描边 + 顶部色条），不套白主卡 */
     renderTrialCard(box);
-    return;
-  }
-  var done = s.profileLevel === 'done';
-
-  /* ① 未画像 → 引导 */
-  if (!done) {
-    box.innerHTML = ''
-      + '<div class="ai-task-header">'
-      +   '<span class="ai-badge">'
-      +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>'
-      +     'AI为你定制'
-      +   '</span>'
-      +   '<span class="ai-task-title">今日学习任务</span>'
-      + '</div>'
-      + '<div class="ai-empty-title">完善学习资料后，为你定制今日任务</div>'
-      + '<div class="ai-empty-desc">填写备考年份与专业，AI 将根据你的薄弱点和考试日程，自动生成每天最该练的题。</div>'
-      + '<button class="start-btn ghost" onclick="goCompleteProfile()">完善资料</button>';
     return;
   }
 
