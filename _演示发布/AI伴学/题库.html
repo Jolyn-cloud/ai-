@@ -379,11 +379,11 @@ var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
    顽固标签规则（通用 · 闪卡 / 题库共用，口径与逻辑面板一致）
    ------------------------------------------------------------
    层级：第一级考点（章）→ … → 四级考点（最后一级）→ 具体考题。
-   ① 考题级顽固：同一道考题答错 ≥ 3 次 → 该考题标记「顽固」。
-   ② 考点级顽固：四级考点内 错误考题数 ÷ 该考点考题总数 × 100% ≥ 50%
-      → 该四级考点标记「顽固」；答题时该考点优先展示错过的考题。
-   ③ 薄弱（PM 拍板）：考点正确率 < 60% 且答题样本 ≥ 5 → 薄弱。
-   ◆ 顽固包含在薄弱中：顽固 = 薄弱项中更严重的一档（考点级顽固 / 考题级顽固）。
+   ① 考点级顽固：考点内 错误考题数 ÷ 该考点考题总数 × 100% ≥ 50%
+      → 该考点标记「顽固」。展示位置 = 章节练习三级标题 + 做题页考点标签。
+   ② 薄弱（PM 拍板）：考点正确率 < 60% 且答题样本 ≥ 5 → 薄弱。
+   ◆ 顽固包含在薄弱中：顽固 = 薄弱项中更严重的一档（考点级顽固）。
+   ◆ 2026-09-02 PM 拍板：考题不再单独标顽固（废除「答错≥3次→考题顽固」口径）。
 
    首次分配题目规则（AI 定制 · 题库「今日任务」）
    ------------------------------------------------------------
@@ -397,7 +397,7 @@ var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
    ============================================================ */
 
 /* 四级考点数据（演示 demo）：第一级考点 chapter → 四级考点 name → 下挂具体考题 questions
-   qid=考题号；wrong=该考题答错次数（≥3 → 考题顽固） */
+   qid=考题号；wrong=该考题答错次数（用于算考点错误率，≥50% → 考点顽固；2026-09-02 考题不再单独标） */
 var WEAK_POINTS = [
   { id: 'p1', chapter: '第3章 操作系统', name: '文件管理', freq: 8, questions: [
       { qid: 'Q101', wrong: 4 },   /* 答错4次≥3 → 考题顽固 */
@@ -412,16 +412,15 @@ var WEAK_POINTS = [
 ];
 
 /* 顽固标签识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
-   wrongRate（考点错误率）/ wrongQuestions（错过的考题）/ stubbornQuestions（考题级顽固） */
+   wrongRate（考点错误率）/ wrongQuestions（错过的考题）——2026-09-02 仅考点级顽固 */
 function identifyWeakPoints() {
   var stubborn = [], weak = [];
   WEAK_POINTS.forEach(function(p) {
     var wrongQuestions    = p.questions.filter(function(q) { return q.wrong > 0; });
-    var stubbornQuestions = p.questions.filter(function(q) { return q.wrong >= 3; });  /* 考题级顽固：答错≥3 */
     var wrongRate = wrongQuestions.length / p.questions.length;
     var isStubborn = wrongRate >= 0.5;                    /* 考点级顽固：错误考题数/总数 ≥ 50% */
     var isWeak = (1 - wrongRate) < 0.6 && p.questions.length >= 5;   /* 薄弱：正确率<60% 且样本≥5 */
-    var info = { wrongRate: wrongRate, wrongQuestions: wrongQuestions, stubbornQuestions: stubbornQuestions };
+    var info = { wrongRate: wrongRate, wrongQuestions: wrongQuestions };
     if (isStubborn) stubborn.push(Object.assign({}, p, info));
     else if (isWeak) weak.push(Object.assign({}, p, info));
   });

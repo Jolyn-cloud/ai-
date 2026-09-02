@@ -223,6 +223,12 @@ r = await evalJs(`(function(){
   return { name: name, msgs: window.__msgs.slice(-1)[0] };
 })()`);
 check('四级整行点击 → REQ_PRACTICE chapter/l4', r.msgs && r.msgs.type === 'REQ_PRACTICE' && r.msgs.data.entry === 'chapter' && r.msgs.data.level === 'l4' && r.msgs.data.cid === 1 && r.msgs.data.name === r.name, JSON.stringify(r.msgs));
+r = await evalJs(`(function(){
+  /* 重展开展开态（第1章·第一二级）后统计可见四级行是否含有顽固标签 */
+  var rows = [...document.querySelectorAll('.lv4-row')];
+  return { stubCount: rows.filter(function(r){ return r.querySelector('.m-stubborn'); }).length, total: rows.length };
+})()`);
+check('四级行不再有顽固标签(2026-09-02)', r.stubCount === 0, JSON.stringify(r));
 
 /* ===== 8. 「我的上传」入口：左栏底部 → 右侧切上传列表 ===== */
 r = await evalJs(`(function(){

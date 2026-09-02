@@ -76,7 +76,9 @@ body{
 .tag.type{ background:var(--primary-light); color:var(--primary-dark); }
 .tag.concept{ background:#F9F0FF; color:#722ED1; }
 .tag.difficulty{ background:#FFF7E6; color:#FA8C16; }
-.tag.stubborn{ background:#FFF1F0; color:#CF1322; font-weight:600; }
+/* 考点级顽固：考点标签底色强化为顽固红（2026-09-02 PM：顽固仅考点级标注在考点上） */
+.tag.concept.stub{ background:#FFF1F0; color:#CF1322; }
+.tag.concept .point-stub{ color:#CF1322; font-weight:700; }
 
 /* ===== 题目区（独立滚动，承载题干→选项→反馈→解析，PM 2026-08-31） ===== */
 .question-area{ flex:1; overflow-y:auto; background:#fff; -webkit-overflow-scrolling:touch; }
@@ -739,12 +741,10 @@ body{
       <div class="feedback-sec">
         <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
         <div class="feedback-opts" id="fbOptsQ">
-          <span class="fb-chip" data-k="题干文字错误" onclick="toggleFb(this)">题干文字错误</span>
+          <span class="fb-chip" data-k="题干错误" onclick="toggleFb(this)">题干错误</span>
           <span class="fb-chip" data-k="选项错误" onclick="toggleFb(this)">选项错误</span>
-          <span class="fb-chip" data-k="题目重复" onclick="toggleFb(this)">题目重复</span>
-          <span class="fb-chip" data-k="题型标注错误" onclick="toggleFb(this)">题型标注错误</span>
-          <span class="fb-chip" data-k="归类错误" onclick="toggleFb(this)">归类错误</span>
           <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
+          <span class="fb-chip" data-k="题型错误" onclick="toggleFb(this)">题型错误</span>
         </div>
       </div>
       <div class="feedback-sec">
@@ -771,11 +771,9 @@ body{
       <div class="feedback-sec">
         <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
         <div class="feedback-opts" id="fbOptsA">
-          <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
-          <span class="fb-chip" data-k="解析文字错误" onclick="toggleFb(this)">解析文字错误</span>
-          <span class="fb-chip" data-k="解析逻辑错误" onclick="toggleFb(this)">解析逻辑错误</span>
-          <span class="fb-chip" data-k="解析不完整" onclick="toggleFb(this)">解析不完整</span>
-          <span class="fb-chip" data-k="图片解析有误" onclick="toggleFb(this)">图片解析有误</span>
+          <span class="fb-chip" data-k="答案解析错误" onclick="toggleFb(this)">答案解析错误</span>
+          <span class="fb-chip" data-k="文字解析错误" onclick="toggleFb(this)">文字解析错误</span>
+          <span class="fb-chip" data-k="图片解析错误" onclick="toggleFb(this)">图片解析错误</span>
         </div>
       </div>
       <div class="feedback-sec">
@@ -945,6 +943,18 @@ if (IS_PAPER && ENTRY === 'trial' && !PAPER_META) PAPER_META = PAPERS.trial1;
 /* 考试卷题目集 */
 var PAPER_SET = IS_PAPER ? (PAPER_QUESTIONS[PAPER_META ? PAPER_META.type : 'exam'] || PAPER_QUESTIONS.exam) : [];
 
+/* ---------- 考点级顽固（2026-09-02 PM：顽固仅考点级，考题/四级不再标）
+   口径：考点内 错误考题数 ÷ 考点考题总数 ≥ 50%（与章节刷题三级标题判定一致）
+   展示：做题页考点标签「📍 concept · 顽固」 */
+var STUBBORN_POINT_STATS = {
+  '文件管理':   { wrong: 3, total: 5 },   /* 60% ≥50% → 考点顽固 */
+  '信息与数据': { wrong: 5, total: 9 }    /* 56% ≥50% → 考点顽固 */
+};
+function isStubbornPoint(concept) {
+  var s = STUBBORN_POINT_STATS[concept];
+  return !!(s && s.wrong / s.total >= 0.5);
+}
+
 /* ---------- 演示题目数据（接真实题库时替换；entry 区分来源） ----------
    type: single单选 / multi多选 / judge判断(对/错) / fill填空 / operation操作(子题) / essay简答
    answer: single/judge=正确选项索引; multi=正确索引数组; fill 用 keywords 关键字判题 */
@@ -955,7 +965,6 @@ var QUESTIONS = (function buildQuestions(){
   today: [
     {
       type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'中',
-      stubborn:true,
       hotWrong:0,         /* 埋点：Delete 被高频错选（学生忘记加 Shift） */
       stem:'在 Windows 10 中，要永久删除文件而不放入回收站，应使用的快捷键是（ ）。',
       options:['Delete','Shift+Delete','Ctrl+Delete','Alt+Delete'],
@@ -994,7 +1003,6 @@ var QUESTIONS = (function buildQuestions(){
     },
     {
       type:'operation', chapter:'第2章 文字处理', concept:'Word 排版', difficulty:'高',
-      stubborn:true,
       stem:'琰是一名刚毕业的大学生，参加校招之际她准备套用朋友的简历格式（如下图所示）来完成自己的简历，请帮她解决以下问题。',
       sub:[
         { type:'single', stem:'将简历标题「个人简历」设置为居中对齐，可使用的快捷键是（ ）。',
@@ -1248,11 +1256,11 @@ function renderQuestion() {
   var studyReveal = (q.type === 'fill' || q.type === 'essay') ? !!reviewed[idx] : getAnswered(q, answers[idx]);
   var reveal = submitted || (MODE === 'study' && studyReveal);
 
-  /* 标签 */
+  /* 标签（2026-09-02 PM：顽固仅考点级——考点顽固标注在考点标签上，考题不再单独标顽固） */
   var tags = '<span class="tag type">' + (TYPE_NAME[q.type] || '题目') + '</span>'
-    + '<span class="tag concept">📍 ' + (q.concept || '') + '</span>'
+    + '<span class="tag concept' + (isStubbornPoint(q.concept) ? ' stub' : '') + '">📍 ' + (q.concept || '')
+    + (isStubbornPoint(q.concept) ? ' <b class="point-stub">· 顽固</b>' : '') + '</span>'
     + '<span class="tag difficulty">难度:' + q.difficulty + '</span>';
-  if (q.stubborn) tags += '<span class="tag stubborn">顽固</span>';
   if (marked[idx]) tags += '<span class="tag marked">已标记</span>';
   document.getElementById('tagArea').innerHTML = tags;
 

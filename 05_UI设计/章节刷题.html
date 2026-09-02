@@ -279,10 +279,6 @@ body {
 .lv4-meta .m-total { color: var(--text-tertiary); }
 .lv4-meta .m-ok { color: var(--success); font-weight: 800; font-size: 11px; }
 .lv4-meta .m-no { color: var(--danger); font-weight: 800; font-size: 11px; }
-.lv4-meta .m-stubborn {
-  color: #CF1322; font-weight: 800; font-size: 10px;
-  background: #FFF1F0; padding: 2px 7px; border-radius: 5px;
-}
 
 /* ===== 我的上传（搜题导入） ===== */
 .upload-section { border-top: 1px solid #F0F1F7; margin-top: 14px; padding-top: 12px; }
@@ -1037,18 +1033,16 @@ function renderContent(){
         + '</span>'
         + '</div>';
 
-      /* 四级考点：整行点击直接刷；不再继续展开 */
+      /* 四级考点：整行点击直接刷；不再继续展开；四级不再标顽固（2026-09-02 PM：顽固仅考点级=三级标题） */
       html += '<div class="lv4-list'+(isL3Open?'':' hidden')+'">';
       l3.level4.forEach(function(l4){
         var l4fresh = l4.done===0;
-        var l4Stubborn = !l4fresh && l4.total>0 && (l4.wrong/l4.total>=0.5);
         html += '<div class="lv4-row" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">'
           + '<span class="lv4-title">'+l4.name+'</span>'
           + '<span class="lv4-meta">'
           + (l4fresh ? '<span class="m-total">'+l4.total+'题·未做</span>'
                      : (l4.right>0 ? '<span class="m-ok">✔ '+l4.right+'</span>' : '')
-                        + (l4.wrong>0 ? '<span class="m-no">✖ '+l4.wrong+'</span>' : '')
-                        + (l4Stubborn ? '<span class="m-stubborn">顽固</span>' : ''))
+                        + (l4.wrong>0 ? '<span class="m-no">✖ '+l4.wrong+'</span>' : ''))
           + '</span>'
           + '</div>';
       });
