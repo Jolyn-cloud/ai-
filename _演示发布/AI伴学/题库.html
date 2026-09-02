@@ -132,6 +132,41 @@ body::before {
   font-size:12px; color:var(--primary-dark); line-height:1.5; margin-bottom:16px;
   display:flex; align-items:flex-start; gap:6px;
 }
+/* ===== 免费体验卷高亮卡（游客 · 未体验；2026-09-02 PM 拍板：替换 AI 今日任务卡位置）
+   蓝紫渐变描边 + 顶部色条，区别于白色主卡，提示「零门槛免费体验」 */
+.trial-card {
+  background: linear-gradient(135deg, #F4F1FF 0%, #EFF9FF 100%);
+  border-radius: 24px 20px 26px 18px;
+  padding: 20px 20px 22px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(91,114,245,.14), 0 0 0 1px rgba(91,114,245,.18);
+}
+.trial-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--brand-teal));
+}
+.trial-card .trial-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, var(--primary), var(--brand-mid)); color:#fff;
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px;
+  margin-bottom: 10px;
+}
+.trial-card .trial-badge svg { width: 11px; height: 11px; }
+.trial-card .trial-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); }
+.trial-card .trial-desc { font-size: 12px; color: #5A6478; margin: 6px 0 14px; line-height: 1.5; }
+.trial-card .trial-cta {
+  width: 100%;
+  background: linear-gradient(100deg, var(--primary) 0%, var(--brand-mid) 46%, var(--brand-teal) 100%);
+  color:#fff; border: none; border-radius: 99px; padding: 13px; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  box-shadow: 0 10px 22px rgba(91,114,245,.3);
+  transition: transform .12s ease;
+}
+.trial-card .trial-cta:active { transform: scale(.97); }
+.trial-card .trial-cta svg { width: 16px; height: 16px; }
+/* 游客已体验 → 隐藏体验卷卡（JS 控制显隐）；下面这块是本签证样式，与正式入口锁共用 */
 .ai-reason svg { width:14px; height:14px; flex-shrink:0; margin-top:1px; }
 .start-btn {
   width:100%;
@@ -277,21 +312,21 @@ body::before {
       </button>
     </div>
 
-    <!-- 快捷行 -->
+    <!-- 快捷行（游客 → 点击弹登录；PRD §七（二）） -->
     <div class="quick-row">
-      <button class="quick-item" onclick="showToast('收藏本')">
+      <button class="quick-item" onclick="quickEntry('收藏本')">
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
         <div class="q-name">收藏本</div>
       </button>
-      <button class="quick-item" onclick="openSubLayer('cam')">
+      <button class="quick-item" onclick="quickEntry('拍照搜题')">
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
         <div class="q-name">拍照搜题</div>
       </button>
-      <button class="quick-item" onclick="showToast('成绩录入')">
+      <button class="quick-item" onclick="quickEntry('成绩录入')">
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
         <div class="q-name">成绩录入</div>
       </button>
-      <button class="quick-item" onclick="showToast('笔记本')">
+      <button class="quick-item" onclick="quickEntry('笔记本')">
         <div class="q-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <div class="q-name">笔记本</div>
       </button>
@@ -447,10 +482,30 @@ function renderCountdown() {
   if (elYear) elYear.textContent = t.labelYear;
 }
 
-/* ---------- AI 今日任务卡（三态） ---------- */
+/* ---------- AI 今日任务卡（三态 + 游客体验卷卡） ---------- */
+/* 游客判据与已体验判据：STATE 为主，缓存兜底（冷启动 STATE 未到时先读 localStorage 防闪烁/误判） */
+function isGuest() {
+  var s = SHELL_STATE || {};
+  return !(s.logged === true);
+}
+function trialExperienced() {
+  var s = SHELL_STATE || {};
+  if (s.trialDone === true) return true;
+  try { return localStorage.getItem('zsb_trial_done_v1') === '1'; } catch(e) {}
+  return false;
+}
 function renderAiCard() {
   var box = document.getElementById('aiCard');
   var s = SHELL_STATE || { profileLevel: 'none' };
+  box.classList.add('ai-card');   /* 默认白主卡样式；游客体验卷卡切换时移除 */
+
+  /* ④ 游客 · 未体验 → 免费体验卷高亮卡（替换 AI 卡位置；PRD §七（二）：免登录 · CTA「开始体验」）
+     已体验游客 / 已登录 → 走下方三态（画像引导 / 今日任务） */
+  if (isGuest() && !trialExperienced()) {
+    box.classList.remove('ai-card');   /* 体验卷卡独立样态（蓝紫渐变描边 + 顶部色条），不套白主卡 */
+    renderTrialCard(box);
+    return;
+  }
   var done = s.profileLevel === 'done';
 
   /* ① 未画像 → 引导 */
@@ -495,6 +550,24 @@ function renderAiCard() {
   /* ② 今日已刷完 → 空态已完成（本轮 demo 恒未刷，仅预留分支） */
 }
 
+/* 免费体验卷高亮卡（游客 · 未体验）：15题 · 免登录 · CTA「开始体验」直接进做题页①
+   点击 → goPractice('trial') 请求总壳打开免费体验卷 */
+function renderTrialCard(box) {
+  box.innerHTML = ''
+    + '<div class="trial-card">'
+    +   '<span class="trial-badge">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+    +     '新用户专享'
+    +   '</span>'
+    +   '<div class="trial-title">免费体验卷</div>'
+    +   '<div class="trial-desc">精选 15 题，零门槛免费体验，交卷后查看报告和解析。</div>'
+    +   '<button class="trial-cta" onclick="goPractice(\'trial\')">'
+    +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    +     '开始体验'
+    +   '</button>'
+    + '</div>';
+}
+
 /* 未完善资料 → 跳转 AI（学习）页完善画像：向总壳发 OPEN_PROFILE（总壳转发学习页 + 切 AI tab）
    独立打开题库.html 时无父壳 → 兜底提示 */
 function goCompleteProfile() {
@@ -509,11 +582,37 @@ function goCompleteProfile() {
 
 /* 开始做题：向总壳请求打开统一做题层（今日学习/错题本/章节练习共用一页，entry 区分来源） */
 function goPractice(entry) {
+  /* 游客正式入口锁登录（PRD §七（二）：游客已体验后正式功能入口点击 → 弹登录）：
+     主学习卡（开始今日学习）仅游客场景锁（体验卷已隐藏）；entry=trial 体验卷走免登录 */
+  if (isGuest() && entry !== 'trial') {
+    requireLogin();
+    return;
+  }
+  if (entry === 'trial') {
+    /* 免费体验卷：携带 paperId=trial1（做题页 PAPER_META → 报告 paperId 必须非空，解析回跳链路依赖） */
+    window.parent.postMessage({ type: 'REQ_PRACTICE', data: { entry: 'trial', paperId: 'trial1' } }, '*');
+    return;
+  }
   try {
     window.parent.postMessage({ type: 'REQ_PRACTICE', data: { entry: entry || 'today' } }, '*');
   } catch(e) {
     showToast('请从总壳进入，开始做题');
   }
+}
+/* 游客登录门禁（正式功能入口统一走这里）：向总壳请求弹登录 Sheet（来源=general，登录成功停留当前页） */
+function requireLogin() {
+  try {
+    window.parent.postMessage({ type: 'REQ_LOGIN', data: { from: 'general' } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始做题');
+  }
+}
+/* 快捷行统一入口：游客 → 弹登录（PRD §七（二）快捷行点击弹登录）；已登录 → 各功能原逻辑 */
+function quickEntry(name) {
+  if (isGuest()) { requireLogin(); return; }
+  /* 已登录：走各功能原入口 */
+  if (name === '拍照搜题') { openSubLayer('cam'); return; }
+  showToast(name);
 }
 
 /* ---------- 二级层（题库 tab 内部下钻） ----------
@@ -534,6 +633,11 @@ function notifyShellChapter(open, sub) {
   try { window.parent.postMessage({ type: 'CHAPTER_LAYER', data: { open: open, sub: sub || 'chapter' } }, '*'); } catch(e) {}
 }
 function openSubLayer(sub) {
+  /* 游客正式功能入口锁登录（PRD §七（二）：章节/模拟/真题/错题/快捷行点击 → 弹登录） */
+  if (isGuest()) {
+    requireLogin();
+    return;
+  }
   /* 已有其他层打开 → 先收（互斥） */
   if (activeSub && activeSub !== sub) SUB_LAYERS[activeSub].classList.remove('show');
   activeSub = sub;

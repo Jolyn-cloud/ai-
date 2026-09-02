@@ -977,6 +977,11 @@ body.tab-hidden .report-layer { bottom: 0; }
 /* ============================================================
    总壳状态中枢：登录/画像/VIP 全局唯一状态源
    ============================================================ */
+/* 游客体验卷「已体验」标记：持久化 key=zsb_trial_done_v1（与 vipClaimed 同款独立 key，不随刷新/退出清除）。
+   需在 STATE 初始化前读取（STATE IIFE 内引用 trialDone） */
+var trialDone = false;
+try { trialDone = localStorage.getItem('zsb_trial_done_v1') === '1'; } catch(e) {}
+
 var STATE = (function() {
   /* 冷启动：登录/画像每次刷新重置，走【填画像→领VIP→登录】流程演示。
      （2026-08-29 PM 拍板：刷新即重来；2026-08-30 补充：仅 VIP 领取状态持久化——
@@ -989,7 +994,8 @@ var STATE = (function() {
     logged: false,
     user: null,
     vipClaimed: vipClaimed,
-    profileLevel: 'none'
+    profileLevel: 'none',
+    trialDone: trialDone
   };
 })();
 
@@ -998,6 +1004,7 @@ var STATE = (function() {
 function persist() {
   try { localStorage.setItem('zsb_state_v1', JSON.stringify(STATE)); } catch(e) {}
   try { localStorage.setItem('zsb_vip_claimed_v1', STATE.vipClaimed ? '1' : '0'); } catch(e) {}
+  try { localStorage.setItem('zsb_trial_done_v1', STATE.trialDone ? '1' : '0'); } catch(e) {}
 }
 
 /* 画像完整度：year+month+school+major 齐全 → done；有任意一项 → partial；否则 none */
@@ -1012,8 +1019,11 @@ function calcProfileLevel(user) {
 }
 
 var FRAMES = ['study', 'quiz', 'flash', 'mine', 'vip'];
+/* STAGE_FRAMES：另挂载的做题层/报告层 iframe——STATE 广播需直达（解析门禁/游客态刷新读取 STATE.logged），
+   与 tab 框并列广播，保证「关闭/领取VIP→停留题库页」「登录成功回跳」等链路下各层状态一致 */
+var STAGE_FRAMES = ['practice', 'report'];
 function allFrames() {
-  return FRAMES.map(function(f) { return document.getElementById('frame-' + f); })
+  return FRAMES.concat(STAGE_FRAMES).map(function(f) { return document.getElementById('frame-' + f); })
     .filter(Boolean);
 }
 
@@ -1023,6 +1033,34 @@ function broadcast() {
   allFrames().forEach(function(f) {
     try { f.contentWindow.postMessage({ type: 'STATE', state: STATE }, '*'); } catch(e) {}
   });
+}
+/* 体验卷交卷后置已体验：写持久标记 + 即时广播（题库页游客态撤下体验卷卡，正式入口改弹登录） */
+function markTrialDone() {
+  if (STATE.trialDone) return;
+  STATE.trialDone = true;
+  broadcast();
+}
+
+/* 报告类型 → 做题页 entry：real=历年真题 / trial=免费体验卷 / 其余（exam）=模拟考试 */
+function reportEntry() {
+  if (!REPORT_DATA) return 'exam';
+  if (REPORT_DATA.type === 'real') return 'real';
+  if (REPORT_DATA.type === 'trial') return 'trial';
+  return 'exam';
+}
+
+/* 解析门禁兑现：关报告层 → 打开做题页(对应报告类型的卷) → 就绪后 ENTER_REVIEW 定位该题解析 */
+function handleReviewRequest(q) {
+  if (!REPORT_DATA || !REPORT_DATA.paperId) return;
+  var entry = reportEntry();
+  openPractice(entry, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
+  closeReport();
+  setTimeout(function() {
+    var practice = document.getElementById('frame-practice');
+    if (practice && practice.contentWindow) {
+      practice.contentWindow.postMessage({ type: 'ENTER_REVIEW', data: { q: q || 0 } }, '*');
+    }
+  }, 900);
 }
 
 /* 子页面上报：LOGGED / PROFILE / VIP */
@@ -1036,8 +1074,10 @@ window.addEventListener('message', function(evt) {
   }
   if (d.type === 'REQ_LOGIN') {
     /* 登录归属唯一：总壳登录 Sheet（A）；任何页请求登录 → 由总壳弹登录，不转发学习页
-       来源随请求透传，决定登录成功后 toast 文案与 VIP 是否到账 */
-    openLoginSheet(d.data && d.data.from);
+       来源随请求透传，决定登录成功后 toast 文案与 VIP 是否到账。
+       from='review'（解析门禁）→ 附加 q 定位待回跳题；登录成功后自动兑现回跳 */
+    var ld = d.data || {};
+    openLoginSheet(ld.from, ld.q);
     return;
   }
   if (d.type === 'OPEN_PROFILE') {
@@ -1055,8 +1095,12 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REQ_REPORT') {
-    /* 模拟考场/历年真题点「薄弱点分析」→ 存数据 + 打开报告层 */
-    openReport(d.data || {});
+    /* 模拟考场/历年真题点「薄弱点分析」→ 存数据 + 打开报告层。
+       游客体验卷（type='trial'）交卷 → 顺带写入 zsb_trial_done_v1=1（已体验标记，持久化）：
+       此后题库游客态隐藏体验卷卡、展示正式功能入口点击弹登录（PRD §七（二）） */
+    var rpt = d.data || {};
+    if (rpt.type === 'trial') markTrialDone();
+    openReport(rpt);
     return;
   }
   if (d.type === 'GET_REPORT') {
@@ -1072,26 +1116,18 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REPORT_REVIEW') {
-    /* 报告页「查看解析」/答题卡跳题 → 关报告层 → 打开做题页(考试卷) → 就绪后进入解析定位该题 */
+    /* 报告页「查看解析」/答题卡跳题 → 关报告层 → 打开做题页(考试卷) → 就绪后进入解析定位该题。
+       游客体验卷（REPORT_DATA.type='trial'）→ 打开 entry=trial 做题页 */
     var rd = d.data || {};
     if (REPORT_DATA && REPORT_DATA.paperId) {
-      var entry = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
-      openPractice(entry, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
-      closeReport();
-      /* 等做题页加载完再送入解析定位（考卷就绪后） */
-      setTimeout(function() {
-        var practice = document.getElementById('frame-practice');
-        if (practice && practice.contentWindow) {
-          practice.contentWindow.postMessage({ type: 'ENTER_REVIEW', data:{ q: rd.q || 0 } }, '*');
-        }
-      }, 900);
+      handleReviewRequest(rd.q || 0);
     }
     return;
   }
   if (d.type === 'REPORT_RESTART') {
     /* 报告页「在此作答」→ 关报告层 → 重新考试（正常模式） */
     if (REPORT_DATA && REPORT_DATA.paperId) {
-      var entry2 = (REPORT_DATA.type === 'real') ? 'real' : 'exam';
+      var entry2 = reportEntry();
       openPractice(entry2, { paperId: REPORT_DATA.paperId, name: REPORT_DATA.name, minutes: REPORT_DATA.minutes, fullScore: REPORT_DATA.fullScore });
       closeReport();
     }
@@ -1159,7 +1195,7 @@ function syncChildState() {
 var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 /* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
-var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传' };
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷' };
 var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
 var practiceTitle = '';
 var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
@@ -1310,7 +1346,7 @@ function openPractice(entry, extra) {
   practiceTitle = PRACTICE_TITLES[entry] || '今日学习';
   if (extra.name) practiceTitle = extra.name;
   var url = '做题页.html?entry=' + (entry || 'today');
-  if (entry === 'exam' || entry === 'real') {
+  if (entry === 'exam' || entry === 'real' || entry === 'trial') {
     url += '&paperId=' + (extra.paperId || '') + '&minutes=' + (extra.minutes || '') + '&fullScore=' + (extra.fullScore || '');
   } else if (entry === 'wrong') {
     /* 错题本：qid 详情定位该题 / scope 重练范围（all 全部 · stubborn 顽固集中攻克） */
@@ -1377,13 +1413,12 @@ function claimBenefit() {
     benefitMask.classList.remove('leave');
     hideBenefit();           /* VIP 福利弹窗隐藏 */
     if (STATE.logged) {
-      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 → 跳学习页（未画像填画像 / 已画像进首页） */
+      /* 已登录：无需登录 → 直接 VIP 到账 + 轻量提示 → 停留题库页（游客体验卷/正式功能入口无缝衔接） */
       benefitUsing = false;
       benefitClosed = true;         /* 已到账 → 本次会话不再弹权益 */
       STATE.vipClaimed = true;
       broadcast();
       showToastText('领取成功，VIP权益已到账');
-      switchTab('study');
     } else {
       openLoginSheet('benefit');    /* 权益线：底部上浮登录弹窗（登录成功自动到账 + 跳学习页） */
     }
@@ -1393,13 +1428,13 @@ function claimBenefit() {
 document.getElementById('benefitClose').addEventListener('click', function() {
   benefitClosed = true;
   hideBenefit();
-  switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像；未领取下次登录仍弹 */
+  /* 2026-09-02 PM 拍板：关闭（不领取）→ 停留题库页（游客可立即体验免费体验卷）；画像移出冷启动主链路 */
 });
 benefitMask.addEventListener('click', function(e) {
   if (e.target === benefitMask) {   /* 点图外遮罩 */
     benefitClosed = true;
     hideBenefit();
-    switchTab('study');    /* 关闭（不领取）→ 跳学习页填画像 */
+    /* 2026-09-02 PM 拍板：关闭（不领取）→ 停留题库页；未领取下次登录仍弹 */
   }
 });
 document.getElementById('benefitCta').addEventListener('click', claimBenefit);
@@ -1411,19 +1446,22 @@ var loginButton  = document.getElementById('loginButton');
 var loginAgree   = document.getElementById('loginAgree');
 var loginOverlay = document.getElementById('loginOverlay');
 
-/* 登录来源：benefit=权益线（领取→登录→VIP到账） / onboarding=画像线（登录→跳问答） / 其他=我的等普通登录 */
+/* 登录来源：benefit=权益线（领取→登录→VIP到账） / onboarding=画像线（登录→跳问答） / review=解析门禁 / 其他=我的等普通登录 */
 var loginFrom = 'general';
-function openLoginSheet(from) {
+var pendingReviewQ = { waiting: false, q: 0 };   /* 解析门禁：登录成功后续接（REPORT_REVIEW → ENTER_REVIEW 回跳原题） */
+function openLoginSheet(from, reviewQ) {
   loginFrom = from || 'general';          /* 记录本次登录来源（决定 toast 文案 & 是否 VIP 到账） */
+  if (from === 'review') pendingReviewQ = { waiting: true, q: (reviewQ == null ? 0 : reviewQ) };
   loginSheet.classList.add('show');
 }
 function closeLoginSheet() {
   loginSheet.classList.remove('show');
 }
-/* 关闭登录弹窗：领取路径（from=benefit）放弃登录 → 跳学习页填画像（benefitUsing 保留：点过领取，后续登录成功 VIP 仍到账） */
+/* 关闭登录弹窗：领取路径（from=benefit）放弃登录 → 停留题库页（草稿保留：benefitUsing 保留，后续登录成功 VIP 仍到账）。
+   review 来源放弃登录 → 停留报告页（可再次作答/稍后登录，pendingReviewQ 保留至再次弹窗） */
 function closeLoginSheetThen() {
   closeLoginSheet();
-  if (loginFrom === 'benefit') switchTab('study');
+  if (loginFrom === 'benefit') { /* 2026-09-02 PM 拍板：放弃领取后停留题库页，游客可体验卷/点正式入口再登录 */ }
 }
 /* 点 ×：关闭登录弹窗，返回原页面，不登录不领 VIP */
 loginClose.addEventListener('click', closeLoginSheetThen);
@@ -1509,13 +1547,22 @@ function doWechatLogin(phone) {
   } else if (from === 'onboarding') {
     /* 画像线：完成画像后登录 → 仅登录+跳问答，不涉及权益，toast 提示画像已保存 */
     toastText = '登录成功，学习画像已保存';
+  } else if (from === 'review') {
+    /* 解析门禁：登录成功 → 提示进入解析 */
+    toastText = '登录成功';
   }
   /* 我的页等普通登录 → 默认「登录成功」，与权益/画像无关 */
   broadcast();
   closeLoginSheet();
   showToastText(toastText);    /* 登录成功 → 按来源提示（自动消失，无额外点击） */
-  /* 领取路径（权益线）登录成功 → VIP 已到账，跳学习页填画像/进首页 */
-  if (from === 'benefit') switchTab('study');
+  /* 领取路径（权益线）登录成功 → VIP 已到账，停留题库页（2026-09-02 PM 拍板：不再跳学习页，游客可立即体验卷） */
+  if (from === 'benefit') { /* 停留题库页，不做任何跳转 */ }
+  /* 解析门禁：登录成功后直接回跳原题解析（REPORT_REVIEW → 打开做题页 → ENTER_REVIEW 定位该题），且关闭报告层 */
+  if (pendingReviewQ.waiting) {
+    pendingReviewQ.waiting = false;
+    handleReviewRequest(pendingReviewQ.q);
+    pendingReviewQ.q = 0;
+  }
 }
 
 /* ---------- 成功轻量提示（Toast）：出现→停留1.5s→自动消失 ---------- */

@@ -815,11 +815,12 @@ var ENTRY = (function(){
   return m ? m[1] : 'today';
 })();
 /* 标题已上移到总壳小程序栏（appbar），做题页内部不显示 */
-var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传' }[ENTRY] || '今日学习';
+var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷' }[ENTRY] || '今日学习';
 
-/* ---------- 考试模式（entry=exam 模拟考 / real 历年真题）①：试卷元数据 ----------
+/* ---------- 考试模式（entry=exam 模拟考 / real 历年真题 / trial 免费体验卷）①：试卷元数据 ----------
    总分值无低case：满分 150，分值分布在题目 score 字段，切题 validator 会按 entry 调整
-   时长：minutes/题目数给剩余倒计时用 */
+   时长：minutes/题目数给剩余倒计时用
+   游客体验卷（trial）：固定 15 题一套（不随机出题），满分 100 / 15 分钟倒计时；界面命名「免费体验卷」（PRD §七） */
 var PAPERS = {
   exam1:   { name:'卷 01 · 2026 届全真模拟卷一', minutes:100, fullScore:150, type:'exam'  },
   exam2:   { name:'卷 02 · 2026 届全真模拟卷二', minutes:100, fullScore:150, type:'exam'  },
@@ -830,7 +831,8 @@ var PAPERS = {
   real2024:{ name:'2024 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
   real2023:{ name:'2023 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
   real2022:{ name:'2022 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
-  real2021:{ name:'2021 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  }
+  real2021:{ name:'2021 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  trial1:  { name:'免费体验卷', minutes:15, fullScore:100, type:'trial' }
 };
 /* 考试卷题目集（mock 两套题目复用给所有卷，演示重点在考试流程）
    score 字段每题分值；分值之和=满分 150 */
@@ -878,15 +880,68 @@ var PAPER_QUESTIONS = {
     { type:'single', chapter:'第5章 表格', concept:'Excel 引用', difficulty:'高',
       score:2, stem:'Excel 中绝对引用的写法是（ ）。', options:['A1','$A$1','#A1','=A1'],
       answer:1, analysis:'绝对引用加 <b>$</b>：$A$1 行列都不变。', steps:['① 绝对/相对/混合引用'] }
+  ],
+  /* 游客体验卷（固定 15 题 · 不随机出题）：
+     题型配比 = 单选×7 / 多选×3 / 判断×3 / 填空×2（PRD §七（一））
+     每题分值之和 = 满分 100（单选/判断 5 分，多选 10 分，填空 10 分）
+     界面不出现「测试/模拟」字样，名称统一「免费体验卷」 */
+  trial: [
+    { type:'single', chapter:'第1章 计算机基础', concept:'数制', difficulty:'低',
+      score:5, stem:'二进制数 1010 对应十进制数是（ ）。', options:['8','10','12','14'],
+      answer:1, analysis:'1010 = 2^3 + 2^1 = 8+2 = <b>10</b>。', steps:['① 按权展开 1010=8+2','② → 10'] },
+    { type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      score:5, stem:'下列快捷键可以撤销上一步操作的是（ ）。', options:['Ctrl+C','Ctrl+V','Ctrl+Z','Ctrl+Y'],
+      answer:2, analysis:'<b>Ctrl+Z</b> 撤销；Ctrl+C 复制、Ctrl+V 粘贴、Ctrl+Y 恢复。', steps:['① 撤销/恢复快捷键区别'] },
+    { type:'single', chapter:'第2章 文字处理', concept:'Word 排版', difficulty:'中',
+      score:5, stem:'Word 中设置段落首行缩进 2 字符，应在「段落」对话框的（ ）标签页操作。', options:['常规','缩进和间距','换行和分页','字体'],
+      answer:1, analysis:'「<b>缩进和间距</b>」页控制首行/左右缩进。', steps:['① 段落对话框 → 缩进和间距'] },
+    { type:'single', chapter:'第5章 电子表格', concept:'Excel 基础', difficulty:'低',
+      score:5, stem:'Excel 工作表中，单元格 A1 的默认引用方式是（ ）。', options:['绝对引用','相对引用','混合引用','外部引用'],
+      answer:1, analysis:'A1 不带 $ 为<b>相对引用</b>，向下/右拖动会跟随变化。', steps:['① 相对/绝对引用区别'] },
+    { type:'single', chapter:'第8章 网络', concept:'IP 地址', difficulty:'中',
+      score:5, stem:'下列属于 IPv4 私有地址的是（ ）。', options:['8.8.8.8','192.168.1.1','114.114.114.114','202.96.209.5'],
+      answer:1, analysis:'<b>192.168.x.x</b> 为私有地址段，常见于局域网。', steps:['① 私有地址三段：10/172.16~31/192.168'] },
+    { type:'single', chapter:'第7章 数据库', concept:'SQL', difficulty:'中',
+      score:5, stem:'SQL 中用于查询数据的语句是（ ）。', options:['INSERT','UPDATE','DELETE','SELECT'],
+      answer:3, analysis:'<b>SELECT</b> 查询；INSERT 插入、UPDATE 更新、DELETE 删除。', steps:['① SQL 四大类语句用途'] },
+    { type:'single', chapter:'第4章 软件基础', concept:'软件分类', difficulty:'低',
+      score:5, stem:'下列属于系统软件的是（ ）。', options:['Photoshop','微信','操作系统','浏览器'],
+      answer:2, analysis:'<b>操作系统</b> 是系统软件，管理硬件与软件资源；其余为应用软件。', steps:['① 系统软件 vs 应用软件'] },
+    { type:'multi', chapter:'第5章 电子表格', concept:'Excel 函数', difficulty:'中',
+      score:10, stem:'下列属于 Excel 常用统计函数的有（ ）。', options:['SUM','AVERAGE','IF','VLOOKUP'],
+      answer:[0,1,2,3], analysis:'SUM 求和、AVERAGE 求均、IF 条件判断、VLOOKUP 查找——均为常用函数。', steps:['① 逐一识别函数用途'] },
+    { type:'multi', chapter:'第1章 计算机基础', concept:'计算机组成', difficulty:'中',
+      score:10, stem:'下列属于计算机输入设备的有（ ）。', options:['键盘','鼠标','显示器','扫描仪'],
+      answer:[0,1,3], analysis:'输入设备把信息送进计算机：<b>键盘 / 鼠标 / 扫描仪</b>；显示器是输出设备。', steps:['① 输入 vs 输出设备'] },
+    { type:'multi', chapter:'第6章 演示文稿', concept:'PowerPoint', difficulty:'中',
+      score:10, stem:'PowerPoint 中可以调节幻灯片放映效果的方式有（ ）。', options:['设置切换动画','设置内容动画','自定义放映','设置放映方式'],
+      answer:[0,1,2,3], analysis:'切换动画 / 内容动画 / 自定义放映 / 放映方式均影响放映效果。', steps:['① 放映相关设置总览'] },
+    { type:'judge', chapter:'第2章 文字处理', concept:'Word 文本编辑', difficulty:'低',
+      score:5, stem:'Word 中，Ctrl+A 可以全选当前文档内容。', options:['正确','错误'],
+      answer:0, analysis:'正确。<b>Ctrl+A 全选</b>是 Word 通用快捷键。', steps:['① 常用快捷键记忆'] },
+    { type:'judge', chapter:'第8章 网络', concept:'万维网', difficulty:'低',
+      score:5, stem:'WWW（万维网）就是整个互联网。', options:['正确','错误'],
+      answer:1, analysis:'错误。WWW 只是互联网上的<b>信息浏览服务</b>之一，不等于互联网。', steps:['① 互联网 ≠ 万维网'] },
+    { type:'judge', chapter:'第1章 计算机基础', concept:'计算机特点', difficulty:'低',
+      score:5, stem:'计算机病毒只能通过 U 盘传播。', options:['正确','错误'],
+      answer:1, analysis:'错误。病毒可通过<b> U 盘 / 网络 / 邮件 / 下载文件</b>等多种途径传播。', steps:['① 病毒传播途径'] },
+    { type:'fill', chapter:'第1章 计算机基础', concept:'存储容量', difficulty:'中',
+      score:10, stem:'1 GB = ______ MB。', keywords:['1024'], fill:'1024',
+      analysis:'1GB = <b>1024MB</b>；1MB = 1024KB。', steps:['① 存储单位按 1024 进制','② 1GB=1024MB'] },
+    { type:'fill', chapter:'第1章 计算机基础', concept:'字符编码', difficulty:'中',
+      score:10, stem:'标准 ASCII 码用______位二进制表示一个字符。', keywords:['7'], fill:'7',
+      analysis:'标准 ASCII 用 <b>7 位</b>（128 个字符）；扩展 ASCII 8 位。', steps:['① 标准 ASCII 7 位 128 字符'] }
   ]
 };
-var ENTRY_META = { exam:'模拟考试', real:'历年真题' };
-var IS_PAPER = (ENTRY === 'exam' || ENTRY === 'real');
+var ENTRY_META = { exam:'模拟考试', real:'历年真题', trial:'免费体验卷' };
+var IS_PAPER = (ENTRY === 'exam' || ENTRY === 'real' || ENTRY === 'trial');
 var PAPER_ID = (function(){
   var m = location.search.match(/paperId=([^&]*)/);
   return m ? m[1] : '';
 })();
 var PAPER_META = IS_PAPER ? (PAPERS[PAPER_ID] || null) : null;
+/* 游客体验卷容错：直接用 entry=trial 打开（无 paperId)→ 默认取 trial1（PRD §七） */
+if (IS_PAPER && ENTRY === 'trial' && !PAPER_META) PAPER_META = PAPERS.trial1;
 /* 考试卷题目集 */
 var PAPER_SET = IS_PAPER ? (PAPER_QUESTIONS[PAPER_META ? PAPER_META.type : 'exam'] || PAPER_QUESTIONS.exam) : [];
 
@@ -1864,7 +1919,7 @@ function buildReport() {
   var names = Object.keys(tmap);
   return {
     paperId: PAPER_ID,
-    type: (ENTRY === 'real') ? 'real' : 'exam',
+    type: (ENTRY === 'real') ? 'real' : (ENTRY === 'trial' ? 'trial' : 'exam'),
     name: (PAPER_META && PAPER_META.name) || TITLE,
     minutes: (PAPER_META && PAPER_META.minutes) || 0,
     fullScore: (PAPER_META && PAPER_META.fullScore) || 150,
@@ -1874,7 +1929,7 @@ function buildReport() {
     rank: '--', beat: '--',
     sheet: sheet,
     typeStats: names.map(function(n){ return tmap[n]; }),
-    label: (ENTRY === 'real') ? '本次真题考试' : '本次模拟考试',
+    label: (ENTRY === 'real') ? '本次真题考试' : (ENTRY === 'trial' ? '本次体验卷' : '本次模拟考试'),
     right, wrong, skip
   };
 }

@@ -259,14 +259,35 @@ function fmtMMSS(sec) {
   return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
 
-/* 答题卡点击 → 请求总壳打开做题页对应题解析 */
+/* ---------- 解析门禁（PRD §七（四））：只看 STATE.logged，与 vipClaimed 无关 ----------
+   游客体验卷交卷后可查看报告；点「查看解析」/答题卡跳题时若未登录 → 请求总壳弹登录（review 来源），
+   登录成功由总壳自动回跳原题解析（复用 REPORT_REVIEW → ENTER_REVIEW 链路），拒绝登录则停留报告页 */
+var SHELL_STATE = null;
+function guestGate() {
+  var s = SHELL_STATE || {};
+  if (!s.logged) {
+    /* 未登录 → 弹登录门禁（附当前待跳题 q；登录成功回跳该题） */
+    return true;
+  }
+  return false;
+}
+function gateReview(n) {
+  if (guestGate()) {
+    window.parent.postMessage({ type:'REQ_LOGIN', data:{ from:'review', q:(n == null ? 0 : n) } }, '*');
+    return true;   /* 已弹登录，拦截原跳转 */
+  }
+  return false;
+}
+/* 答题卡点击 → 请求总壳打开做题页对应题解析（未登录先弹登录门禁） */
 function jumpTo(n) {
   if (!REPORT) return;
+  if (gateReview(n)) return;
   window.parent.postMessage({ type:'REPORT_REVIEW', data:{ q:n } }, '*');
 }
 /* 查看解析（从头） */
 function reviewFrom() {
   if (!REPORT) return;
+  if (gateReview(0)) return;
   window.parent.postMessage({ type:'REPORT_REVIEW', data:{ q:0 } }, '*');
 }
 /* 再次作答 → 重新考试 */
@@ -285,6 +306,10 @@ window.addEventListener('message', function(evt) {
   if (d.type === 'REPORT_DATA') {
     REPORT = d.data;
     render();
+  } else if (d.type === 'STATE') {
+    /* 解析门禁状态同步：STATE 广播由总壳 allFrames() 直达报告层（含 practice/report）。
+       logged=true（登录成功广播）→ 门禁自动放行，后续点解析可直接进入（不需手动回退重进） */
+    SHELL_STATE = d.state;
   }
 });
 requestReport();
