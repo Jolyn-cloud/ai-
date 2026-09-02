@@ -125,7 +125,9 @@ body {
   flex: 1; min-width: 0;
   font-size: 16px; font-weight: 800; color: var(--text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;   /* PM 2026-09-02：点章名直接进章级答题（与二/三/四级标题一致） */
 }
+.ch-name:hover { color: var(--primary); }
 .ch-collapse {
   flex-shrink: 0;
   font-size: 11px; font-weight: 600; color: var(--primary);
@@ -972,10 +974,10 @@ function renderContent(){
   var fresh = ch.fresh || ch.done===0;
   var html = '';
 
-  /* 章头部：全名 + 数据 + 展开/收起 + 进度条 */
+  /* 章头部：全名（点进章级答题）+ 数据 + 展开/收起 + 进度条 */
   html += '<div class="base-card ch-head">';
   html += '<div class="ch-title-row">'
-    + '<span class="ch-name">'+ch.name+'</span>'
+    + '<span class="ch-name" onclick="goQuiz(\'l1\','+ch.id+',\''+escapeName(ch.name)+'\')" title="开始本章练习">'+ch.name+'</span>'
     + '<span class="ch-collapse" onclick="collapseAll()">'+(openSub===null?'展开':'收起')+'</span>'
     + '</div>';
   html += '<div class="ch-metrics">';

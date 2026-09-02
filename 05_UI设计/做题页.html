@@ -41,10 +41,10 @@ body{
   line-height:1; transition:all .15s ease;
 }
 .mode-btn.active{ background:#fff; color:var(--primary); font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.12); }
-/* 右侧计时：偏右、不加重、字号小、灰色——弱化存在感，避免给学生压力。
+/* 顶部计时：水平居中、不加重、字号小、灰色——弱化存在感，避免给学生压力（PM 2026-09-02：居中）。
    练习类（非考试）已隐藏（见 startTimer），考试模式显示剩余倒计时 */
 .nav-timer{
-  margin-left:auto;
+  position:absolute; left:50%; transform:translateX(-50%);
   font-size:11px; font-weight:400; color:var(--text-tertiary);
   font-variant-numeric: tabular-nums;
   letter-spacing:.3px;
@@ -69,6 +69,28 @@ body{
 .progress-top .q-pos #navProgress{ color:var(--primary); font-weight:600; }
 .progress-bar{ height:3px; background:#EDEFF3; border-radius:2px; overflow:hidden; }
 .progress-fill{ height:100%; background:linear-gradient(90deg,var(--primary),#62CFA9); border-radius:2px; transition:width .2s; }
+
+/* ===== 题型规则页（PM 2026-09-02）：每题型首题前虚拟页，左滑进题 ===== */
+.rule-page{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 28px; text-align:center; background:#fff;
+}
+.rule-badge{
+  font-size:12px; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--primary),#62CFA9);
+  padding:5px 14px; border-radius:999px; margin-bottom:18px; letter-spacing:1px;
+}
+.rule-type{ font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:14px; }
+.rule-score{
+  font-size:13px; color:var(--text-secondary); background:#F5F6FA; border-radius:8px;
+  padding:7px 14px; margin-bottom:22px; font-variant-numeric:tabular-nums;
+}
+.rule-req{
+  font-size:14px; line-height:1.85; color:#555; max-width:280px; margin-bottom:36px;
+}
+.rule-swipe-hint{
+  font-size:12px; color:var(--text-tertiary); display:flex; align-items:center; gap:6px;
+}
+.rule-swipe-hint svg{ width:16px; height:16px; stroke:var(--text-tertiary); fill:none; stroke-width:2; }
 
 /* ===== 标签区 ===== */
 .tag-area{ display:flex; gap:6px; padding:8px 16px; flex-wrap:wrap; flex-shrink:0; background:#fff; }
@@ -181,7 +203,6 @@ body{
 .op-sub-anas{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
 .sub-ana{ background:#FAFBFF; border:1px solid #EDEFF6; border-radius:10px; padding:10px 12px; }
 .sub-ana-head{ font-size:12px; font-weight:700; color:var(--primary); margin-bottom:4px; }
-.sub-ana-head .sub-ana-ans{ font-weight:400; color:var(--text-secondary); margin-left:6px; }
 .sub-ana-stem{ font-size:13px; color:#333; line-height:1.6; margin-bottom:6px; }
 .sub-ana-detail{ font-size:12px; color:#667; line-height:1.65; }
 /* 解析图片占位：表示该解析可能带图片（流程图/截图），接真实题源后替换 */
@@ -194,8 +215,9 @@ body{
 .step-list{ font-size:13px; color:#666; line-height:1.8; margin-top:8px; padding-top:8px; border-top:1px dashed #EDEFF3; }
 
 /* ===== 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） =====
-   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
-   6 视频解析 / 7 答题时间·耗时分析（相关知识点卡已于 2026-09-01 删除）
+   1 答题结果 / 2 解析 → 视频解析（紧随解析下方，VIP解锁观看占位，PM 2026-09-02）
+   3 考点对比 / 4 举一反三 / 5 我的笔记 / 6 答题时间·耗时分析
+   （相关知识点卡已于 2026-09-01 删除）
    注：ico-2/verdict-* 为系统判断节遗留样式，已不用（PM 2026-08-31 删） */
 .ana-sec{ background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; }
 .ana-sec .sec-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
@@ -327,25 +349,22 @@ body{
 }
 .note-save-btn:active{ background:var(--primary); color:#fff; }
 
-/* 视频解析：视频卡 */
-.video-card{
-  display:flex; gap:10px; align-items:center;
-  border:1px solid #EEF0F6; border-radius:10px; padding:10px; cursor:pointer;
-  transition:transform .12s ease, border-color .15s;
+/* 视频解析：视频名称 + VIP 解锁占位符（16:9 占位，居中 VIP解锁观看） */
+.vitem{ margin-bottom:10px; }
+.vitem:last-child{ margin-bottom:0; }
+.vitem-name{ font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:6px; }
+.vitem-ph{
+  position:relative; width:100%; height:0; padding-bottom:56.25%;
+  border-radius:10px; overflow:hidden; cursor:pointer;
+  background:linear-gradient(160deg,#262B3E,#31384F);
 }
-.video-card:active{ transform:scale(.99); border-color:var(--primary); }
-.video-thumb{
-  width:64px; height:48px; border-radius:8px; flex-shrink:0;
-  background:linear-gradient(135deg,#5B72F5,#3FA98B);
-  display:flex; align-items:center; justify-content:center; position:relative;
+.vitem-ph:active{ opacity:.9; }
+.vitem-ph-in{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+  color:#E9C46A; font-size:13px; font-weight:700; letter-spacing:1px;
 }
-.video-thumb svg{ width:22px; height:22px; color:#fff; }
-.video-thumb .v-dur{
-  position:absolute; bottom:2px; right:4px;
-  font-size:9px; color:#fff; background:rgba(0,0,0,.5); padding:1px 4px; border-radius:3px;
-}
-.video-info .v-title{ font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
-.video-info .v-sub{ font-size:11px; color:var(--text-tertiary); }
+.vitem-ph-in svg{ width:20px; height:20px; opacity:.9; }
 
 /* 答题时间·耗时分析：双行 */
 .timing-row{ display:flex; gap:10px; margin-bottom:8px; }
@@ -647,6 +666,17 @@ body{
   display:grid; grid-template-columns:repeat(auto-fill, minmax(46px, 1fr));
   gap:10px; padding:14px 4px 6px; overflow-y:auto;
 }
+/* 考试卷答题卡题型分区（PM 2026-09-02）：规则块占满整行，section 内格子继承网格
+   2026-09-02 PM：轻量化——字号缩小、字色减淡，弱化视觉存在感 */
+.sheet-rule{
+  grid-column:1 / -1;
+  margin:8px 0 0; padding:5px 8px;
+  background:#F7F8FB; border-radius:6px; border-left:2px solid #D5D9E6;
+  display:flex; flex-direction:column; gap:1px;
+}
+.sheet-rule:first-child{ margin-top:0; }
+.sheet-rule-line{ font-size:11px; font-weight:500; color:var(--text-secondary); }
+.sheet-rule-hint{ font-size:10px; color:var(--text-tertiary); }
 /* 答题卡底部：确认交卷按钮（网格滚动区之外，常驻） */
 .sheet-submit{
   flex-shrink:0; margin-top:10px; padding-top:10px; border-top:1px solid #F0F1F6;
@@ -693,7 +723,7 @@ body{
 
 <!-- 顶部导航：模式切换 左 | 计时 中 | 答题卡 右；内部 ✕ 已删（2026-08-31），统一走总壳 appbar -->
 <div class="practice-nav">
-  <div class="mode-switch">
+  <div class="mode-switch" id="modeSwitch">
     <span class="mode-btn active" id="modeExam" onclick="setMode('exam')">做题</span>
     <span class="mode-btn" id="modeStudy" onclick="setMode('study')">背题</span>
   </div>
@@ -863,16 +893,17 @@ var TITLE = { today:'今日学习', wrong:'错题本练习', chapter:'章节练�
    时长：minutes/题目数给剩余倒计时用
    游客体验卷（trial）：固定 15 题一套（不随机出题），满分 100 / 15 分钟倒计时；界面命名「免费体验卷」（PRD §七） */
 var PAPERS = {
-  exam1:   { name:'卷 01 · 2026 届全真模拟卷一', minutes:100, fullScore:150, type:'exam'  },
-  exam2:   { name:'卷 02 · 2026 届全真模拟卷二', minutes:100, fullScore:150, type:'exam'  },
-  exam3:   { name:'卷 03 · 2026 届全真模拟卷三', minutes:100, fullScore:150, type:'exam'  },
-  sprint1: { name:'卷 01 · 冲刺模拟卷一',         minutes:45,  fullScore:150, type:'exam'  },
-  sprint2: { name:'卷 02 · 冲刺模拟卷二',         minutes:45,  fullScore:150, type:'exam'  },
-  real2025:{ name:'2025 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
-  real2024:{ name:'2024 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
-  real2023:{ name:'2023 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
-  real2022:{ name:'2022 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
-  real2021:{ name:'2021 · 山东省计算机真题卷',    minutes:100, fullScore:150, type:'real'  },
+  /* 考试卷（exam/real）统一限时 120 分钟（PM 2026-09-02：模拟机考形态）；trial 体验卷保持 15 分钟 */
+  exam1:   { name:'卷 01 · 2026 届全真模拟卷一', minutes:120, fullScore:150, type:'exam'  },
+  exam2:   { name:'卷 02 · 2026 届全真模拟卷二', minutes:120, fullScore:150, type:'exam'  },
+  exam3:   { name:'卷 03 · 2026 届全真模拟卷三', minutes:120, fullScore:150, type:'exam'  },
+  sprint1: { name:'卷 01 · 冲刺模拟卷一',         minutes:120, fullScore:150, type:'exam'  },
+  sprint2: { name:'卷 02 · 冲刺模拟卷二',         minutes:120, fullScore:150, type:'exam'  },
+  real2025:{ name:'2025 · 山东省计算机真题卷',    minutes:120, fullScore:150, type:'real'  },
+  real2024:{ name:'2024 · 山东省计算机真题卷',    minutes:120, fullScore:150, type:'real'  },
+  real2023:{ name:'2023 · 山东省计算机真题卷',    minutes:120, fullScore:150, type:'real'  },
+  real2022:{ name:'2022 · 山东省计算机真题卷',    minutes:120, fullScore:150, type:'real'  },
+  real2021:{ name:'2021 · 山东省计算机真题卷',    minutes:120, fullScore:150, type:'real'  },
   trial1:  { name:'免费体验卷', minutes:15, fullScore:100, type:'trial' }
 };
 /* 考试卷题目集（mock 两套题目复用给所有卷，演示重点在考试流程）
@@ -882,18 +913,21 @@ var PAPER_QUESTIONS = {
     { type:'single', chapter:'第1章 计算机基础', concept:'信息与数据', difficulty:'中',
       score:2, stem:'计算机中，1GB 等于（ ）。', options:['1024KB','1024MB','1000MB','1024bit'],
       answer:2, analysis:'1GB = <b>1024MB</b>；1MB=1024KB。', steps:['① 单位换算 1GB=1024MB'] },
+    { type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
+      score:2, stem:'回收站中的文件被「还原」后，将恢复到（ ）。', options:['桌面','我的文档','原位置','回收站'],
+      answer:2, analysis:'还原 = 恢复到<b>被删除前所在位置</b>。', steps:['① 还原语义 = 恢复原位'] },
     { type:'multi', chapter:'第5章 电子表格', concept:'Excel 函数', difficulty:'中',
       score:3, stem:'下列属于 Excel 常用统计函数的有（ ）。', options:['SUM','AVERAGE','IF','VLOOKUP'],
       answer:[0,1,2,3], analysis:'SUM 求和、AVERAGE 求均、IF 条件判断、VLOOKUP 查找——均为常用函数。', steps:['① 逐一识别函数用途'] },
+    { type:'multi', chapter:'第7章 数据库', concept:'SQL', difficulty:'高',
+      score:3, stem:'下列 SQL 语句属于数据操作（DML）的有（ ）。', options:['SELECT','INSERT','UPDATE','DELETE','CREATE'],
+      answer:[0,1,2,3], analysis:'SELECT/INSERT/UPDATE/DELETE 为 DML；CREATE 属 DDL。', steps:['① DDL vs DML 分类'] },
     { type:'judge', chapter:'第8章 网络', concept:'网络基础', difficulty:'低',
       score:2, stem:'局域网 LAN 覆盖范围一般在几公里之内。', options:['正确','错误'],
       answer:0, analysis:'正确。LAN 覆盖范围有限（一栋楼/一个园区），WAN 覆盖广域。', steps:['① LAN/WAN 覆盖范围区别'] },
     { type:'fill', chapter:'第1章 计算机基础', concept:'数制', difficulty:'中',
       score:3, stem:'十进制数 12 转换为二进制数是______。', keywords:['1100'], fill:'1100',
       analysis:'12 = 8+4 = 2^3+2^2 → <b>1100</b>。', steps:['① 按权展开 12=8+4','② → 1100'] },
-    { type:'single', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
-      score:2, stem:'回收站中的文件被「还原」后，将恢复到（ ）。', options:['桌面','我的文档','原位置','回收站'],
-      answer:2, analysis:'还原 = 恢复到<b>被删除前所在位置</b>。', steps:['① 还原语义 = 恢复原位'] },
     { type:'operation', chapter:'第2章 文字处理', concept:'Word 排版', difficulty:'高',
       score:6, stem:'请根据需求完成 Word 排版：正文首行缩进、插入页眉、标题加粗、设置页边距。',
       sub:[
@@ -903,27 +937,24 @@ var PAPER_QUESTIONS = {
         { type:'fill', stem:'将页面四周的留白宽度称为______，可在「页面布局」中设置。', keywords:['页边距'], fill:'页边距', analysis:'<b>页边距</b>即页面四周留白，可自定义上下左右。' },
         { type:'judge', stem:'分栏后各栏的宽度必须完全相同。', options:['正确','错误'], answer:1, analysis:'分栏支持自定义栏宽与间距，不必完全相等。' }
       ],
-      analysis:'操作题综合考查 Word 排版：缩进用「段落」、页眉页脚可上下插入、Ctrl+B 加粗、页边距控制留白。', steps:['① 首行缩进','② 插入页眉','③ 标题加粗','④ 设置页边距'] },
-    { type:'multi', chapter:'第7章 数据库', concept:'SQL', difficulty:'高',
-      score:3, stem:'下列 SQL 语句属于数据操作（DML）的有（ ）。', options:['SELECT','INSERT','UPDATE','DELETE','CREATE'],
-      answer:[0,1,2,3], analysis:'SELECT/INSERT/UPDATE/DELETE 为 DML；CREATE 属 DDL。', steps:['① DDL vs DML 分类'] }
+      analysis:'操作题综合考查 Word 排版：缩进用「段落」、页眉页脚可上下插入、Ctrl+B 加粗、页边距控制留白。', steps:['① 首行缩进','② 插入页眉','③ 标题加粗','④ 设置页边距'] }
   ],
   real: [
     { type:'single', chapter:'第1章 计算机基础', concept:'计算机特点', difficulty:'低',
       score:2, stem:'下列不属于计算机特点的是（ ）。', options:['运算速度快','存储容量大','只能处理数值','逻辑判断能力强'],
       answer:2, analysis:'计算机不仅能处理数值，还<b>能处理文字/图形/声音</b>等。', steps:['① 计算机五大特点','② 排除「只能处理数值」'] },
+    { type:'single', chapter:'第5章 表格', concept:'Excel 引用', difficulty:'高',
+      score:2, stem:'Excel 中绝对引用的写法是（ ）。', options:['A1','$A$1','#A1','=A1'],
+      answer:1, analysis:'绝对引用加 <b>$</b>：$A$1 行列都不变。', steps:['① 绝对/相对/混合引用'] },
+    { type:'multi', chapter:'第2章 网络', concept:'网络分类', difficulty:'中',
+      score:3, stem:'按覆盖范围划分，计算机网络可分为（ ）。', options:['LAN','MAN','WAN','PAN'],
+      answer:[0,1,2,3], analysis:'按覆盖范围：<b>局域网 LAN / 城域网 MAN / 广域网 WAN / 个人区域网 PAN</b>。', steps:['① 覆盖范围分类'] },
     { type:'judge', chapter:'第3章 操作系统', concept:'Windows', difficulty:'中',
       score:2, stem:'Ctrl+Z 可以撤销上一步操作。', options:['正确','错误'],
       answer:0, analysis:'正确。Ctrl+Z 为撤销，Ctrl+Y 为恢复。', steps:['① 撤销/恢复快捷键'] },
     { type:'fill', chapter:'第1章 计算机基础', concept:'字符编码', difficulty:'中',
       score:3, stem:'ASCII 码用______位二进制表示一个字符。', keywords:['7','8'], fill:'7',
-      analysis:'标准 ASCII 用 <b>7 位</b>（128 个字符）；扩展 ASCII 8 位。', steps:['① 标准 ASCII 7 位 128 字符'] },
-    { type:'multi', chapter:'第2章 网络', concept:'网络分类', difficulty:'中',
-      score:3, stem:'按覆盖范围划分，计算机网络可分为（ ）。', options:['LAN','MAN','WAN','PAN'],
-      answer:[0,1,2,3], analysis:'按覆盖范围：<b>局域网 LAN / 城域网 MAN / 广域网 WAN / 个人区域网 PAN</b>。', steps:['① 覆盖范围分类'] },
-    { type:'single', chapter:'第5章 表格', concept:'Excel 引用', difficulty:'高',
-      score:2, stem:'Excel 中绝对引用的写法是（ ）。', options:['A1','$A$1','#A1','=A1'],
-      answer:1, analysis:'绝对引用加 <b>$</b>：$A$1 行列都不变。', steps:['① 绝对/相对/混合引用'] }
+      analysis:'标准 ASCII 用 <b>7 位</b>（128 个字符）；扩展 ASCII 8 位。', steps:['① 标准 ASCII 7 位 128 字符'] }
   ],
   /* 游客体验卷（固定 15 题 · 不随机出题）：
      题型配比 = 单选×7 / 多选×3 / 判断×3 / 填空×2（PRD §七（一））
@@ -979,6 +1010,9 @@ var PAPER_QUESTIONS = {
 };
 var ENTRY_META = { exam:'模拟考试', real:'历年真题', trial:'免费体验卷' };
 var IS_PAPER = (ENTRY === 'exam' || ENTRY === 'real' || ENTRY === 'trial');
+/* 考试卷（模拟考场/历年真题）= 模拟机考形态：无背题模式、倒计时固定 120 分钟、进度按题型内推进（PM 2026-09-02）。
+   trial 体验卷不属考试卷，保留背题与原限时。 */
+var IS_EXAM_PAPER = (ENTRY === 'exam' || ENTRY === 'real');
 var PAPER_ID = (function(){
   var m = location.search.match(/paperId=([^&]*)/);
   return m ? m[1] : '';
@@ -1212,6 +1246,95 @@ var idx = 0;                 /* 当前题索引 */
 var answers = {};            /* { 题索引: 作答 } */
 var submitted = false;       /* 做题模式已交卷 */
 var total = QUESTIONS.length;
+/* 题型规则页（PM 2026-09-02）：考试卷每题型首题前插虚拟规则页，首次必停、左滑进题、之后不再。
+   pendingRule = 待展示规则页的 bigNo（null=无）；seenRule = 已展示过规则页的 bigNo 集合 */
+var pendingRule = null;
+var seenRule = {};
+/* 题型分段（PM 2026-09-02）：考试卷题目按题型连续排列，按连续相同 type 切大题段。
+   返回 { typeName, start, count, offset, bigNo }：
+     typeName 题型名（单选题/多选题…）；start/end 本大题在卷内起止索引；
+     count 本大题题数；offset 当前题在本大题内偏移（0 起）；bigNo 大题序号（1 起，仅考试卷）。
+   非考试卷（练习/错题/章节）题目非按题型连续编排，不适用分段——返回 null，进度回退整卷逻辑。 */
+function sectionInfo(i) {
+  if (!IS_EXAM_PAPER || i < 0 || i >= total) return null;
+  var segs = [], s = 0, k;
+  for (k = 0; k < total; k++) {
+    var t = QUESTIONS[k].type;
+    if (k === 0 || t !== QUESTIONS[k-1].type) {
+      if (k > 0) segs[segs.length-1].end = k - 1;
+      segs.push({ type: t, start: k, end: -1 });
+    }
+  }
+  segs[segs.length-1].end = total - 1;
+  segs.forEach(function(g, n){ g.count = g.end - g.start + 1; g.bigNo = n + 1; });
+  for (k = 0; k < segs.length; k++) {
+    if (i >= segs[k].start && i <= segs[k].end) {
+      return {
+        typeName: TYPE_NAME[segs[k].type] || '题目',
+        start: segs[k].start, end: segs[k].end, count: segs[k].count,
+        offset: i - segs[k].start, bigNo: segs[k].bigNo
+      };
+    }
+  }
+  return null;
+}
+/* 考试卷所有题型分段（顺序，用于答题卡分区）。返回 [{type,start,end,count,bigNo}, …] */
+function examSections() {
+  var out = [], s = 0, k;
+  for (k = 0; k < total; k++) {
+    var t = QUESTIONS[k].type;
+    if (k === 0 || t !== QUESTIONS[k-1].type) {
+      if (k > 0) out[out.length-1].end = k - 1;
+      out.push({ type: t, start: k, end: -1 });
+    }
+  }
+  out[out.length-1].end = total - 1;
+  out.forEach(function(g, n){ g.count = g.end - g.start + 1; g.bigNo = n + 1; });
+  return out;
+}
+/* 中文大题号：1→一、2→二 …（仅 1~20） */
+var BIG_NUM_CN = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+/* 判断题补充说明行（卷内含判断题时在规则块下加一句） */
+function judgeHint(type) {
+  return type === 'judge' ? '（判断题选「正确」或「错误」）' : '';
+}
+/* 题型答题要求预设文案（规则页「要求」区用；按题型给通用说明，PM 2026-09-02） */
+var TYPE_REQUIREMENT = {
+  single: '在每小题给出的四个选项中，只有一项是最符合题目要求的，请将其选出。',
+  multi:  '在每小题给出的选项中，至少有两项符合题目要求。全部选对得满分，少选得相应分，错选不得分。',
+  judge:  '判断下列各题的表述是否正确，正确选「正确」，错误选「错误」。',
+  fill:   '请将正确答案填写在题干横线处，答案须完整准确。',
+  operation: '请根据题目要求完成操作。操作题含若干子题，逐题作答，结果合并判分。'
+};
+/* 题型规则页元数据：bigNo 题型分段 → {bigNo,type,typeName,count,scoreLine,req}
+   scoreLine = "每小题 X 分，共 Y 分"（分值一致）或 "共 Y 分"（不一致）；req = 预设要求文案 */
+function sectionMeta(bigNo) {
+  var secs = examSections();
+  var sec = secs.filter(function(s){ return s.bigNo === bigNo; })[0];
+  if (!sec) return null;
+  var typeName = TYPE_NAME[sec.type] || '题目';
+  var scores = [], k;
+  for (k = sec.start; k <= sec.end; k++) scores.push(QUESTIONS[k].score || 0);
+  var sameScore = scores.every(function(v){ return v === scores[0]; });
+  var totalScore = scores.reduce(function(a,b){ return a+b; }, 0);
+  var scoreLine = sameScore && scores[0] > 0
+    ? '每小题 ' + scores[0] + ' 分，共 ' + totalScore + ' 分'
+    : '共 ' + totalScore + ' 分';
+  return { bigNo: bigNo, type: sec.type, typeName: typeName, count: sec.count, scoreLine: scoreLine, req: TYPE_REQUIREMENT[sec.type] || '' };
+}
+/* 答题卡规则块：中文大题号 + 题型 + 本大题共 N 小题 + 每小题 X 分（分值一致才显）+ 判断题补充 */
+function sheetRuleBlock(sec) {
+  var cn = BIG_NUM_CN[sec.bigNo-1] || sec.bigNo;
+  var typeName = TYPE_NAME[sec.type] || '题目';
+  var scores = [], k;
+  for (k = sec.start; k <= sec.end; k++) scores.push(QUESTIONS[k].score || 0);
+  var sameScore = scores.every(function(v){ return v === scores[0]; });
+  /* PM 2026-09-02：答题卡只显题型名，不显括号内小题数/分值（简化轻量） */
+  var line = cn + '、' + typeName;
+  var hint = judgeHint(sec.type);
+  return '<div class="sheet-rule"><span class="sheet-rule-line">' + line + '</span>'
+    + (hint ? '<span class="sheet-rule-hint">' + hint + '</span>' : '') + '</div>';
+}
 var fav = {}, marked = {};   /* 收藏 / 标记状态 { 题索引: true } */
 var committed = {};          /* 填空/简答已回车确认（文字回显蓝态）{ 题索引: true } */
 var reviewed = {};           /* 背题填空/简答已点轻提交看解析 { 题索引: true } */
@@ -1299,15 +1422,46 @@ function formatUserAnswer(q, ans) {
   return ans === undefined ? '未答' : LETTERS[ans];
 }
 
-/* 子题答案文本（操作题解析用）：无作答时=正确答案文本；有作答时=用户答案文本 */
-function formatSubAnswerText(s, userAns) {
-  if (userAns === undefined || userAns === null) return formatAnswer(s);
-  return formatUserAnswer(s, userAns);
-}
 
 /* ---------- 渲染 ---------- */
+/* 题型规则页渲染（PM 2026-09-02）：考试卷每题型首题前虚拟页。
+   内容 = 题型名 + 分值 + 预设要求 + 左滑进题提示；不渲染题目/标签/解析，进度行维持当前题型 */
+function renderRulePage(bigNo) {
+  var meta = sectionMeta(bigNo);
+  if (!meta) return false;
+  var cn = BIG_NUM_CN[bigNo-1] || bigNo;
+  /* 标签/解析区清空，进度行显示题型名（不计题号） */
+  document.getElementById('tagArea').innerHTML = '';
+  document.getElementById('analysisArea').innerHTML = '';
+  document.getElementById('analysisArea').classList.remove('show');
+  /* 规则页不显示题目反馈入口（PM 2026-09-02：规则页无题目，反馈入口无意义） */
+  var fbEntry = document.querySelector('.feedback-entry');
+  if (fbEntry) fbEntry.style.display = 'none';
+  document.getElementById('qNum').textContent = meta.typeName;
+  document.getElementById('navProgress').textContent = '1/' + meta.count;
+  document.getElementById('progressFill').style.width = (1/meta.count*100) + '%';
+  var html = '<div class="rule-page">'
+    + '<span class="rule-badge">第 ' + cn + ' 大题</span>'
+    + '<div class="rule-type">' + meta.typeName + '</div>'
+    + '<div class="rule-score">' + meta.scoreLine + '</div>'
+    + '<div class="rule-req">' + meta.req + '</div>'
+    + '<div class="rule-swipe-hint">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>'
+    +   '左滑开始答题'
+    + '</div>'
+    + '</div>';
+  document.getElementById('qaBody').innerHTML = html;
+  return true;
+}
 function renderQuestion() {
   if (!total) return;
+  /* 考试卷规则页拦截：pendingRule 命中 → 渲染规则页后直接返回（PM 2026-09-02） */
+  if (IS_EXAM_PAPER && !submitted && pendingRule) {
+    if (renderRulePage(pendingRule)) { updateBottomBar(); return; }
+  }
+  /* 非规则页：恢复反馈入口显示（规则页曾隐藏，PM 2026-09-02） */
+  var fbEntry = document.querySelector('.feedback-entry');
+  if (fbEntry) fbEntry.style.display = '';
   var q = QUESTIONS[idx];
   /* 背题模式下填空/简答：解析需点「轻提交」确认后才显示（打字即弹已改，PM 2026-09-02）；
      其它题型保持已答即显示解析 */
@@ -1322,9 +1476,11 @@ function renderQuestion() {
   if (marked[idx]) tags += '<span class="tag marked">已标记</span>';
   document.getElementById('tagArea').innerHTML = tags;
 
-  /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染） */
+  /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染）
+     考试卷题号由进度条「题型 第X题 X/Y」表达，题干前不再重复绝对题号（PM 2026-09-02） */
+  var qNumPrefix = IS_EXAM_PAPER ? '' : '<span class="q-num">' + (idx+1) + '.</span>';
   var html = (OP_TYPES.indexOf(q.type) < 0)
-    ? '<div class="stem-wrap"><div class="stem"><span class="q-num">' + (idx+1) + '.</span>' + q.stem + '</div></div>'
+    ? '<div class="stem-wrap"><div class="stem">' + qNumPrefix + q.stem + '</div></div>'
     : '';
   html += renderBody(q, answers[idx], reveal);
 
@@ -1334,9 +1490,18 @@ function renderQuestion() {
   aa.classList.toggle('show', reveal);
 
   document.getElementById('qaBody').innerHTML = html;
-  document.getElementById('qNum').textContent = '第 ' + (idx+1) + ' 题';
-  document.getElementById('navProgress').textContent = (idx+1) + '/' + total;
-  document.getElementById('progressFill').style.width = ((idx+1)/total*100) + '%';
+  /* 进度行（PM 2026-09-02）：考试卷=当前题型内进度（题型名+第X题+题内/本大题数），
+     非考试卷=整卷进度（第X题+X/total） */
+  var sec = sectionInfo(idx);
+  if (sec) {
+    document.getElementById('qNum').textContent = sec.typeName + ' 第 ' + (sec.offset+1) + ' 题';
+    document.getElementById('navProgress').textContent = (sec.offset+1) + '/' + sec.count;
+    document.getElementById('progressFill').style.width = ((sec.offset+1)/sec.count*100) + '%';
+  } else {
+    document.getElementById('qNum').textContent = '第 ' + (idx+1) + ' 题';
+    document.getElementById('navProgress').textContent = (idx+1) + '/' + total;
+    document.getElementById('progressFill').style.width = ((idx+1)/total*100) + '%';
+  }
   updateBottomBar();
   /* 操作题分屏：渲染后按容器实测高度校准（拖拽/切换子题后也会重建渲染）；
      解析态同样调用以切换 reveal 布局（不占满、分界线隐藏） */
@@ -1523,9 +1688,9 @@ function stripHtml(s) {
 }
 
 /* ---------- 解析区（PM 2026-08-31 拍板：删系统判断节 + 不显序号） ----------
-   1 答题结果 / 2 解析 / 3 考点对比 / 4 举一反三 / 5 我的笔记
-   6 视频解析 / 7 答题时间·耗时分析
-   每题独立组装；演示期 3/4/6 mock，5 笔记本地存，7 接会话计时。
+   1 答题结果 / 2 解析 → 视频解析（紧随解析下方，VIP解锁观看占位，PM 2026-09-02）
+   3 考点对比 / 4 举一反三 / 5 我的笔记 / 6 答题时间·耗时分析
+   每题独立组装；演示期视频/对比/举一反三 mock，笔记本地存，耗时接会话计时。
    相关知识点卡已于 2026-09-01 删除 */
 function renderAnalysis(q, ans, reveal) {
   if (!reveal) return '';
@@ -1533,15 +1698,17 @@ function renderAnalysis(q, ans, reveal) {
   var html = '';
   var isOp = q.type === 'operation';
 
-  /* ① 答题结果（操作题：只显示整体对/错，不展开子题答案——各子题已在上方题目区逐题展示） */
+  /* ① 答题结果（操作题：按当前 tab 子题显示对错+你的答案+正确答案，tab 切换同步；PM 2026-09-02） */
   var resultLine;
   if (isOp) {
-    var subRight = 0;
-    q.sub.forEach(function(s, i) { if (checkAnswer(s, ans ? ans[i] : undefined) === true) subRight++; });
-    var label = correct === true ? '✅ 回答正确' : (correct === false ? '❌ 回答错误' : '');
-    var detail = '　子题答对 ' + subRight + ' / ' + q.sub.length;
-    resultLine = (label ? '<div class="answer-line' + (correct === false ? ' wrong-ans' : '') + '">' + label + detail + '</div>'
-      : '<div class="answer-line">' + detail + '</div>');
+    var s = q.sub[opSubIdx] || q.sub[0];
+    var si = opSubIdx;
+    var sok = checkAnswer(s, ans ? ans[si] : undefined);
+    var subUserAns = formatUserAnswer(s, ans ? ans[si] : undefined);
+    var subRightAns = formatAnswer(s);
+    if (sok === true) resultLine = '<div class="answer-line">✅ 回答正确　你的答案：' + subUserAns + '　正确答案：' + subRightAns + '</div>';
+    else if (sok === false) resultLine = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + subUserAns + '　正确答案：' + subRightAns + '</div>';
+    else resultLine = '<div class="answer-line">正确答案：' + subRightAns + '</div>';
   } else if (correct === true) resultLine = '<div class="answer-line">✅ 回答正确　正确答案：' + formatAnswer(q) + '</div>';
   else if (correct === false) resultLine = '<div class="answer-line wrong-ans">❌ 回答错误　你的答案：' + formatUserAnswer(q, ans) + '　正确答案：' + formatAnswer(q) + '</div>';
   else resultLine = '<div class="answer-line">正确答案：' + formatAnswer(q) + '</div>';
@@ -1566,9 +1733,9 @@ function renderAnalysis(q, ans, reveal) {
     var i = opSubIdx;
     var ok = checkAnswer(s, ans ? ans[i] : undefined);
     var icon = ok === true ? '✅' : (ok === false ? '❌' : '—');
-    var subAnsText = formatSubAnswerText(s, ans ? ans[i] : undefined);
+    /* PM 2026-09-02：答案+你的答案已上移到第①节答题结果，本块只留题干+详解，避免重复 */
     opSubs = '<div class="sub-ana">'
-      + '<div class="sub-ana-head">' + icon + ' 第 ' + (i+1) + ' 题' + (s.type === 'fill' ? '（填空）' : '') + ' <span class="sub-ana-ans">答案：' + formatSubAnswerText(s, undefined) + (subAnsText ? '　你的答案：' + subAnsText : '') + '</span></div>'
+      + '<div class="sub-ana-head">' + icon + ' 第 ' + (i+1) + ' 题' + (s.type === 'fill' ? '（填空）' : '') + '</div>'
       + '<div class="sub-ana-stem">' + s.stem + '</div>'
       + '<div class="sub-ana-detail">' + (s.analysis || '') + '</div>'
       + '</div>';
@@ -1581,6 +1748,10 @@ function renderAnalysis(q, ans, reveal) {
     + '<div class="feedback-link analysis-fb" onclick="openFeedback(\'analysis\')">解析有误？反馈</div>'
     + '</div>';
 
+  /* 视频解析 — mock（紧跟解析区块下方） */
+  var vids = q.videos || mockVideos(q);
+  html += renderVideos(vids);
+
   /* ④ 考点对比（相似考点对照，如四大特征 vs 四大功能）— mock */
   var compare = q.compare || mockCompare(q);
   html += renderCompare(compare);
@@ -1591,10 +1762,6 @@ function renderAnalysis(q, ans, reveal) {
 
   /* ⑥ 我的笔记（本地存 localStorage，按题 id） */
   html += renderNote(q);
-
-  /* ⑧ 视频解析 — mock */
-  var vids = q.videos || mockVideos(q);
-  html += renderVideos(vids);
 
   /* ⑨ 答题时间·耗时分析（接会话计时） */
   html += renderTiming(q);
@@ -1694,17 +1861,22 @@ function saveNote() {
 /* ⑧ 视频解析 mock */
 function mockVideos(q) {
   return [
-    { title: (q.concept || '该考点') + ' 精讲 · 15 分钟吃透', dur: '15:20', sub: '张老师 · 系统精讲' },
-    { title: '操作系统四大特征动画演示', dur: '06:48', sub: '动画解析 · 易混辨析' }
+    { title: (q.concept || '该考点') + ' 精讲 · 15 分钟吃透' },
+    { title: '同考点 · 变式演练全解析' }
   ];
 }
+/* 视频解析：视频名称 + VIP 解锁占位符（居中「VIP解锁观看」；v5.0 接会员/视频库） */
 function renderVideos(vids) {
   var html = '<div class="ana-sec">'
     + '<div class="sec-head"><span class="ico ico-8">▶</span><span class="name">视频解析</span></div>';
   vids.forEach(function(v) {
-    html += '<div class="video-card" onclick="showToast(\'播放：' + v.title + '（v5.0 接视频库）\')">'
-      + '<div class="video-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg><span class="v-dur">' + v.dur + '</span></div>'
-      + '<div class="video-info"><div class="v-title">' + v.title + '</div><div class="v-sub">' + v.sub + '</div></div>'
+    html += '<div class="vitem">'
+      + '<div class="vitem-name">' + v.title + '</div>'
+      + '<div class="vitem-ph" onclick="showToast(\'开通 VIP 解锁观看（v5.0 接会员）\')">'
+      + '<div class="vitem-ph-in">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
+      + 'VIP解锁观看'
+      + '</div></div>'
       + '</div>';
   });
   return html + '</div>';
@@ -1823,6 +1995,8 @@ function onSubFillInput(subIdx, v) {
 
 /* ---------- 模式 / 翻题 / 交卷 ---------- */
 function setMode(m) {
+  /* 考试卷锁定 exam（背题切换已隐藏，防御性拦截） */
+  if (IS_EXAM_PAPER && m !== 'exam') return;
   MODE = m;
   document.getElementById('modeExam').classList.toggle('active', m === 'exam');
   document.getElementById('modeStudy').classList.toggle('active', m === 'study');
@@ -1830,11 +2004,31 @@ function setMode(m) {
 }
 function prevQuestion() {
   clearAutoNext();
-  if (idx > 0) { idx--; resetOp(true); renderQuestion(); }
+  if (idx > 0) { idx--; resetOp(true); enterRuleIfNeeded(); renderQuestion(); }
 }
 function nextQuestion() {
   clearAutoNext();
-  if (idx < total - 1) { idx++; resetOp(true); renderQuestion(); }
+  if (idx < total - 1) { idx++; resetOp(true); enterRuleIfNeeded(); renderQuestion(); }
+}
+/* 题型规则页触发（PM 2026-09-02）：进入某题型首题（sec.offset===0）且该题型未看过规则页 → 设 pendingRule。
+   首题型（bigNo=1）进卷时也触发（初始化处单独调用）。已交卷/非考试卷不触发 */
+function enterRuleIfNeeded() {
+  if (!IS_EXAM_PAPER || submitted) { pendingRule = null; return; }
+  var sec = sectionInfo(idx);
+  if (sec && sec.offset === 0) {
+    if (!seenRule[sec.bigNo]) { pendingRule = sec.bigNo; }
+    else { pendingRule = null; }
+  } else {
+    pendingRule = null;
+  }
+}
+/* 从规则页进入首题：清 pendingRule、记 seenRule，停在当前 idx 渲染题目 */
+function leaveRulePage() {
+  if (!pendingRule) return false;
+  seenRule[pendingRule] = true;
+  pendingRule = null;
+  renderQuestion();
+  return true;
 }
 function updateBottomBar() {
   /* 做题/背题模式未交卷都显示「交卷」；交卷后隐藏（PM 2026-09-02 背题也可交卷） */
@@ -1931,22 +2125,20 @@ function renderSheet() {
   /* 图例双态切换：未交卷=作答态（当前/已答/未答/已标记），交卷后=判定态（当前/答对/答对一半/答错/未答/已标记） */
   document.getElementById('sheetLegend').classList.toggle('verdict', !!submitted);
   document.getElementById('lgRightLb').textContent = submitted ? '答对' : '已答';
-  for (var i = 0; i < total; i++) {
+  /* 单格渲染：cls 类名 + 卷内绝对题号（点击跳题不变） */
+  function cellHtml(i) {
     var isMark = !!marked[i];
     if (submitted) {
-      /* 交卷后：判定态（答对/答错/答对一半/未答） */
       var c = classifyResult(QUESTIONS[i], answers[i]);
       stat[c]++;
       if (isMark) stat.mark++;
       if (c === 'none' && types.indexOf(TYPE_NAME[QUESTIONS[i].type]) < 0) types.push(TYPE_NAME[QUESTIONS[i].type]);
-      /* classify 返回 correct/none，CSS 类名是 done/todo，映射避免格子无底色 */
       var cellCls = (c === 'correct') ? 'done' : (c === 'none' ? 'todo' : c);
       var cls = 'sheet-cell ' + cellCls;
       if (isMark) cls += ' mark';
       if (i === idx) cls += ' current';
-      html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+      return '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
     } else {
-      /* 交卷前：作答态（已答/未答），不做对错判定 */
       var answered = getAnswered(QUESTIONS[i], answers[i]);
       stat[answered ? 'correct' : 'none']++;   /* 交卷前 correct 槽位存「已答」计数（lgRight 显示已答） */
       if (isMark) stat.mark++;
@@ -1954,8 +2146,19 @@ function renderSheet() {
       cls = 'sheet-cell ' + (answered ? 'answered' : 'todo');
       if (isMark) cls += ' mark';
       if (i === idx) cls += ' current';
-      html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+      return '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
     }
+  }
+  /* 考试卷：按题型分段渲染，每段前插规则块（占满整行）；格子按卷内绝对题号连续排布在网格中（PM 2026-09-02） */
+  if (IS_EXAM_PAPER) {
+    var secs = examSections();
+    secs.forEach(function(sec) {
+      html += sheetRuleBlock(sec);
+      for (var i = sec.start; i <= sec.end; i++) html += cellHtml(i);
+    });
+  } else {
+    /* 非考试卷：平铺格子，不分区 */
+    for (var i = 0; i < total; i++) html += cellHtml(i);
   }
   grid.innerHTML = html;
   document.getElementById('lgRight').textContent = stat.correct;
@@ -1974,6 +2177,7 @@ function jumpTo(i) {
   clearAutoNext();
   idx = i;
   resetOp(true);
+  enterRuleIfNeeded();   /* 跳到未看规则的首题型 → 先停规则页（PM 2026-09-02） */
   renderQuestion();
   closeSheet();
 }
@@ -2146,6 +2350,8 @@ qAreaEl.addEventListener('pointerup', function(e){
   _px = null; _py = null;
   /* 全局手势：横向滑动翻整题（操作题同样适用） */
   if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+  /* 规则页：左滑进首题（leaveRulePage），右滑无操作（规则页是题型入口，不回退） */
+  if (pendingRule) { if (dx < 0) leaveRulePage(); return; }
   if (dx < 0) nextQuestion(); else prevQuestion();
 });
 
@@ -2304,7 +2510,13 @@ window.addEventListener('message', function(evt) {
 });
 
 /* ---------- 初始化 ---------- */
+/* 考试卷（模拟考场/历年真题）：隐藏「做题/背题」切换，MODE 锁 exam（PM 2026-09-02） */
+if (IS_EXAM_PAPER) {
+  var ms = document.getElementById('modeSwitch');
+  if (ms) ms.style.display = 'none';
+}
 startTimer();              /* 进入即起表（会话级计时；练习类在后台计时不显示 UI） */
+enterRuleIfNeeded();       /* 考试卷进卷首题型先停规则页（PM 2026-09-02） */
 renderQuestion();
 </script>
 </body>
