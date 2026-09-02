@@ -556,17 +556,24 @@ body{
   display:flex; align-items:center; justify-content:center; padding:0;
 }
 .sheet-close:active{ background:#F0F1F6; }
-/* 图例：已答 / 未答 / 已标记 */
+/* 图例：未交卷=作答态（当前题/已答/未答/已标记）；交卷后=判定态（当前题/答对/答对一半/答错/未答/已标记） */
 .sheet-legend{
-  display:flex; gap:14px; padding:8px 4px 12px; border-bottom:1px solid #F0F1F6;
+  display:grid; grid-template-columns:1fr 1fr; column-gap:14px; row-gap:7px;
+  padding:8px 4px 12px; border-bottom:1px solid #F0F1F6;
   font-size:11px; color:var(--text-secondary);
 }
 .sheet-legend .lg{ display:flex; align-items:center; gap:5px; }
+/* 已答（未交卷时显示，填充普蓝，与交卷后作答无关，仅表示已作答） */
+.sheet-legend .lg-done i{ background:var(--primary); }
 .sheet-legend .lg i{
   width:14px; height:14px; border-radius:4px; display:inline-block; flex-shrink:0;
   border:1px solid transparent;
 }
-.sheet-legend .lg-done i{ background:var(--primary); }
+/* 判定态专属标签：作答态隐藏，交卷后显示（答对一半/答错） */
+.sheet-legend .lg-verdict-only{ display:none; }
+/* 交卷后排两行三列：当前题/答对/答对一半 + 答错/未答/已标记 */
+.sheet-legend.verdict{ grid-template-columns:repeat(3, 1fr); }
+.sheet-legend.verdict .lg-verdict-only{ display:flex; }
 .sheet-legend .lg-half i{ background:#F59E0B; }
 .sheet-legend .lg-wrong i{ background:#E4573D; }
 .sheet-legend .lg-todo i{ background:#fff; border-color:#C9CEDA; }
@@ -611,6 +618,8 @@ body{
 .sheet-cell.half{ background:#F59E0B; border-color:#F59E0B; color:#fff; }                            /* 答对一半 */
 .sheet-cell.wrong{ background:#E4573D; border-color:#E4573D; color:#fff; }                           /* 答错 */
 .sheet-cell.todo{ background:#fff; border-color:#C9CEDA; color:var(--text-tertiary); }              /* 未答 */
+.sheet-cell.answered{ background:var(--primary); border-color:var(--primary); color:#fff; }          /* 已答（交卷前） */
+.sheet-cell.mark{ position:relative; }
 .sheet-cell.mark::after{
   content:''; position:absolute; right:4px; top:4px; width:6px; height:6px; border-radius:50%; background:#FA8C16;
 }
@@ -687,13 +696,13 @@ body{
       <div class="sheet-title">答题卡</div>
       <button class="sheet-close" onclick="closeSheet()" aria-label="关闭">×</button>
     </div>
-    <div class="sheet-legend">
+    <div class="sheet-legend" id="sheetLegend">
       <span class="lg lg-current"><i></i>当前题</span>
-      <span class="lg lg-done"><i></i>答对 <b id="lgRight">0</b></span>
-      <span class="lg lg-half"><i></i>答对一半 <b id="lgHalf">0</b></span>
-      <span class="lg lg-wrong"><i></i>答错 <b id="lgWrong">0</b></span>
+      <span class="lg lg-done"><i></i><span id="lgRightLb">已答</span> <b id="lgRight">0</b></span>
       <span class="lg lg-todo"><i></i>未答 <b id="lgTodo">0</b></span>
       <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
+      <span class="lg lg-half lg-verdict-only"><i></i>答对一半 <b id="lgHalf">0</b></span>
+      <span class="lg lg-wrong lg-verdict-only"><i></i>答错 <b id="lgWrong">0</b></span>
     </div>
     <div class="sheet-grid" id="sheetGrid"></div>
     <div class="sheet-submit">
@@ -1687,8 +1696,8 @@ function stopTimer() {
 
 /* ---------- 答题卡（已答/未答/已标记 三态 + 点题号跳转） ---------- */
 function openSheet() {
-  renderSheet();
   document.getElementById('sheetMask').classList.add('show');
+  renderSheet();
 }
 function closeSheet() {
   document.getElementById('sheetMask').classList.remove('show');
@@ -1698,16 +1707,34 @@ function renderSheet() {
   var stat = { correct:0, half:0, wrong:0, none:0, mark:0 };
   var types = [];
   var html = '';
+  /* 图例双态切换：未交卷=作答态（当前/已答/未答/已标记），交卷后=判定态（当前/答对/答对一半/答错/未答/已标记） */
+  document.getElementById('sheetLegend').classList.toggle('verdict', !!submitted);
+  document.getElementById('lgRightLb').textContent = submitted ? '答对' : '已答';
   for (var i = 0; i < total; i++) {
-    var c = classifyResult(QUESTIONS[i], answers[i]);
     var isMark = !!marked[i];
-    stat[c]++;
-    if (isMark) stat.mark++;
-    if (c === 'none' && types.indexOf(TYPE_NAME[QUESTIONS[i].type]) < 0) types.push(TYPE_NAME[QUESTIONS[i].type]);
-    var cls = 'sheet-cell ' + c;
-    if (isMark) cls += ' mark';
-    if (i === idx) cls += ' current';
-    html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+    if (submitted) {
+      /* 交卷后：判定态（答对/答错/答对一半/未答） */
+      var c = classifyResult(QUESTIONS[i], answers[i]);
+      stat[c]++;
+      if (isMark) stat.mark++;
+      if (c === 'none' && types.indexOf(TYPE_NAME[QUESTIONS[i].type]) < 0) types.push(TYPE_NAME[QUESTIONS[i].type]);
+      /* classify 返回 correct/none，CSS 类名是 done/todo，映射避免格子无底色 */
+      var cellCls = (c === 'correct') ? 'done' : (c === 'none' ? 'todo' : c);
+      var cls = 'sheet-cell ' + cellCls;
+      if (isMark) cls += ' mark';
+      if (i === idx) cls += ' current';
+      html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+    } else {
+      /* 交卷前：作答态（已答/未答），不做对错判定 */
+      var answered = getAnswered(QUESTIONS[i], answers[i]);
+      stat[answered ? 'correct' : 'none']++;   /* 交卷前 correct 槽位存「已答」计数（lgRight 显示已答） */
+      if (isMark) stat.mark++;
+      if (!answered && types.indexOf(TYPE_NAME[QUESTIONS[i].type]) < 0) types.push(TYPE_NAME[QUESTIONS[i].type]);
+      cls = 'sheet-cell ' + (answered ? 'answered' : 'todo');
+      if (isMark) cls += ' mark';
+      if (i === idx) cls += ' current';
+      html += '<button class="' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
+    }
   }
   grid.innerHTML = html;
   document.getElementById('lgRight').textContent = stat.correct;
