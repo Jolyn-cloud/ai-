@@ -141,16 +141,17 @@ body{
 .fill-input.correct{ border-color:var(--success); background:#F0FBF4; color:#1F7A4D; }
 .fill-input.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
 .fill-input.committed{ border-color:var(--primary); background:#F2F5FF; color:#333; }   /* 回车确认态：蓝色回显 */
-/* 填空/简答 轻提交按钮 */
+/* 填空/简答 轻提交按钮（2026-09-02 PM：输入框下方右侧、无底色主色小字文字链） */
+.fill-wrap, .essay-wrap{ display:flex; flex-direction:column; align-items:stretch; }   /* 输入框全宽 */
 .fill-submit, .essay-submit{
-  display:flex; align-items:center; justify-content:center; gap:5px;
-  width:100%; height:42px; margin-top:10px; border:none; border-radius:21px;
-  background:linear-gradient(100deg,var(--primary),var(--primary-dark)); color:#fff;
-  font-size:14px; font-weight:600; cursor:pointer;
-  box-shadow:0 4px 12px rgba(91,114,245,.2); transition:transform .12s ease, opacity .15s ease;
+  display:inline-flex; align-items:center; gap:1px;
+  align-self:flex-end;                    /* 按钮右对齐，不影响输入框内文本 */
+  margin-top:8px; padding:4px 6px; border:none; background:none;
+  color:var(--primary); font-size:12px; font-weight:500; cursor:pointer;
+  opacity:.82; transition:opacity .12s ease;
 }
-.fill-submit:active, .essay-submit:active{ transform:scale(.98); opacity:.9; }
-.fill-submit:disabled, .essay-submit:disabled{ opacity:.5; cursor:default; }
+.fill-submit:active, .essay-submit:active{ opacity:.55; }
+.fill-submit:disabled, .essay-submit:disabled{ opacity:.35; cursor:default; }
 /* 简答 */
 .essay-wrap{ padding:0 16px 12px; }
 .essay-textarea{
@@ -1289,7 +1290,7 @@ function renderBody(q, ans, reveal) {
   if (q.type === 'fill') {
     var cls = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : (committed[idx] ? ' committed' : '');
     var dis = reveal ? ' disabled' : '';
-    var fillBtn = reveal ? '' : '<button class="fill-submit" id="fillSubmit" onclick="submitTextAnswer()">√ <span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span></button>';
+    var fillBtn = reveal ? '' : '<button class="fill-submit" id="fillSubmit" onclick="submitTextAnswer()"><span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span> &#8250;</button>';
     return '<div class="fill-wrap">'
       + '<input class="fill-input' + cls + '" id="fillInput" value="' + (ans || '') + '" placeholder="请输入答案…"'
       + ' oninput="onFillInput(this.value)" onkeydown="onTextKeydown(event)"' + dis + '>'
@@ -1300,7 +1301,7 @@ function renderBody(q, ans, reveal) {
   if (q.type === 'essay') {
     var clsE = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : (committed[idx] ? ' committed' : '');
     var dfe = reveal ? ' disabled' : '';
-    var essayBtn = reveal ? '' : '<button class="essay-submit" id="fillSubmit" onclick="submitTextAnswer()">√ <span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span></button>';
+    var essayBtn = reveal ? '' : '<button class="essay-submit" id="fillSubmit" onclick="submitTextAnswer()"><span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span> &#8250;</button>';
     return '<div class="essay-wrap">'
       + '<textarea class="essay-textarea' + clsE + '" placeholder="请输入你的作答…" oninput="onEssayInput(this.value)" onkeydown="onTextKeydown(event)"' + dfe + '>' + (ans || '') + '</textarea>'
       + essayBtn
