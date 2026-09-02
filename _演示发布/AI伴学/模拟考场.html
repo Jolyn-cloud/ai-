@@ -189,7 +189,7 @@ function cardHtml(p, g) {
       + '<div class="paper-status-line' + (low ? ' wrong' : '') + '">已做 ' + p.right + '/' + p.total + ' · ' + score + ' 分</div>'
       + '<div class="paper-btn-row">'
       +   '<button class="paper-btn primary" onclick="startPaper(\'' + p.id + '\')">再次答题</button>'
-      +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">查看报告</button>'
+      +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">薄弱点分析</button>'
       + '</div>'
       + '</div>';
   }
@@ -219,7 +219,7 @@ function render() {
   box.innerHTML = html;
 }
 
-/* ===== 查看报告：派生报告数据 → 请求总壳打开独立报告页 =====
+/* ===== 薄弱点分析：派生报告数据 → 请求总壳打开独立报告页 =====
    字段契约对齐报告页（成绩报告.html）：
      paperId/type/name/minutes/fullScore/submitTime/usedSec/score/rank/beat/sheet/typeStats
    sheet  答题卡：1对 0错 -1未答（按总题数铺）
@@ -272,7 +272,7 @@ function requestReport(pid) {
   try {
     window.parent.postMessage({ type:'REQ_REPORT', data: reportOf(p) }, '*');
   } catch(e) {
-    showToast('请从总壳进入查看报告');
+    showToast('请从总壳进入薄弱点分析');
   }
 }
 
