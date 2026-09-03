@@ -650,7 +650,8 @@ function closeSubLayer() {
    - CLOSE_CHAPTER：子页点返回 → 收起对应二级层
    - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页
    - CAM_RESULT：拍照子层内 AI 识别结果页开关 → 透传给总壳（appbar 标题/退出跟随）
-   - CAM_BACK：总壳 appbar 退出（识别结果页打开时）→ 转发给当前 cam/wrong 子层 iframe 关结果页 */
+   - CAM_BACK：总壳 appbar 退出（识别结果页打开时）→ 转发给当前 cam/wrong 子层 iframe 关结果页
+   - OPEN_NOTE_CAM：笔记本 FAB → 打开拍照搜题子层并进入「记笔记」模式 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
@@ -675,6 +676,21 @@ window.addEventListener('message', function(evt) {
         if (inner) inner.postMessage({ type: 'CAM_BACK' }, '*');
       } catch(e) {}
     }
+    return;
+  }
+  if (d.type === 'OPEN_NOTE_CAM') {
+    /* 笔记本 FAB → 打开拍照搜题子层，进入记笔记模式 */
+    if (activeSub && activeSub !== 'cam') {
+      SUB_LAYERS[activeSub].classList.remove('show');
+    }
+    activeSub = 'cam';
+    SUB_LAYERS.cam.classList.add('show');
+    notifyShellChapter(true, 'cam');
+    /* 转发 TAKE_NOTE 给拍照搜题 iframe，触发记笔记模式 */
+    try {
+      var camInner = SUB_LAYERS.cam.querySelector('iframe').contentWindow;
+      if (camInner) camInner.postMessage({ type: 'TAKE_NOTE' }, '*');
+    } catch(e) {}
     return;
   }
 });

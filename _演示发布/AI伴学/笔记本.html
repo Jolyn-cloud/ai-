@@ -386,8 +386,28 @@ var NOTE_DATA = [
     createdAt: ts('08-29','15:10') }
 ];
 
-/* 运行态副本（删除从内存移除，mock 不落库，刷新恢复） */
+/* 运行态副本：拍照笔记读真实 localStorage zsb_notes_v1（拍照搜题记笔记写入），
+   无真实数据时回退 mock，保证演示始终有数据 */
 var items = NOTE_DATA.map(function(x){ return Object.assign({}, x); });
+(function loadRealNotes() {
+  var real = [];
+  try { real = JSON.parse(localStorage.getItem('zsb_notes_v1') || '[]'); } catch(e) {}
+  if (real && real.length) {
+    /* 真实拍照笔记覆盖 mock 拍照笔记：先删 mock 的 photo，再插真实 */
+    items = items.filter(function(x){ return x.type !== 'photo'; });
+    real.forEach(function(n) {
+      items.push({
+        nid: n.nid || ('N' + Date.now()),
+        type: 'photo',
+        img: n.img || '',
+        l1: n.l1 || '', l2: n.l2 || '', l3: n.l3 || '', l4: n.l4 || '',
+        chapter: n.chapter || (n.l1 || ''),
+        concept: n.concept || '',
+        createdAt: n.createdAt || ''
+      });
+    });
+  }
+})();
 
 var SRC = 'all';        /* 类型筛选：all/quiz/photo */
 var CHAP = 'all';       /* 章节筛选 */
@@ -506,14 +526,36 @@ function quizCard(it) {
     + '</div>';
 }
 
-/* ===== 拍照笔记卡片 ===== */
+/* ===== 拍照笔记卡片（标题按知识点层级显示） =====
+   PRD 规则：
+     无选择       → 拍照笔记
+     到一级       → 一级标题
+     到二级       → 一级 · 二级
+     到三级/四级  → 一级·二级（meta 弱）+ 三级标题（title 重，四级存但不展示） */
 function photoCard(it) {
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
+  var l1 = it.l1 || '', l2 = it.l2 || '', l3 = it.l3 || '';
+  var headHtml = '', metaHtml = '';
+  if (!l1) {
+    /* 无选择 → 拍照笔记 */
+    headHtml = '<span class="p-title">拍照笔记</span>';
+  } else if (!l2) {
+    /* 到一级 → 一级标题 */
+    headHtml = '<span class="p-title">' + l1 + '</span>';
+  } else if (!l3) {
+    /* 到二级 → 一级 · 二级 */
+    headHtml = '<span class="p-title">' + l1 + ' · ' + l2 + '</span>';
+  } else {
+    /* 到三级/四级 → 一级·二级（meta 弱）+ 三级标题（title 重） */
+    metaHtml = '<div class="n-meta" style="margin-bottom:5px;"><span>' + l1 + ' · ' + l2 + '</span></div>';
+    headHtml = '<div class="p-head"><span class="p-title">' + l3 + '</span><span class="p-time">' + timeStr + '</span></div>';
+    return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
+      + metaHtml + headHtml
+      + '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
+      + '</div>';
+  }
   return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
-    +   '<div class="p-head">'
-    +     '<span class="p-title">' + (it.concept || '拍照笔记') + '</span>'
-    +     '<span class="p-time">' + timeStr + '</span>'
-    +   '</div>'
+    +   '<div class="p-head">' + headHtml + '<span class="p-time">' + timeStr + '</span></div>'
     +   '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
     + '</div>';
 }
@@ -544,8 +586,16 @@ function openPhoto(nid) {
   if (!one.length) return;
   currentPhotoNid = nid;
   var it = one[0];
-  document.getElementById('viewerChap').textContent = it.chapter ? ('所属：' + it.chapter) : '';
-  document.getElementById('viewerImg').textContent = '📷 ' + (it.concept || '');
+  /* 查看层章节：按知识点层级显示 */
+  var l1 = it.l1 || '', l2 = it.l2 || '', l3 = it.l3 || '', l4 = it.l4 || '';
+  var parts = [];
+  if (l1) parts.push(l1);
+  if (l2) parts.push(l2);
+  if (l3) parts.push(l3);
+  if (l4) parts.push(l4);  /* 四级在查看层显示完整 */
+  var chapTxt = parts.length ? ('所属：' + parts.join(' › ')) : '拍照笔记（未归类）';
+  document.getElementById('viewerChap').textContent = chapTxt;
+  document.getElementById('viewerImg').textContent = '📷 ' + (it.concept || '拍照笔记');
   document.getElementById('viewer').classList.add('show');
 }
 function closeViewer() {
@@ -564,9 +614,13 @@ function deletePhoto() {
   }
 }
 
-/* ===== 拍照 FAB → 记笔记功能（mock：仅反馈，不真存） ===== */
+/* ===== 拍照 FAB → 跳转拍照搜题「记笔记」流程 ===== */
 function openCam() {
-  showToast('拍照记笔记（演示：点击有反馈，不真存）');
+  /* 通知题库页：打开拍照搜题子层（camLayer），由拍照搜题页进入记笔记模式 */
+  try {
+    window.parent.postMessage({ type:'OPEN_NOTE_CAM' }, '*');
+  } catch(e) {}
+  showToast('正在跳转拍照记笔记…');
 }
 
 /* ===== 去刷题（空状态无入口按钮，靠 FAB） ===== */

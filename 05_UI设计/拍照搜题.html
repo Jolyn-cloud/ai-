@@ -238,6 +238,28 @@ body.has-appbar .result-body { padding-top: 12px; }
 .tp-opt.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 .tp-close { width: 100%; margin-top: 14px; height: 44px; border-radius: 22px; border: none; background: #F3F5FB; color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; }
 
+/* ===== 笔记预览页（记笔记：拍照→预览→选知识点→保存） ===== */
+.note-result {
+  position: absolute; inset: 0; z-index: 1002;
+  background: #F3F5FB; color: var(--text-primary);
+  display: none; flex-direction: column;
+}
+.note-result.on { display: flex; }
+body.has-appbar .note-result .result-head { display: none; }
+body.has-appbar .note-result .result-body { padding-top: 12px; }
+/* 知识点级联选择 */
+.kp-path { font-size: 13px; color: var(--text-secondary); line-height: 1.6; padding: 10px 12px; background: #F7F8FC; border-radius: 10px; margin-bottom: 10px; min-height: 20px; }
+.kp-path .kp-empty { color: var(--text-tertiary); }
+.kp-path .kp-l { color: var(--primary); font-weight: 600; }
+.kp-level-hint { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+.kp-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.kp-opt { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; background: #fff; border: 1.5px solid #E5E8F0; color: var(--text-primary); cursor: pointer; }
+.kp-opt:active { transform: scale(.96); }
+.kp-opt.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.kp-actions { display: flex; gap: 10px; }
+.kp-reset { flex: 1; height: 36px; border-radius: 18px; border: 1.5px solid #E5E8F0; background: #fff; color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.kp-done { flex: 1; height: 36px; border-radius: 18px; border: none; background: var(--primary-light); color: var(--primary-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
+
 /* ===== Toast ===== */
 .toast {
   position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
@@ -279,7 +301,7 @@ body.has-appbar .result-body { padding-top: 12px; }
     </div>
     <!-- 第二层：相册录入 / 拍照 / 手电筒 -->
     <div class="cam-tools">
-      <button class="cam-side" onclick="camAlert('从相册导入（演示）')">
+      <button class="cam-side" onclick="importAlbum()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
           <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -363,6 +385,46 @@ body.has-appbar .result-body { padding-top: 12px; }
       <button class="cancel2" onclick="closeResult()">重新拍摄</button>
     </div>
   </div>
+
+  <!-- ===== 笔记预览页（记笔记专用：拍照→预览→选知识点→保存） ===== -->
+  <div class="note-result" id="noteResult">
+    <div class="result-head">
+      <button class="rbtn" onclick="closeNoteResult()">‹ 返回</button>
+      <span class="tt">记笔记</span>
+      <span style="width:48px"></span>
+    </div>
+    <div class="result-body">
+      <!-- 图片预览 -->
+      <div class="rsc-card">
+        <div class="rsc-img" id="noteImgWrap">📷</div>
+        <div class="rsc-img-note">笔记图片 <span class="rsc-view-orig" onclick="camAlert('查看原图（演示）')">查看原图 ›</span></div>
+      </div>
+      <!-- 知识点选择 -->
+      <div class="rsc-card">
+        <div class="rsc-card-head">
+          <span class="rsc-card-title">选择所属知识点</span>
+          <span class="rsc-ai-badge" style="background:rgba(99,131,246,.06); color:var(--text-tertiary);">可选</span>
+        </div>
+        <div class="kp-path" id="kpPath"><span class="kp-empty">未选择（将保存为「拍照笔记」）</span></div>
+        <div class="kp-level-hint" id="kpLevelHint">选择一级知识点</div>
+        <div class="kp-opts" id="kpOpts"></div>
+        <div class="kp-actions">
+          <button class="kp-reset" onclick="resetKp()">重置</button>
+          <button class="kp-done" onclick="closeNoteKp()">完成</button>
+        </div>
+      </div>
+    </div>
+    <!-- 底部操作 -->
+    <div class="result-btnbar">
+      <button class="save" onclick="saveNote()">保存笔记</button>
+      <button class="cancel2" onclick="closeNoteResult()">重新拍摄</button>
+    </div>
+  </div>
+
+  <!-- 知识点级联选择器弹出层（复用 tag-picker-mask） -->
+  <div class="tag-picker-mask" id="kpPickerMask" onclick="if(event.target===this) closeNoteKp()">
+    <div class="tag-picker" id="kpPicker"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -404,9 +466,21 @@ function goBack() {
 
 function setCamMode(mode) {
   CAM_MODE = mode;
-  document.getElementById('camHint').textContent =
-    mode === 'search' ? '拍下题目，AI 搜索题库匹配' : '对准题目纸，保持光线充足';
+  var hint = mode === 'search' ? '拍下题目，AI 搜索题库匹配'
+    : mode === 'capture' ? '对准题目纸，保持光线充足'
+    : '拍下你的笔记，记下学习心得';
+  document.getElementById('camHint').textContent = hint;
   closeResult();
+  closeNoteResult();
+}
+/* 相册导入：note 模式 → 笔记预览页；其他 → 提示（演示） */
+function importAlbum() {
+  if (CAM_MODE === 'note') {
+    CUR_NOTE.img = 'album_' + Date.now();
+    showNoteResult();
+  } else {
+    camAlert('从相册导入（演示）');
+  }
 }
 /* 手电筒亮/暗：暗色盖层 + 图标高亮 */
 function toggleFlash() { setFlash(!CAM_FLASH); }
@@ -426,10 +500,23 @@ function resetCamState() {
 }
 
 /* 拍照 → OCR 1s → 出结果（演示：奇数次成功 / 偶数次未识别）
-   每次拍照生成图片标识 camshot_时间戳，供笔记/错题/章节关联原图 */
+   每次拍照生成图片标识 camshot_时间戳，供笔记/错题/章节关联原图
+   note 模式：跳过 OCR/AI，直接进笔记预览页 */
 function takePhoto() {
   CAM_SHOTS++;
-  CUR.img = 'camshot_' + Date.now();
+  var imgId = 'camshot_' + Date.now();
+  if (CAM_MODE === 'note') {
+    CUR_NOTE.img = imgId;
+    /* 快门反馈 */
+    var ocr = document.getElementById('camOcr');
+    ocr.classList.add('on');
+    setTimeout(function() {
+      ocr.classList.remove('on');
+      showNoteResult();
+    }, 500);
+    return;
+  }
+  CUR.img = imgId;
   var ocr = document.getElementById('camOcr');
   ocr.classList.add('on');
   setTimeout(function() {
@@ -439,26 +526,10 @@ function takePhoto() {
   }, 1000);
 }
 
-/* 记笔记：拍照不识别，直接以图片形式存笔记本（不走 OCR/AI）
-   存 zsb_notes_v1，笔记本页后建 */
+/* 记笔记：进入记笔记模式（不直接拍照，留在取景页等用户按快门/相册）
+   PRD：用户选「记笔记」→ 进入拍照记笔记流程，复用相机页 */
 function takeNote() {
-  var imgId = 'camshot_' + Date.now();
-  var now = new Date();
-  function pad(n) { return n < 10 ? '0' + n : '' + n; }
-  var createdAt = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
-    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-  var item = { qid:'', nid:'N'+pad(Date.now()%1000000), source:'note', mode:'image',
-    img: imgId, ocr:'', title:'', createdAt: createdAt };
-  var KEY = 'zsb_notes_v1';
-  var arr = [];
-  try { arr = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
-  arr.unshift(item);
-  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
-  /* 快门反馈：闪一下 OCR 动画但不进结果页 */
-  var ocr = document.getElementById('camOcr');
-  ocr.classList.add('on');
-  setTimeout(function() { ocr.classList.remove('on'); }, 600);
-  showToast('✓ 已存入笔记本，可在笔记本查看');
+  setCamMode('note');
 }
 
 /* AI 引擎 */
@@ -646,6 +717,195 @@ function saveUpload() {
 
 function closeResult() { resetCamState(); }
 
+/* ============================================================
+   笔记预览页（记笔记专用）
+   流程：拍照/相册选 1 张 → 预览 → 选知识点（1-4 级可选，可不选）→ 保存
+   保存：写 zsb_notes_v1（笔记本页读取展示）
+   ============================================================ */
+
+/* 四级知识树 mock（与做题页/章节刷题知识体系对齐） */
+var KP_TREE = [
+  { name:'计算机基础', children:[
+    { name:'计算机系统', children:[
+      { name:'冯·诺依曼体系', children:['输入输出设备','存储器结构','指令执行'] },
+      { name:'总线与接口', children:['总线分类','接口标准'] }
+    ]},
+    { name:'数制与编码', children:[
+      { name:'数制转换', children:['二进制转十进制','十进制转二进制','十六进制'] },
+      { name:'字符编码', children:['ASCII 码','汉字编码'] }
+    ]}
+  ]},
+  { name:'操作系统', children:[
+    { name:'操作系统基础', children:[
+      { name:'操作系统的基本功能', children:['处理器管理','存储管理','文件管理','设备管理'] },
+      { name:'操作系统的主要功能', children:['进程调度','内存分配','文件组织'] }
+    ]},
+    { name:'进程与线程', children:[
+      { name:'进程的概念', children:['进程三态','进程控制块'] },
+      { name:'线程的概念', children:['线程与进程区别','用户级线程'] }
+    ]}
+  ]},
+  { name:'计算机网络', children:[
+    { name:'网络协议', children:[
+      { name:'TCP/IP 协议体系', children:['三次握手','四次挥手','TIME_WAIT'] },
+      { name:'OSI 参考模型', children:['七层结构','各层功能'] }
+    ]},
+    { name:'IP 地址', children:[
+      { name:'IP 地址与子网掩码', children:['IP 分类','子网划分'] },
+      { name:'域名与 DNS', children:['域名结构','DNS 解析'] }
+    ]}
+  ]},
+  { name:'数据库', children:[
+    { name:'关系数据库', children:[
+      { name:'三级模式结构', children:['外模式','模式','内模式','两级映像'] },
+      { name:'关系代数', children:['传统集合运算','专门关系运算'] }
+    ]},
+    { name:'SQL 语言', children:[
+      { name:'SQL 语句分类', children:['DDL','DML','DQL','DCL'] },
+      { name:'连接查询', children:['内连接','外连接','笛卡尔积'] }
+    ]}
+  ]},
+  { name:'数据结构', children:[
+    { name:'树与图', children:[
+      { name:'二叉树的遍历方法', children:['前序遍历','中序遍历','后序遍历','层序遍历'] },
+      { name:'图的应用', children:['最短路径','最小生成树'] }
+    ]},
+    { name:'线性结构', children:[
+      { name:'栈与队列的特点', children:['栈后进先出','队列先进先出'] },
+      { name:'链表', children:['单链表','循环链表'] }
+    ]}
+  ]}
+];
+
+/* 笔记预览页当前态 */
+var CUR_NOTE = { img:'', l1:'', l2:'', l3:'', l4:'' };
+/* 知识点选择当前层级：1=选一级 2=选二级 3=选三级 4=选四级 0=未开始/已完成 */
+var KP_LEVEL = 0;
+
+/* 进入笔记预览页 */
+function showNoteResult() {
+  var res = document.getElementById('noteResult');
+  res.classList.add('on');
+  try { window.parent.postMessage({ type:'CAM_RESULT', data:{ open:true } }, '*'); } catch(e) {}
+  document.getElementById('noteImgWrap').innerHTML = '📷';
+  resetKp();
+}
+function closeNoteResult() {
+  document.getElementById('noteResult').classList.remove('on');
+  document.getElementById('kpPickerMask').classList.remove('on');
+  try { window.parent.postMessage({ type:'CAM_RESULT', data:{ open:false } }, '*'); } catch(e) {}
+}
+
+/* 知识点选择：渲染当前层级可选项 */
+function renderKpOpts() {
+  var optsWrap = document.getElementById('kpOpts');
+  var hintEl = document.getElementById('kpLevelHint');
+  var pathEl = document.getElementById('kpPath');
+  var opts = [];
+
+  /* 更新已选路径 */
+  var pathParts = [];
+  if (CUR_NOTE.l1) pathParts.push(CUR_NOTE.l1);
+  if (CUR_NOTE.l2) pathParts.push(CUR_NOTE.l2);
+  if (CUR_NOTE.l3) pathParts.push(CUR_NOTE.l3);
+  if (CUR_NOTE.l4) pathParts.push(CUR_NOTE.l4);
+  pathEl.innerHTML = pathParts.length
+    ? pathParts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
+    : '<span class="kp-empty">未选择（将保存为「拍照笔记」）</span>';
+
+  /* 确定当前层级可选项 */
+  if (KP_LEVEL === 0) {
+    /* 初始：展开一级 */
+    KP_LEVEL = 1;
+  }
+  if (KP_LEVEL === 1) {
+    hintEl.textContent = '选择一级知识点（可不选，点完成跳过）';
+    opts = KP_TREE.map(function(n){ return n.name; });
+  } else if (KP_LEVEL === 2) {
+    hintEl.textContent = '选择二级知识点（可不选，点完成跳过）';
+    var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
+    opts = l1Node ? l1Node.children.map(function(n){ return n.name; }) : [];
+  } else if (KP_LEVEL === 3) {
+    hintEl.textContent = '选择三级知识点（可不选，点完成跳过）';
+    var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === CUR_NOTE.l2; })[0] : null;
+    opts = l2Node ? l2Node.children.map(function(n){ return n.name; }) : [];
+  } else if (KP_LEVEL === 4) {
+    hintEl.textContent = '选择四级知识点（可不选，点完成跳过）';
+    var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === CUR_NOTE.l2; })[0] : null;
+    var l3Node = l2Node ? l2Node.children.filter(function(n){ return n.name === CUR_NOTE.l3; })[0] : null;
+    opts = l3Node ? l3Node.children : [];
+  } else {
+    /* 已选到四级或无更深层级 */
+    hintEl.textContent = '已选到最深层级';
+    opts = [];
+  }
+
+  /* 渲染选项 */
+  var html = '';
+  opts.forEach(function(name) {
+    var sel = (KP_LEVEL === 1 && CUR_NOTE.l1 === name)
+      || (KP_LEVEL === 2 && CUR_NOTE.l2 === name)
+      || (KP_LEVEL === 3 && CUR_NOTE.l3 === name)
+      || (KP_LEVEL === 4 && CUR_NOTE.l4 === name);
+    html += '<button class="kp-opt' + (sel ? ' on' : '') + '" onclick="pickKp(' + KP_LEVEL + ',\'' + escapeQuote(name) + '\')">' + name + '</button>';
+  });
+  optsWrap.innerHTML = html || '<span class="kp-empty" style="font-size:12.5px;">当前层级无更多选项</span>';
+}
+
+/* 选择某层级知识点 */
+function pickKp(level, name) {
+  if (level === 1) { CUR_NOTE.l1 = name; CUR_NOTE.l2=''; CUR_NOTE.l3=''; CUR_NOTE.l4=''; KP_LEVEL = 2; }
+  else if (level === 2) { CUR_NOTE.l2 = name; CUR_NOTE.l3=''; CUR_NOTE.l4=''; KP_LEVEL = 3; }
+  else if (level === 3) { CUR_NOTE.l3 = name; CUR_NOTE.l4=''; KP_LEVEL = 4; }
+  else if (level === 4) { CUR_NOTE.l4 = name; KP_LEVEL = 5; }
+  renderKpOpts();
+}
+
+/* 重置知识点 */
+function resetKp() {
+  CUR_NOTE.l1=''; CUR_NOTE.l2=''; CUR_NOTE.l3=''; CUR_NOTE.l4='';
+  KP_LEVEL = 1;
+  renderKpOpts();
+}
+
+/* 完成知识点选择（收起选项区） */
+function closeNoteKp() {
+  document.getElementById('kpOpts').innerHTML = '';
+  document.getElementById('kpLevelHint').textContent = '知识点已选好，点保存笔记';
+}
+
+/* 保存笔记：写 zsb_notes_v1 */
+function saveNote() {
+  var now = new Date();
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  var createdAt = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+  /* 派生 chapter/concept（笔记本卡片展示用） */
+  var chapter = CUR_NOTE.l1 || '';
+  var concept = CUR_NOTE.l2 || CUR_NOTE.l1 || '';
+
+  var item = {
+    nid: 'N' + pad(Date.now() % 1000000),
+    type: 'photo',
+    img: CUR_NOTE.img || 'camshot_0',
+    l1: CUR_NOTE.l1, l2: CUR_NOTE.l2, l3: CUR_NOTE.l3, l4: CUR_NOTE.l4,
+    chapter: chapter, concept: concept,
+    createdAt: createdAt
+  };
+
+  var KEY = 'zsb_notes_v1';
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+  arr.unshift(item);
+  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
+
+  closeNoteResult();
+  showToast('✓ 已存入笔记本，可在笔记本查看');
+}
+
 /* ===== Toast ===== */
 var toastTimer = null;
 function showToast(msg) {
@@ -665,10 +925,12 @@ try {
   }
 } catch(e) { /* 极端环境忽略 */ }
 
-/* 监听总壳 appbar 退出（识别结果页态）→ 关结果页回取景 */
+/* 监听总壳 appbar 退出（识别结果页态）→ 关结果页回取景；
+   TAKE_NOTE：笔记本 FAB 跳转过来 → 进入记笔记模式 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
-  if (d && d.type === 'CAM_BACK') { closeResult(); }
+  if (d && d.type === 'CAM_BACK') { closeResult(); closeNoteResult(); }
+  if (d && d.type === 'TAKE_NOTE') { takeNote(); }
 });
 
 /* 初始：手电筒默认亮 */
