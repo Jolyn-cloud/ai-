@@ -196,7 +196,67 @@ try {
   const wrongBackTitle = await evalJs(`document.getElementById('appbarTitle').textContent`);
   check('错题本退出结果页 → 标题恢复=错题本', wrongBackTitle === '错题本', `得到: ${wrongBackTitle}`);
 
-  console.log('\n== 4. 独立调试兜底：无 appbar 时 result-head 保留 ==');
+  console.log('\n== 4. 错题本卡片结构（三级标题 + 错次右侧 + 无状态/数量）==');
+  // 打开错题本子层，渲染列表后检查
+  await evalIn('quiz', `closeSubLayer(); 'ok'`);
+  await sleep(200);
+  await evalIn('quiz', `openSubLayer('wrong'); 'ok'`);
+  await sleep(400);
+  // 章节题：W01 path='操作系统 → 操作系统概述 → 作用' → 三级标题=作用
+  const w1Head = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    var card=f.contentWindow.document.querySelector('.q-card[data-qid="W01"]');
+    if(!card) return 'no-card';
+    var t=card.querySelector('.q-head-title');
+    var tags=card.querySelector('.q-head-tags');
+    var meta=card.querySelector('.q-meta');
+    var path=card.querySelector('.q-path');
+    return JSON.stringify({
+      title: t?t.textContent:'',
+      hasErrTag: !!(tags&&tags.querySelector('.q-tag')),
+      hasWrongCount: !!(tags&&/错\\s*\\d+\\s*次/.test(tags.textContent)),
+      hasStatus: !!(meta&&/待攻克|已攻克|顽固/.test(meta.textContent)),
+      hasPath: !!path
+    });
+  })()`);
+  const w1 = JSON.parse(w1Head);
+  check('章节题三级标题=末段(作用)', w1.title === '作用', `得到: ${w1.title}`);
+  check('章节题右侧有错误类型标签', w1.hasErrTag === true);
+  check('章节题右侧有错N次', w1.hasWrongCount === true);
+  check('章节题无待攻克/已攻克状态', w1.hasStatus === false, w1Head);
+  check('章节题无 q-path 路径行', w1.hasPath === false);
+
+  // 二级标题无数量
+  const chapCount = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    return f.contentWindow.document.querySelectorAll('.chapter-count').length;
+  })()`);
+  check('二级标题无题目数量(.chapter-count=0)', chapCount === 0, `剩 ${chapCount} 个`);
+
+  // 我的上传题 U01：concept='中断系统' → 标题=中断系统；无拍照/原图/单选标签
+  const u1Head = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    var card=f.contentWindow.document.querySelector('.q-card[data-qid="U01"]');
+    if(!card) return 'no-card';
+    var t=card.querySelector('.q-head-title');
+    var tags=card.querySelector('.q-head-tags');
+    return JSON.stringify({
+      title: t?t.textContent:'',
+      hasPhotoTag: !!(tags&&tags.querySelector('.q-tag.upload')),
+      hasTypeTag: !!(tags&&tags.querySelector('.q-tag.type-tag')),
+      hasImgTag: !!(tags&&tags.querySelector('.q-tag.img-tag'))
+    });
+  })()`);
+  const u1 = JSON.parse(u1Head);
+  check('上传题标题=concept(中断系统)', u1.title === '中断系统', `得到: ${u1.title}`);
+  check('上传题无📷拍照标签', u1.hasPhotoTag === false, u1Head);
+  check('上传题无单选type标签', u1.hasTypeTag === false, u1Head);
+  check('上传题无📷原图标签', u1.hasImgTag === false, u1Head);
+
+  console.log('\n== 5. 独立调试兜底：无 appbar 时 result-head 保留 ==');
   // 直接导航到拍照搜题.html（非总壳）→ 无 appbar → result-head 不隐藏
   await send('Page.navigate', { url: `http://localhost:${PORT}/拍照搜题.html` });
   await sleep(800);

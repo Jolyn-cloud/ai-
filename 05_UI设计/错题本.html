@@ -116,16 +116,12 @@ body {
   border-left: 2px solid #E5E8F0;
 }
 .chapter-head {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; justify-content: flex-start; align-items: center;
   padding: 7px 2px; cursor: pointer; font-size: 12.5px;
   color: var(--text-secondary); font-weight: 600;
 }
 .chapter-head.weak { color: var(--danger); font-weight: 700; }
 .chapter-head:active { opacity: .7; }
-.chapter-count {
-  font-size: 10.5px; color: var(--text-tertiary);
-  background: #F1F2F7; padding: 1px 8px; border-radius: 9px;
-}
 .q-list { display: none; }
 .chapter.open .q-list { display: block; }
 
@@ -138,6 +134,19 @@ body {
   box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 5px 14px rgba(91,114,245,.06);
 }
 .q-card.stubborn { box-shadow: 0 0 0 1px #FECACA, 0 5px 14px rgba(91,114,245,.06); }
+/* 标题行：左=三级标题（章节名）/ 右=错误类型+错次 */
+.q-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.q-head .q-head-title {
+  font-size: 12.5px; font-weight: 700; color: var(--primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.q-head .q-head-tags {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  font-size: 10.5px; color: var(--text-tertiary);
+}
 .q-path { font-size: 10.5px; color: var(--primary); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .q-title { font-size: 13px; color: var(--text-primary); line-height: 1.45; margin-bottom: 7px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .q-meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-tertiary); margin-bottom: 9px; flex-wrap: wrap; }
@@ -604,9 +613,9 @@ var WRONG_DATA = {
     { qid:'U01', source:'upload', mode:'text', path:'我的上传 → 拍照录入', type:'single', tag:'memory',
       title:'【草稿】下列中断类型中，属于可屏蔽中断的是（ ）。',
       ocr: '下列中断类型中，属于可屏蔽中断的是（ ）。',
-      createdAt:'2026-08-28 21:10', wrongCount:1, status:'pending', stubborn:false },
+      concept:'中断系统', createdAt:'2026-08-28 21:10', wrongCount:1, status:'pending', stubborn:false },
     { qid:'U02', source:'upload', mode:'image', path:'我的上传 → 拍照录入', type:'image', tag:'confusion',
-      title:'', img:'', ocr:'', createdAt:'2026-08-29 09:40', wrongCount:1, status:'pending', stubborn:false }
+      title:'', img:'', ocr:'', concept:'待归类', createdAt:'2026-08-29 09:40', wrongCount:1, status:'pending', stubborn:false }
   ];
   var loaded = null;
   try { loaded = JSON.parse(localStorage.getItem(KEY) || ''); } catch(e) {}
@@ -718,7 +727,6 @@ function renderList() {
       html += '<div class="chapter" id="chap' + mi + '">'
         + '<div class="chapter-head' + (c.weak ? ' weak' : '') + '" onclick="toggleChapter(' + mi + ')">'
         +   '<span>' + (c.weak ? '🔥 ' : '') + c.name + '</span>'
-        +   '<span class="chapter-count">' + c.questions.length + '道</span>'
         + '</div>'
         + '<div class="q-list">';
       x.qs.forEach(function(q) { html += qCard(q); });
@@ -738,33 +746,24 @@ function qCard(q) {
   var tagCls = ['stubborn','confusion','memory','operation'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
   var action = q.stubborn ? '集中攻克' : '再练';
   var isUpload = q.source === 'upload';
+  /* 三级标题：章节题取 path 末段（如「进程概念」）；上传题取 AI 识别考点 concept（兜底「待归类」） */
+  var headTitle = isUpload
+    ? (q.concept || '待归类')
+    : (q.path ? q.path.split(' → ').pop() : '');
+  /* 标题行右侧：错误类型 + 错次（统一） */
+  var headTags = '<span class="q-tag ' + tagCls + '">' + (TAG_NAME[q.tag] || '错题') + '</span>'
+    + '<span>错 ' + q.wrongCount + ' 次</span>';
   /* 图片题：OCR 未识别的图片占位；文字题有原图则附查看入口 */
   var body = (q.mode === 'image')
     ? '<div class="q-img-thumb" onclick="camAlert(\'查看原图（演示）\')"><span>📷</span>OCR 未识别 <em>点击查看原图</em></div>'
     : '<div class="q-title">' + (q.title || q.ocr) + '</div>'
       + (q.img ? '<div class="q-orig-link" onclick="camAlert(\'查看原图（演示）\')">📷 查看原图</div>' : '');
-  /* 上传题：结构化展示 AI 识别的 题型/考点/错因 + 原图 + 时间 */
-  var metaExtra = '';
-  if (isUpload) {
-    var typeLbl = TYPE_NAME[q.type] || '图片题';
-    metaExtra = '<span class="q-tag upload">📷 拍照</span>'
-      + '<span class="q-tag type-tag">' + typeLbl + '</span>'
-      + (q.concept && q.concept !== '待归类' ? '<span class="q-tag concept-tag">' + q.concept + '</span>' : '')
-      + (q.img ? '<span class="q-tag img-tag" onclick="event.stopPropagation();camAlert(\'查看原图（演示）\')">📷 原图</span>' : '')
-      + '<span>' + (q.createdAt || '') + '</span>';
-  }
-  var pathLine = isUpload
-    ? '<div class="q-path">📍 我的上传 <span class="q-path-sub">/ ' + (TYPE_NAME[q.type] || '图片题') + '</span></div>'
-    : '<div class="q-path">📍 ' + q.path + '</div>';
   return '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '" data-qid="' + (q.qid || '') + '">'
-    + pathLine
-    + body
-    + '<div class="q-meta">'
-    +   '<span class="q-tag ' + tagCls + '">' + (TAG_NAME[q.tag] || '错题') + '</span>'
-    +   '<span>错 ' + q.wrongCount + ' 次</span>'
-    +   (q.status === 'solved' ? '<span>已攻克</span>' : (q.stubborn ? '<span>顽固</span>' : '<span>待攻克</span>'))
-    +   metaExtra
+    + '<div class="q-head">'
+    +   '<span class="q-head-title">' + headTitle + '</span>'
+    +   '<span class="q-head-tags">' + headTags + '</span>'
     + '</div>'
+    + body
     + '<div class="q-btns">'
     +   '<button class="q-btn primary" onclick="startPractice(\'' + (q.stubborn ? 'stubborn' : 'qid') + '\',\'' + q.qid + '\')">' + action + '</button>'
     +   '<button class="q-btn detail" onclick="goDetail(\'' + q.qid + '\')">详情</button>'
