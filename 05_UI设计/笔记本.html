@@ -126,14 +126,36 @@ body {
 .date-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
 .date-count { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
 
+/* ===== 左滑删除（iOS 风格） ===== */
+.swipe-cell {
+  position: relative;
+  overflow: hidden;
+  margin: 6px 0;
+  border-radius: 11px 10px 12px 9px;
+}
+.swipe-content {
+  position: relative; z-index: 2;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
+  transition: transform .22s cubic-bezier(.32,.72,.32,1);
+  will-change: transform;
+}
+.swipe-del {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 72px; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--danger);
+  color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.swipe-del:active { opacity: .85; }
+
 /* ===== 题目笔记卡片 ===== */
 .q-card {
   position: relative;
   background: #fff;
   border-radius: 11px 10px 12px 9px;
   padding: 11px 12px 11px 14px;
-  margin: 6px 0;
-  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
   cursor: pointer;
   transition: transform .12s ease;
 }
@@ -165,8 +187,6 @@ body {
   background: #fff;
   border-radius: 11px 10px 12px 9px;
   padding: 9px 12px 11px;
-  margin: 6px 0;
-  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
   cursor: pointer;
   transition: transform .12s ease;
 }
@@ -515,15 +535,24 @@ function renderList() {
   wrap.innerHTML = html;
 }
 
+/* ===== 左滑删除包裹层（题目笔记 + 拍照笔记通用） ===== */
+function swipeWrap(nid, innerHtml, action) {
+  return '<div class="swipe-cell" data-nid="' + nid + '" data-action="' + action + '">'
+    +   '<div class="swipe-content">' + innerHtml + '</div>'
+    +   '<div class="swipe-del" onclick="deleteItem(\'' + nid + '\')">删除</div>'
+    + '</div>';
+}
+
 /* ===== 题目笔记卡片（三行：一级·二级+时间 / 三级标题 / 笔记内容1行省略） ===== */
 function quizCard(it) {
   var l1l2 = (it.l1 && it.l2) ? (it.l1 + ' · ' + it.l2) : (it.l1 || it.chapter || '');
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
-  return '<div class="q-card" onclick="goQuiz(\'' + it.nid + '\')">'
+  var inner = '<div class="q-card">'
     +   '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>'
     +   '<div class="n-title">' + it.concept + '</div>'
     +   '<div class="n-content">' + (it.content || '') + '</div>'
     + '</div>';
+  return swipeWrap(it.nid, inner, 'goQuiz');
 }
 
 /* ===== 拍照笔记卡片（标题按知识点层级显示） =====
@@ -537,27 +566,139 @@ function photoCard(it) {
   var l1 = it.l1 || '', l2 = it.l2 || '', l3 = it.l3 || '';
   var headHtml = '', metaHtml = '';
   if (!l1) {
-    /* 无选择 → 拍照笔记 */
     headHtml = '<span class="p-title">拍照笔记</span>';
   } else if (!l2) {
-    /* 到一级 → 一级标题 */
     headHtml = '<span class="p-title">' + l1 + '</span>';
   } else if (!l3) {
-    /* 到二级 → 一级 · 二级 */
     headHtml = '<span class="p-title">' + l1 + ' · ' + l2 + '</span>';
   } else {
-    /* 到三级/四级 → 一级·二级（meta 弱）+ 三级标题（title 重） */
     metaHtml = '<div class="n-meta" style="margin-bottom:5px;"><span>' + l1 + ' · ' + l2 + '</span></div>';
     headHtml = '<div class="p-head"><span class="p-title">' + l3 + '</span><span class="p-time">' + timeStr + '</span></div>';
-    return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
+    var inner = '<div class="p-card">'
       + metaHtml + headHtml
       + '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
       + '</div>';
+    return swipeWrap(it.nid, inner, 'openPhoto');
   }
-  return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
+  var inner = '<div class="p-card">'
     +   '<div class="p-head">' + headHtml + '<span class="p-time">' + timeStr + '</span></div>'
     +   '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
     + '</div>';
+  return swipeWrap(it.nid, inner, 'openPhoto');
+}
+
+/* ===== 左滑手势（事件委托，列表容器统一监听） ===== */
+var SWIPE_OPEN = 72;          /* 删除按钮宽度 */
+var SWIPE_THRESHOLD = 10;     /* 触发滑动的最小位移 */
+var swipeState = { cell: null, startX: 0, startY: 0, dx: 0, moved: false, opened: false };
+
+function closeAllSwipe(except) {
+  document.querySelectorAll('.swipe-content').forEach(function(c) {
+    if (c !== except) {
+      c.style.transform = '';
+      c._opened = false;
+    }
+  });
+}
+
+/* 在 listWrap 上委托 touch 事件 */
+(function initSwipe() {
+  var wrap = document.getElementById('listWrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    var cell = e.target.closest('.swipe-cell');
+    if (!cell) return;
+    /* 先关其他已打开的滑动 */
+    var content = cell.querySelector('.swipe-content');
+    closeAllSwipe(content);
+    swipeState.cell = cell;
+    swipeState.startX = e.touches[0].clientX;
+    swipeState.startY = e.touches[0].clientY;
+    swipeState.dx = 0;
+    swipeState.moved = false;
+    swipeState.opened = !!content._opened;
+    content.style.transition = 'none';
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', function(e) {
+    if (!swipeState.cell) return;
+    var dx = e.touches[0].clientX - swipeState.startX;
+    var dy = e.touches[0].clientY - swipeState.startY;
+    /* 纵向滑动（滚动列表）不拦截 */
+    if (Math.abs(dy) > Math.abs(dx) && !swipeState.moved) return;
+    if (Math.abs(dx) > 4) swipeState.moved = true;
+    if (!swipeState.moved) return;
+    var content = swipeState.cell.querySelector('.swipe-content');
+    /* 基准：已打开时从 -72 起，未打开从 0 起 */
+    var base = swipeState.opened ? -SWIPE_OPEN : 0;
+    var x = base + dx;
+    if (x > 0) x = 0;
+    if (x < -SWIPE_OPEN) x = -SWIPE_OPEN;
+    content.style.transform = 'translateX(' + x + 'px)';
+    swipeState.dx = x;
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', function(e) {
+    if (!swipeState.cell) return;
+    var cell = swipeState.cell;
+    var content = cell.querySelector('.swipe-content');
+    content.style.transition = '';
+    var dx = swipeState.dx;
+    /* 滑动距离判断：开/关 */
+    if (swipeState.moved) {
+      if (dx < -SWIPE_THRESHOLD || (!swipeState.opened && dx < -SWIPE_THRESHOLD)) {
+        content.style.transform = 'translateX(-' + SWIPE_OPEN + 'px)';
+        content._opened = true;
+      } else {
+        content.style.transform = '';
+        content._opened = false;
+      }
+    }
+    /* 未滑动（moved=false）→ 当点击处理 */
+    if (!swipeState.moved) {
+      var action = cell.getAttribute('data-action');
+      var nid = cell.getAttribute('data-nid');
+      if (action === 'goQuiz') goQuiz(nid);
+      else if (action === 'openPhoto') openPhoto(nid);
+    }
+    swipeState.cell = null;
+  }, { passive: true });
+
+  /* 桌面端点击：swipe-content 点击仍走 action */
+  wrap.addEventListener('click', function(e) {
+    /* touch 设备由 touchend 处理，桌面端无 touch 事件时走这里 */
+    if (e._handled) return;
+    var cell = e.target.closest('.swipe-cell');
+    if (!cell) return;
+    var content = cell.querySelector('.swipe-content');
+    if (content._opened) return;  /* 已打开时点内容只关闭 */
+    var action = cell.getAttribute('data-action');
+    var nid = cell.getAttribute('data-nid');
+    if (action === 'goQuiz') goQuiz(nid);
+    else if (action === 'openPhoto') openPhoto(nid);
+  });
+})();
+
+/* ===== 删除笔记（题目+拍照通用） ===== */
+function deleteItem(nid) {
+  var i = items.findIndex(function(x){ return x.nid === nid; });
+  if (i >= 0) {
+    items.splice(i, 1);
+    /* 真实拍照笔记同步删 localStorage */
+    if (nid.indexOf('N') === 0) {
+      try {
+        var arr = JSON.parse(localStorage.getItem('zsb_notes_v1') || '[]');
+        arr = arr.filter(function(n){ return n.nid !== nid; });
+        localStorage.setItem('zsb_notes_v1', JSON.stringify(arr));
+      } catch(e) {}
+    }
+    closeAllSwipe();
+    buildChapMenu();
+    renderList();
+    showToast('已删除该笔记');
+  }
 }
 
 /* ===== 点击题目笔记 → 做题页(entry=note) ===== */
@@ -604,14 +745,8 @@ function closeViewer() {
 }
 function deletePhoto() {
   if (!currentPhotoNid) return;
-  var i = items.findIndex(function(x){ return x.nid === currentPhotoNid; });
-  if (i >= 0) {
-    items.splice(i, 1);
-    closeViewer();
-    buildChapMenu();
-    renderList();
-    showToast('已删除该笔记');
-  }
+  closeViewer();
+  deleteItem(currentPhotoNid);
 }
 
 /* ===== 拍照 FAB → 跳转拍照搜题「记笔记」流程 ===== */
