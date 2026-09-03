@@ -145,6 +145,7 @@ body {
 .result-head .rbtn { background:none; border:none; font-size:15px; cursor:pointer; color: var(--text-secondary); }
 /* 处于总壳演示时，页内自绘页头交给 appbar 统一承担（独立调试本文件仍保留兜底） */
 body.has-appbar .result-head { display: none; }
+body.has-appbar .result-body { padding-top: 12px; }
 .result-head .rbtn.dark { color: var(--text-primary); font-weight: 600; }
 .result-body { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
 .result-tagbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 8px; }

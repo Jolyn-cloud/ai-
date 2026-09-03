@@ -154,6 +154,10 @@ try {
   const resultHeadHidden = await evalIn('quiz', `(function(){ var f=document.getElementById('camLayer').querySelector('iframe'); if(!f||!f.contentWindow) return 'no-iframe'; var h=f.contentWindow.document.querySelector('.result-head'); if(!h) return 'no-head'; return getComputedStyle(h).display; })()`);
   check('结果页内自绘 result-head 已隐藏', resultHeadHidden === 'none', `得到: ${resultHeadHidden}`);
 
+  // 隐藏页头后 result-body 顶部 padding 补到 12px（appbar 下方留白）
+  const bodyPadding = await evalIn('quiz', `(function(){ var f=document.getElementById('camLayer').querySelector('iframe'); if(!f||!f.contentWindow) return 'no-iframe'; var b=f.contentWindow.document.querySelector('.result-body'); if(!b) return 'no-body'; return getComputedStyle(b).paddingTop; })()`);
+  check('隐藏页头后 result-body 顶部留白=12px', bodyPadding === '12px', `得到: ${bodyPadding}`);
+
   // camResult.on 已打开
   const resultOn = await evalIn('quiz', `(function(){ var f=document.getElementById('camLayer').querySelector('iframe'); if(!f||!f.contentWindow) return false; return f.contentWindow.document.getElementById('camResult').classList.contains('on'); })()`);
   check('结果页 camResult.on 已打开', resultOn === true);
