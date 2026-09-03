@@ -1117,7 +1117,7 @@ function renderSingleList(field) {
   var opts = TAG_OPTIONS[field];
   var titleMap = { type:'选择题型', tag:'选择错因' };
   var curVal = field === 'type' ? CUR.type : CUR.tag;
-  var html = '<div class="kp-picker-head"><span class="kp-picker-title">' + titleMap[field] + '</span><span class="kp-picker-skip" onclick="confirmTagPicker()">完成</span></div>'
+  var html = '<div class="kp-picker-head"><span class="kp-picker-title">' + titleMap[field] + '</span></div>'
     + '<div class="kp-path-bar" style="visibility:hidden">&nbsp;</div>'
     + '<div class="kp-list">';
   opts.forEach(function(o) {
