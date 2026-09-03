@@ -78,11 +78,7 @@ body {
 }
 .s-meta .s-type { color: var(--primary); font-weight: 600; }
 .s-bottom {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-}
-.s-subject {
-  font-size: 13px; color: var(--text-secondary); font-weight: 500;
-  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; flex: 1;
+  display: flex; align-items: baseline; gap: 8px;
 }
 .s-score {
   font-size: 22px; font-weight: 800; color: var(--primary);
@@ -251,22 +247,6 @@ body {
 
 <div class="page" id="page">
 
-  <!-- 成绩概览（无数据时隐藏） -->
-  <div class="overview" id="overview" style="display:none;">
-    <div class="ov-item">
-      <div class="ov-label">最近一次</div>
-      <div class="ov-val" id="ovLatest">-<span class="unit">分</span></div>
-    </div>
-    <div class="ov-item">
-      <div class="ov-label">最高成绩</div>
-      <div class="ov-val" id="ovMax">-<span class="unit">分</span></div>
-    </div>
-    <div class="ov-item">
-      <div class="ov-label">平均成绩</div>
-      <div class="ov-val" id="ovAvg">-<span class="unit">分</span></div>
-    </div>
-  </div>
-
   <!-- 列表区 -->
   <div class="list-wrap" id="listWrap"></div>
 
@@ -280,8 +260,8 @@ body {
 
 </div>
 
-<!-- 新增 FAB -->
-<button class="add-fab" onclick="openForm()" title="录入成绩">＋</button>
+<!-- 新增 FAB（空状态时隐藏，有数据时显示） -->
+<button class="add-fab" id="addFab" onclick="openForm()" title="录入成绩" style="display:none;">＋</button>
 
 <!-- 表单浮层（新增/编辑） -->
 <div class="form-mask" id="formMask" onclick="if(event.target===this) closeForm()">
@@ -309,15 +289,6 @@ body {
           <button class="type-chip" data-type="学校考试" onclick="pickType('学校考试')">学校考试</button>
           <button class="type-chip" data-type="其他" onclick="pickType('其他')">其他</button>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-label">考试科目 <span class="req">*</span></div>
-        <select class="form-select" id="fSubject">
-          <option value="计算机">计算机</option>
-          <option value="英语">英语</option>
-          <option value="高数">高数</option>
-          <option value="语文">语文</option>
-        </select>
       </div>
       <div class="form-row">
         <div class="form-label">成绩 <span class="req">*</span></div>
@@ -388,36 +359,22 @@ function saveScores(arr) {
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
 }
 
-/* ===== 概览 ===== */
-function renderOverview() {
-  var arr = loadScores();
-  var ovEl = document.getElementById('overview');
-  if (!arr.length) { ovEl.style.display = 'none'; return; }
-  ovEl.style.display = 'flex';
-  /* 按考试时间降序取最近一次 */
-  var sorted = arr.slice().sort(function(a,b){ return (a.date||'') < (b.date||'') ? 1 : -1; });
-  var latest = sorted[0];
-  var scores = arr.map(function(x){ return Number(x.score) || 0; });
-  var max = Math.max.apply(null, scores);
-  var avg = Math.round(scores.reduce(function(s,n){ return s+n; },0) / scores.length);
-  document.getElementById('ovLatest').innerHTML = latest.score + '<span class="unit">分</span>';
-  document.getElementById('ovMax').innerHTML = max + '<span class="unit">分</span>';
-  document.getElementById('ovAvg').innerHTML = avg + '<span class="unit">分</span>';
-}
-
 /* ===== 列表 ===== */
 function renderList() {
   var arr = loadScores();
   var wrap = document.getElementById('listWrap');
   var empty = document.getElementById('empty');
+  var fab = document.getElementById('addFab');
 
   if (!arr.length) {
     wrap.style.display = 'none';
     empty.style.display = 'flex';
+    if (fab) fab.style.display = 'none';     /* 空状态隐藏 FAB，只留空状态按钮入口 */
     return;
   }
   wrap.style.display = 'block';
   empty.style.display = 'none';
+  if (fab) fab.style.display = 'flex';       /* 有数据时显示 FAB */
 
   /* 按考试时间降序 */
   arr.sort(function(a,b){ return (a.date||'') < (b.date||'') ? 1 : -1; });
@@ -435,10 +392,8 @@ function scoreCard(it) {
     +   '<div class="s-title">' + (it.name || '未命名考试') + '</div>'
     +   '<div class="s-meta"><span class="s-type">' + (it.type || '其他') + '</span> · ' + (it.date || '') + '</div>'
     +   '<div class="s-bottom">'
-    +     '<span class="s-subject">' + (it.subject || '') + '</span>'
     +     '<span class="s-score">' + (it.score || 0) + '<span class="s-su">分</span></span>'
     +   '</div>'
-    +   '<span class="s-arrow">›</span>'
     + '</div>';
 }
 
@@ -455,7 +410,6 @@ function openForm(id) {
     if (!it) return;
     document.getElementById('fName').value = it.name || '';
     document.getElementById('fDate').value = it.date || '';
-    document.getElementById('fSubject').value = it.subject || '计算机';
     document.getElementById('fScore').value = it.score || '';
     pickType(it.type || '模拟考试');
   } else {
@@ -463,7 +417,6 @@ function openForm(id) {
     /* 默认今天 */
     var now = new Date();
     document.getElementById('fDate').value = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
-    document.getElementById('fSubject').value = '计算机';
     document.getElementById('fScore').value = '';
     pickType('模拟考试');
   }
@@ -483,7 +436,6 @@ function pickType(t) {
 function saveForm() {
   var name = document.getElementById('fName').value.trim();
   var date = document.getElementById('fDate').value;
-  var subject = document.getElementById('fSubject').value;
   var score = document.getElementById('fScore').value.trim();
   var ok = true;
 
@@ -506,21 +458,20 @@ function saveForm() {
     /* 编辑：更新原记录 */
     arr = arr.map(function(x) {
       if (x.id === editId) {
-        return Object.assign({}, x, { name:name, date:date, type:pickedType, subject:subject, score:score });
+        return Object.assign({}, x, { name:name, date:date, type:pickedType, score:score });
       }
       return x;
     });
   } else {
-    /* 新增：置顶（unshift，渲染时按 date 降序会重排，但新记录 date 最新自然置顶） */
+    /* 新增：置顶（渲染时按 date 降序重排，新记录 date 最新自然置顶） */
     arr.unshift({
       id: 'S' + Date.now(),
-      name: name, date: date, type: pickedType, subject: subject, score: score,
+      name: name, date: date, type: pickedType, score: score,
       createdAt: createdAt
     });
   }
   saveScores(arr);
   closeForm();
-  renderOverview();
   renderList();
   showToast(editId ? '已更新成绩' : '已录入成绩');
 }
@@ -535,7 +486,6 @@ function openDetail(id) {
     + '<div class="d-row"><span class="d-label">考试名称</span><span class="d-val">' + (it.name||'') + '</span></div>'
     + '<div class="d-row"><span class="d-label">考试类型</span><span class="d-val">' + (it.type||'') + '</span></div>'
     + '<div class="d-row"><span class="d-label">考试日期</span><span class="d-val">' + (it.date||'') + '</span></div>'
-    + '<div class="d-row"><span class="d-label">考试科目</span><span class="d-val">' + (it.subject||'') + '</span></div>'
     + '<div class="d-row"><span class="d-label">成绩</span><span class="d-val score">' + (it.score||0) + '<span class="d-su">分</span></span></div>';
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('detailMask').classList.add('on');
@@ -583,7 +533,6 @@ function showToast(msg) {
 /* 页头标题/返回由总壳 appbar 统一承担 */
 
 /* ===== 初始化 ===== */
-renderOverview();
 renderList();
 </script>
 
