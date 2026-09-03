@@ -140,14 +140,7 @@ body {
   display: none; flex-direction: column;
 }
 .cam-result.on { display: flex; }
-.result-head {
-  height: 56px; flex-shrink: 0; padding: 0 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.result-head .tt { font-size: 16px; font-weight: 700; }
-.result-head .rbtn { background:none; border:none; font-size:15px; cursor:pointer; color: var(--text-secondary); }
-.result-head .rbtn.dark { color: var(--text-primary); font-weight: 600; }
-.result-body { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
+.result-body { flex: 1; overflow-y: auto; padding: 16px 16px 16px; }
 .result-tagbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 8px; }
 .tag-pill {
   padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
@@ -193,14 +186,12 @@ body {
 <!-- 拍照页（整页常驻，回到题库走返回） -->
 <div class="cam-mask" id="camMask">
   <div class="cam-topbar">
-    <button class="cam-close" onclick="goBack()" title="返回">✕</button>
     <div class="cam-mode">
       <div class="cam-mode-inner">
         <button class="cam-mode-btn active" id="modeSearch" onclick="setCamMode('search')">搜题</button>
         <button class="cam-mode-btn" id="modeCapture" onclick="setCamMode('capture')">错题录入</button>
       </div>
     </div>
-    <button class="cam-close placeholder">✕</button>
   </div>
   <div class="cam-viewport">
     <div class="cam-hint" id="camHint">拍下题目，AI 搜索题库匹配</div>
@@ -232,11 +223,6 @@ body {
 
   <!-- 识别成功：编辑题干 + AI 题型/知识点/错题标签 -->
   <div class="cam-result" id="camResult">
-    <div class="result-head">
-      <button class="rbtn" onclick="closeResult()">取消</button>
-      <span class="tt" id="resultTitle">识别成功</span>
-      <button class="rbtn dark" onclick="saveUpload()">保存</button>
-    </div>
     <div class="result-body">
       <textarea class="result-oa" id="resultTxt" placeholder="识别出的题干，可手动修改">请检查识别文字</textarea>
       <div class="result-airow"><label>题型</label><input class="ai-input" id="resultType" placeholder="AI 题型" /></div>
@@ -356,7 +342,6 @@ function showResult(ok) {
     var mockTxt = CAM_MODE === 'search'
       ? '以下选项中，Excel 中可以进行单元格引用的运算符是（ ）。'
       : '下列选项属于文件系统管理功能的是（ ）。';
-    document.getElementById('resultTitle').textContent = '识别成功';
     document.getElementById('resultTxt').value = mockTxt;
     document.getElementById('resultTxt').style.display = 'block';
     document.getElementById('resultImgWrap').innerHTML = '';
@@ -370,7 +355,6 @@ function showResult(ok) {
       'AI 已识别 <b>1 道题</b> · 系统推荐标签：<b>' + (TAG_NAME[tag] || tag) + '</b>';
   } else {
     /* 失败：图片占位 */
-    document.getElementById('resultTitle').textContent = '未识别出文字';
     document.getElementById('resultTxt').value = '';
     document.getElementById('resultTxt').style.display = 'none';
     document.getElementById('resultType').value = '图片';
