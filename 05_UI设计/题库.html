@@ -354,6 +354,9 @@ body::before {
 <div class="sub-layer" id="favLayer">
   <iframe src="收藏本.html"></iframe>
 </div>
+<div class="sub-layer" id="noteLayer">
+  <iframe src="笔记本.html"></iframe>
+</div>
 
 <script>
 /* ============================================================
@@ -594,6 +597,7 @@ function quickEntry(name) {
   /* 已登录：走各功能原入口 */
   if (name === '拍照搜题') { openSubLayer('cam'); return; }
   if (name === '收藏本') { openSubLayer('fav'); return; }
+  if (name === '笔记本') { openSubLayer('note'); return; }
   showToast(name);
 }
 
@@ -607,7 +611,8 @@ var SUB_LAYERS = {
   real:    document.getElementById('realLayer'),
   wrong:   document.getElementById('wrongLayer'),
   cam:     document.getElementById('camLayer'),
-  fav:     document.getElementById('favLayer')
+  fav:     document.getElementById('favLayer'),
+  note:    document.getElementById('noteLayer')
 };
 /* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
 var activeSub = null;

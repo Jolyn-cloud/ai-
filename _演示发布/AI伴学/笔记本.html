@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>笔记本</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页/错题本/收藏本统一） ====
+   笔记本页：题库首页「笔记本」快捷入口下钻二级页
+   结构：类型 Tab → 筛选栏（全部章节▾ + 时间降序提示）→ 按日期分组的卡片列表 → 空状态
+   定位：保存和回顾"我自己记录的学习内容"（非错题本/收藏本）
+   来源：题目笔记（做题页解析页保存）/ 拍照笔记（上传图片）
+   交互：点题目笔记 → 做题页(entry=note) 看原题；点拍照笔记 → 图片查看层 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-teal: #3FA98B;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page { display: flex; flex-direction: column; height: 100%; }
+
+/* ===== 类型 Tab ===== */
+.src-tabs {
+  display: flex; gap: 0;
+  padding: 10px 16px 8px;
+  background: #fff;
+  border-bottom: 1px solid #EEF0F6;
+  flex-shrink: 0;
+}
+.src-tab {
+  flex: 1;
+  height: 34px;
+  border: none; background: none;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  position: relative;
+  transition: color .15s ease;
+}
+.src-tab.active { color: var(--primary); }
+.src-tab.active::after {
+  content: ''; position: absolute;
+  bottom: -9px; left: 50%; transform: translateX(-50%);
+  width: 22px; height: 3px; border-radius: 2px;
+  background: var(--primary);
+}
+
+/* ===== 筛选栏 ===== */
+.filter-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+.fav-type {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 30px; padding: 0 12px;
+  border: 1px solid #E5E8F0; border-radius: 15px;
+  background: #fff;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.fav-type:active { transform: scale(.97); }
+.fav-type.open { border-color: var(--primary); color: var(--primary); }
+.fav-type .caret { font-size: 10px; color: var(--text-tertiary); transition: transform .15s ease; }
+.fav-type.open .caret { transform: rotate(180deg); color: var(--primary); }
+
+.sort-hint {
+  font-size: 11.5px; color: var(--text-tertiary); font-weight: 500;
+}
+
+/* 章节下拉浮层 */
+.type-menu {
+  position: absolute; top: 44px; left: 16px;
+  min-width: 132px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(38,48,96,.14), 0 2px 6px rgba(38,48,96,.06);
+  padding: 6px 0;
+  display: none; z-index: 50;
+  overflow: hidden;
+}
+.type-menu.open { display: block; }
+.type-menu-item {
+  padding: 9px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.type-menu-item:active { background: #F5F6FA; }
+.type-menu-item.active { color: var(--primary); font-weight: 700; }
+.type-menu-item.active::after { content: ' ✓'; color: var(--primary); }
+
+/* ===== 列表区 ===== */
+.list-wrap {
+  flex: 1; overflow-y: auto;
+  padding: 4px 16px 24px;
+}
+
+/* 日期分组（一级标题） */
+.date-group { margin-bottom: 4px; }
+.date-head {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 16px 4px 6px;
+}
+.date-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.date-count { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ===== 题目笔记卡片 ===== */
+.q-card {
+  position: relative;
+  background: #fff;
+  border-radius: 11px 10px 12px 9px;
+  padding: 11px 12px 11px 14px;
+  margin: 6px 0;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.q-card:active { transform: scale(.985); }
+
+/* 第一行：一级·二级标题（辅助信息，视觉弱） */
+.n-meta {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-tertiary);
+  line-height: 1.3; margin-bottom: 5px;
+}
+/* 第二行：三级标题（视觉重点） */
+.n-title {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  line-height: 1.4; margin-bottom: 6px;
+}
+/* 第三行：笔记内容（辅助） */
+.n-content {
+  font-size: 13px; color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.q-arrow {
+  position: absolute;
+  bottom: 10px; right: 12px;
+  font-size: 17px; color: var(--text-tertiary); line-height: 1;
+}
+
+/* ===== 拍照笔记卡片 ===== */
+.p-card {
+  position: relative;
+  background: #fff;
+  border-radius: 11px 10px 12px 9px;
+  padding: 9px 12px 11px;
+  margin: 6px 0;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.p-card:active { transform: scale(.985); }
+.p-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px;
+}
+.p-title {
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+  line-height: 1.4; flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.p-time {
+  font-size: 11.5px; color: var(--text-tertiary); font-weight: 500;
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.p-thumb {
+  width: 100%; aspect-ratio: 16 / 9;
+  border-radius: 8px; overflow: hidden;
+  background: #F5F6FA;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+}
+.p-thumb .cam-ico { font-size: 28px; }
+.p-chap {
+  font-size: 11.5px; color: var(--text-tertiary); font-weight: 500;
+  margin-top: 7px;
+}
+
+/* ===== 空状态 ===== */
+.empty {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.empty-ico {
+  font-size: 48px; margin-bottom: 18px;
+}
+.empty-title { font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+.empty-desc { font-size: 12.5px; color: var(--text-tertiary); line-height: 1.6; margin-bottom: 20px; max-width: 240px; }
+
+/* ===== 拍照 FAB（复用错题本样式，常驻右下角） ===== */
+.camera-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 96;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  box-shadow: 0 6px 16px rgba(91,114,245,.38);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; outline: none;
+  transition: transform .15s ease;
+}
+.camera-fab svg { width: 23px; height: 23px; }
+.camera-fab:active { transform: scale(.92); }
+
+/* ===== 图片查看层（拍照笔记详情） ===== */
+.viewer {
+  position: fixed; inset: 0; z-index: 200;
+  background: #000;
+  display: none; flex-direction: column;
+}
+.viewer.show { display: flex; }
+.viewer-bar {
+  flex-shrink: 0; height: 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  color: #fff;
+}
+.viewer-back {
+  font-size: 20px; cursor: pointer; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.viewer-chap {
+  font-size: 12px; color: rgba(255,255,255,.7);
+}
+.viewer-del {
+  font-size: 13px; color: #ff6b6b; cursor: pointer;
+  padding: 6px 10px; font-weight: 600;
+}
+.viewer-img {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 16px; overflow: hidden;
+}
+.viewer-img .ph {
+  width: 100%; max-height: 100%;
+  background: #1a1a1a;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.3);
+  font-size: 32px;
+  min-height: 200px;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,33,48,.88); color: #fff;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 12.5px; z-index: 999;
+  opacity: 0; transition: opacity .2s ease; pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+
+  <!-- 类型 Tab -->
+  <div class="src-tabs" id="srcTabs">
+    <button class="src-tab active" data-src="all" onclick="setSrc('all')">全部</button>
+    <button class="src-tab" data-src="quiz" onclick="setSrc('quiz')">题目笔记</button>
+    <button class="src-tab" data-src="photo" onclick="setSrc('photo')">拍照笔记</button>
+  </div>
+
+  <!-- 筛选栏 -->
+  <div class="filter-bar">
+    <button class="fav-type" id="chapFilter" onclick="toggleChapMenu()">全部章节 <span class="caret">▾</span></button>
+    <span class="sort-hint">按时间降序</span>
+  </div>
+
+  <!-- 章节下拉 -->
+  <div class="type-menu" id="chapMenu"></div>
+
+  <!-- 列表区 -->
+  <div class="list-wrap" id="listWrap"></div>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty" style="display:none;">
+    <div class="empty-ico">📝</div>
+    <div class="empty-title">还没有学习笔记</div>
+    <div class="empty-desc">记录题目解析中的学习心得，或者拍下你的纸质笔记，都会保存在这里</div>
+  </div>
+
+</div>
+
+<!-- 拍照 FAB（常驻，点击打开记笔记功能） -->
+<button class="camera-fab" onclick="openCam()" title="拍照记笔记">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+</button>
+
+<!-- 图片查看层（拍照笔记详情） -->
+<div class="viewer" id="viewer">
+  <div class="viewer-bar">
+    <span class="viewer-back" onclick="closeViewer()">‹</span>
+    <span class="viewer-chap" id="viewerChap"></span>
+    <span class="viewer-del" onclick="deletePhoto()">删除</span>
+  </div>
+  <div class="viewer-img">
+    <div class="ph" id="viewerImg">📷</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   笔记本 mock 数据（演示期）
+   字段口径：
+     nid        笔记 id
+     type       quiz 题目笔记 / photo 拍照笔记
+     chapter    章节名（筛选依据；拍照笔记可空）
+     l1/l2      一级/二级标题（如 计算机基础/操作系统）
+     concept    三级标题（题目笔记卡片主信息）
+     content    笔记内容（题目笔记文本）
+     qid        关联题目 id（题目笔记 → 做题页定位用，复用 wrong 题集 W01-W06）
+     img        图片标识（拍照笔记占位）
+     createdAt  记录时间 YYYY-MM-DD HH:MM
+   ============================================================ */
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function ts(md, hm) { return '2026-' + md + ' ' + hm; }
+
+var NOTE_DATA = [
+  /* —— 题目笔记 —— */
+  { nid:'Q01', type:'quiz', chapter:'操作系统', l1:'计算机基础', l2:'操作系统',
+    concept:'操作系统的基本功能', qid:'W01',
+    content:'进程和线程这里容易混淆，进程拥有独立地址空间，线程共享进程资源。记住：进程是资源分配的最小单位，线程是 CPU 调度的最小单位。',
+    createdAt: ts('09-03','14:20') },
+  { nid:'Q02', type:'quiz', chapter:'计算机基础', l1:'计算机基础', l2:'数制与编码',
+    concept:'数制转换与编码', qid:'W02',
+    content:'二进制转十进制按权展开相加，十进制转二进制除2取余逆序。容易错的是小数部分，乘2取整顺序排列。',
+    createdAt: ts('09-03','10:05') },
+  { nid:'Q03', type:'quiz', chapter:'计算机网络', l1:'计算机网络', l2:'网络协议',
+    concept:'TCP/IP 协议体系', qid:'W05',
+    content:'TCP 三次握手：SYN→SYN+ACK→ACK，建立可靠连接。四次挥手断开，注意 TIME_WAIT 状态要等 2MSL。',
+    createdAt: ts('09-02','20:30') },
+  { nid:'Q04', type:'quiz', chapter:'数据库', l1:'数据库', l2:'关系数据库',
+    concept:'数据库的三级模式结构', qid:'W06',
+    content:'外模式、模式、内模式三层。外模式是用户视图，模式是全局逻辑，内模式是物理存储。两级映像保证逻辑/物理独立性。',
+    createdAt: ts('09-01','16:45') },
+  { nid:'Q05', type:'quiz', chapter:'操作系统', l1:'计算机基础', l2:'操作系统',
+    concept:'进程与线程的概念', qid:'W02',
+    content:'进程的三态：就绪、运行、阻塞。就绪等 CPU，运行占 CPU，阻塞等资源。注意阻塞不能直接回运行，要先回就绪。',
+    createdAt: ts('08-31','09:15') },
+  { nid:'Q06', type:'quiz', chapter:'数据结构', l1:'数据结构', l2:'树与图',
+    concept:'二叉树的遍历方法', qid:'W03',
+    content:'前序：根左右；中序：左根右；后序：左右根。已知前序+中序可还原二叉树，关键是前序找根、中序分左右。',
+    createdAt: ts('08-30','11:20') },
+
+  /* —— 拍照笔记 —— */
+  { nid:'P01', type:'photo', chapter:'操作系统', l1:'计算机基础', l2:'操作系统',
+    concept:'进程调度算法手写笔记', img:'note_os_01',
+    createdAt: ts('09-02','21:00') },
+  { nid:'P02', type:'photo', chapter:'', l1:'', l2:'',
+    concept:'计算机网络思维导图', img:'note_net_01',
+    createdAt: ts('09-01','19:30') },
+  { nid:'P03', type:'photo', chapter:'数据库', l1:'数据库', l2:'SQL',
+    concept:'SQL 连接查询语法整理', img:'note_sql_01',
+    createdAt: ts('08-29','15:10') }
+];
+
+/* 运行态副本（删除从内存移除，mock 不落库，刷新恢复） */
+var items = NOTE_DATA.map(function(x){ return Object.assign({}, x); });
+
+var SRC = 'all';        /* 类型筛选：all/quiz/photo */
+var CHAP = 'all';       /* 章节筛选 */
+var currentPhotoNid = null;
+
+/* ===== 章节列表（从数据派生，保持插入顺序，去重） ===== */
+function buildChapList() {
+  var seen = {}, list = ['all'];
+  items.forEach(function(it) {
+    if (it.chapter && !seen[it.chapter]) { seen[it.chapter] = 1; list.push(it.chapter); }
+  });
+  return list;
+}
+
+/* ===== 类型筛选 ===== */
+function setSrc(s) {
+  SRC = s;
+  document.querySelectorAll('.src-tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.src === s);
+  });
+  /* 章节筛选重置（切类型时章节下拉可能变化） */
+  CHAP = 'all';
+  document.getElementById('chapFilter').firstChild.textContent = '全部章节 ';
+  renderList();
+  buildChapMenu();
+}
+
+/* ===== 章节下拉 ===== */
+function toggleChapMenu() {
+  var m = document.getElementById('chapMenu');
+  var b = document.getElementById('chapFilter');
+  m.classList.toggle('open');
+  b.classList.toggle('open', m.classList.contains('open'));
+}
+function setChap(c) {
+  CHAP = c;
+  document.getElementById('chapFilter').firstChild.textContent = (c === 'all' ? '全部章节' : c) + ' ';
+  document.getElementById('chapMenu').classList.remove('open');
+  document.getElementById('chapFilter').classList.remove('open');
+  renderList();
+}
+function buildChapMenu() {
+  var list = buildChapList();
+  var html = list.map(function(c) {
+    return '<div class="type-menu-item' + (CHAP === c ? ' active' : '') + '" onclick="setChap(\'' + c.replace(/'/g,"\\'") + '\')">'
+      + (c === 'all' ? '全部章节' : c) + '</div>';
+  }).join('');
+  document.getElementById('chapMenu').innerHTML = html;
+}
+
+/* ===== 过滤 ===== */
+function passFilter(it) {
+  if (SRC !== 'all' && it.type !== SRC) return false;
+  if (CHAP !== 'all' && it.chapter !== CHAP) return false;
+  return true;
+}
+
+/* ===== 日期分组标签 ===== */
+var TODAY = '2026-09-03';
+var YESTERDAY = '2026-09-02';
+function dateLabel(createdAt) {
+  var d = (createdAt || '').slice(0, 10);
+  if (d === TODAY) return '今天';
+  if (d === YESTERDAY) return '昨天';
+  return d.slice(5);  /* MM-DD */
+}
+
+/* ===== 渲染列表 ===== */
+function renderList() {
+  var list = items.filter(passFilter).slice().sort(function(a, b) {
+    return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1;
+  });
+  var wrap = document.getElementById('listWrap');
+  var empty = document.getElementById('empty');
+
+  if (!list.length) {
+    wrap.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  wrap.style.display = 'block';
+  empty.style.display = 'none';
+
+  /* 按日期分组 */
+  var groups = {}, order = [];
+  list.forEach(function(it) {
+    var lab = dateLabel(it.createdAt);
+    if (!groups[lab]) { groups[lab] = []; order.push(lab); }
+    groups[lab].push(it);
+  });
+
+  var html = '';
+  order.forEach(function(lab) {
+    var arr = groups[lab];
+    html += '<div class="date-group">'
+      +   '<div class="date-head">'
+      +     '<span class="date-name">' + lab + '</span>'
+      +     '<span class="date-count">' + arr.length + ' 条笔记</span>'
+      +   '</div>';
+    arr.forEach(function(it) {
+      html += (it.type === 'photo') ? photoCard(it) : quizCard(it);
+    });
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ===== 题目笔记卡片（三行：一级·二级 / 三级标题 / 笔记内容） ===== */
+function quizCard(it) {
+  var l1l2 = (it.l1 && it.l2) ? (it.l1 + ' · ' + it.l2) : (it.l1 || it.chapter || '');
+  return '<div class="q-card" onclick="goQuiz(\'' + it.nid + '\')">'
+    +   '<div class="n-meta">' + l1l2 + '</div>'
+    +   '<div class="n-title">' + it.concept + '</div>'
+    +   '<div class="n-content">' + (it.content || '') + '</div>'
+    +   '<span class="q-arrow">›</span>'
+    + '</div>';
+}
+
+/* ===== 拍照笔记卡片 ===== */
+function photoCard(it) {
+  var chapLine = it.chapter ? '<div class="p-chap">' + it.chapter + '</div>' : '';
+  var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
+  return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
+    +   '<div class="p-head">'
+    +     '<span class="p-title">' + (it.concept || '拍照笔记') + '</span>'
+    +     '<span class="p-time">' + timeStr + '</span>'
+    +   '</div>'
+    +   '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
+    +   chapLine
+    + '</div>';
+}
+
+/* ===== 点击题目笔记 → 做题页(entry=note) ===== */
+function goQuiz(nid) {
+  var one = items.filter(function(x){ return x.nid === nid; });
+  if (!one.length) return;
+  var it = one[0];
+  /* 写入临时 key，做题页 entry=note 读取 */
+  try {
+    localStorage.setItem('zsb_note_practice_v1', JSON.stringify([{
+      qid: it.qid, chapter: it.chapter, concept: it.concept, l1: it.l1, l2: it.l2
+    }]));
+  } catch(e) {}
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'note', scope:'qid', qid: it.qid, name: it.concept
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，查看题目');
+  }
+}
+
+/* ===== 点击拍照笔记 → 图片查看层 ===== */
+function openPhoto(nid) {
+  var one = items.filter(function(x){ return x.nid === nid; });
+  if (!one.length) return;
+  currentPhotoNid = nid;
+  var it = one[0];
+  document.getElementById('viewerChap').textContent = it.chapter ? ('所属：' + it.chapter) : '';
+  document.getElementById('viewerImg').textContent = '📷 ' + (it.concept || '');
+  document.getElementById('viewer').classList.add('show');
+}
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('show');
+  currentPhotoNid = null;
+}
+function deletePhoto() {
+  if (!currentPhotoNid) return;
+  var i = items.findIndex(function(x){ return x.nid === currentPhotoNid; });
+  if (i >= 0) {
+    items.splice(i, 1);
+    closeViewer();
+    buildChapMenu();
+    renderList();
+    showToast('已删除该笔记');
+  }
+}
+
+/* ===== 拍照 FAB → 记笔记功能（mock：仅反馈，不真存） ===== */
+function openCam() {
+  showToast('拍照记笔记（演示：点击有反馈，不真存）');
+}
+
+/* ===== 去刷题（空状态无入口按钮，靠 FAB） ===== */
+
+/* ===== Toast ===== */
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
+}
+
+/* ===== 点外部收起章节下拉 ===== */
+document.addEventListener('click', function(e) {
+  var m = document.getElementById('chapMenu');
+  var b = document.getElementById('chapFilter');
+  if (m.classList.contains('open') && !m.contains(e.target) && e.target !== b && !b.contains(e.target)) {
+    m.classList.remove('open');
+    b.classList.remove('open');
+  }
+});
+
+/* ===== 初始化 ===== */
+buildChapMenu();
+renderList();
+</script>
+
+</body>
+</html>

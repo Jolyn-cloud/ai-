@@ -45,7 +45,7 @@ body::before {
   content: '';
   position: fixed; inset: 0;
   z-index: 0;
-  background: url('ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+  background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
   pointer-events: none;
 }
 .content { max-width: 430px; margin: 0 auto; padding-bottom: 32px; position: relative; z-index: 1; }
@@ -354,6 +354,9 @@ body::before {
 <div class="sub-layer" id="favLayer">
   <iframe src="收藏本.html"></iframe>
 </div>
+<div class="sub-layer" id="noteLayer">
+  <iframe src="笔记本.html"></iframe>
+</div>
 
 <script>
 /* ============================================================
@@ -594,6 +597,7 @@ function quickEntry(name) {
   /* 已登录：走各功能原入口 */
   if (name === '拍照搜题') { openSubLayer('cam'); return; }
   if (name === '收藏本') { openSubLayer('fav'); return; }
+  if (name === '笔记本') { openSubLayer('note'); return; }
   showToast(name);
 }
 
@@ -607,7 +611,8 @@ var SUB_LAYERS = {
   real:    document.getElementById('realLayer'),
   wrong:   document.getElementById('wrongLayer'),
   cam:     document.getElementById('camLayer'),
-  fav:     document.getElementById('favLayer')
+  fav:     document.getElementById('favLayer'),
+  note:    document.getElementById('noteLayer')
 };
 /* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
 var activeSub = null;
@@ -643,7 +648,9 @@ function closeSubLayer() {
 }
 /* 监听子页发来的消息：
    - CLOSE_CHAPTER：子页点返回 → 收起对应二级层
-   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页 */
+   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页
+   - CAM_RESULT：拍照子层内 AI 识别结果页开关 → 透传给总壳（appbar 标题/退出跟随）
+   - CAM_BACK：总壳 appbar 退出（识别结果页打开时）→ 转发给当前 cam/wrong 子层 iframe 关结果页 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
@@ -652,6 +659,22 @@ window.addEventListener('message', function(evt) {
     /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳）
        REQ_REPORT：模拟考场/历年真题「薄弱点分析」→ 总壳存数据并打开报告层 */
     try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
+  if (d.type === 'CAM_RESULT') {
+    /* 透传给总壳：识别结果页开关 */
+    try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
+  if (d.type === 'CAM_BACK') {
+    /* 总壳退出（识别结果页态）→ 转发给当前打开的 cam/wrong 子层 iframe。
+       必须用 postMessage 而非跨 frame 直接调函数：file:// 下各 frame origin=null，直接调用会被浏览器拦截 */
+    if (activeSub === 'cam' || activeSub === 'wrong') {
+      try {
+        var inner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
+        if (inner) inner.postMessage({ type: 'CAM_BACK' }, '*');
+      } catch(e) {}
+    }
     return;
   }
 });
