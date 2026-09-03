@@ -638,7 +638,9 @@ function closeSubLayer() {
 }
 /* 监听子页发来的消息：
    - CLOSE_CHAPTER：子页点返回 → 收起对应二级层
-   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页 */
+   - REQ_PRACTICE：子页选卷/选考点进做题 → 透传给总壳打开 practiceLayer 做题页
+   - CAM_RESULT：拍照子层内 AI 识别结果页开关 → 透传给总壳（appbar 标题/退出跟随）
+   - CAM_BACK：总壳 appbar 退出（识别结果页打开时）→ 转发给当前 cam/wrong 子层 iframe 关结果页 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
@@ -647,6 +649,21 @@ window.addEventListener('message', function(evt) {
     /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳）
        REQ_REPORT：模拟考场/历年真题「薄弱点分析」→ 总壳存数据并打开报告层 */
     try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
+  if (d.type === 'CAM_RESULT') {
+    /* 透传给总壳：识别结果页开关 */
+    try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
+  if (d.type === 'CAM_BACK') {
+    /* 总壳退出（识别结果页态）→ 转发给当前打开的 cam/wrong 子层 iframe */
+    if (activeSub === 'cam' || activeSub === 'wrong') {
+      try {
+        var inner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
+        if (inner && typeof inner.closeResult === 'function') inner.closeResult();
+      } catch(e) {}
+    }
     return;
   }
 });
