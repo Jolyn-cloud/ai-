@@ -71,16 +71,16 @@ body {
   font-size: 15px; font-weight: 700; color: var(--text-primary);
   line-height: 1.4; margin-bottom: 6px;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  padding-right: 64px;  /* 右侧留成绩空间 */
 }
 .s-meta {
   font-size: 12px; color: var(--text-tertiary); font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 0;  /* 成绩行不再独立占位，去掉底部间距 */
 }
 .s-meta .s-type { color: var(--primary); font-weight: 600; }
-.s-bottom {
-  display: flex; align-items: baseline; gap: 8px;
-}
 .s-score {
+  position: absolute;
+  right: 14px; top: 50%; transform: translateY(-50%);
   font-size: 22px; font-weight: 800; color: var(--primary);
   font-variant-numeric: tabular-nums; flex-shrink: 0;
 }
@@ -391,9 +391,7 @@ function scoreCard(it) {
   return '<div class="s-card" onclick="openDetail(\'' + it.id + '\')">'
     +   '<div class="s-title">' + (it.name || '未命名考试') + '</div>'
     +   '<div class="s-meta"><span class="s-type">' + (it.type || '其他') + '</span> · ' + (it.date || '') + '</div>'
-    +   '<div class="s-bottom">'
-    +     '<span class="s-score">' + (it.score || 0) + '<span class="s-su">分</span></span>'
-    +   '</div>'
+    +   '<span class="s-score">' + (it.score || 0) + '<span class="s-su">分</span></span>'
     + '</div>';
 }
 
