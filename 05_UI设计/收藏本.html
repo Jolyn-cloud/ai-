@@ -137,6 +137,7 @@ body {
 
 /* 收藏题卡片 */
 .q-card {
+  position: relative;
   background: #fff;
   border-radius: 13px 11px 15px 10px;
   padding: 12px 14px;
@@ -161,11 +162,17 @@ body {
   display: flex; align-items: center; justify-content: space-between;
 }
 .q-time { font-size: 10.5px; color: var(--text-tertiary); }
+/* 收藏标志放卡片右上角 */
 .q-fav-ico {
-  font-size: 16px; line-height: 1;
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 26px; height: 26px;
+  border: none; border-radius: 50%;
+  background: rgba(91,114,245,0.08);
   color: var(--primary);
-  cursor: pointer;
-  background: none; border: none; padding: 4px;
+  font-size: 14px; line-height: 1;
+  cursor: pointer; z-index: 5;
+  display: inline-flex; align-items: center; justify-content: center;
   transition: transform .12s ease;
 }
 .q-fav-ico:active { transform: scale(1.2); }
@@ -377,6 +384,7 @@ function renderList() {
 /* ===== 卡片 ===== */
 function qCard(it) {
   return '<div class="q-card" onclick="goDetail(\'' + it.qid + '\')">'
+    +   '<button class="q-fav-ico" onclick="event.stopPropagation();toggleFav(\'' + it.qid + '\')" title="取消收藏">★</button>'
     +   '<div class="q-meta">'
     +     '<span class="q-tag type">' + (TYPE_NAME[it.type] || '题目') + '</span>'
     +     '<span class="q-tag src ' + (it.source === 'flash' ? 'flash' : '') + '">' + (SRC_NAME[it.source] || it.source) + '</span>'
@@ -384,7 +392,6 @@ function qCard(it) {
     +   '<div class="q-title">' + it.concept + '</div>'
     +   '<div class="q-foot">'
     +     '<span class="q-time">收藏于 ' + it.collectedAt + '</span>'
-    +     '<button class="q-fav-ico" onclick="event.stopPropagation();toggleFav(\'' + it.qid + '\')">★</button>'
     +     '<span class="q-arrow">›</span>'
     +   '</div>'
     + '</div>';

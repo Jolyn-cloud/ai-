@@ -2078,7 +2078,7 @@
      .lc-card 无 overflow:hidden，角标可自由溢出 */
   .stub-mark {
     position: absolute;
-    top: -8px; right: 12px;
+    top: -8px; left: 12px;
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px;
     border-radius: 50%;
@@ -2090,6 +2090,22 @@
     box-shadow: 0 2px 5px rgba(242,139,61,0.22);
   }
   .stub-mark svg { width: 12px; height: 12px; stroke: var(--warning); }
+
+  /* 列表卡片收藏按钮（右上角，mock 态） */
+  .lc-fav {
+    position: absolute;
+    top: 10px; right: 12px;
+    width: 26px; height: 26px;
+    border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.7);
+    color: var(--text-tertiary);
+    font-size: 14px; line-height: 1;
+    cursor: pointer; z-index: 15;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform .12s ease, color .15s ease;
+  }
+  .lc-fav:active { transform: scale(.92); }
+  .lc-fav.on { color: var(--primary); background: rgba(255,255,255,0.9); }
 
   /* 头部标签行 */
   .lc-head {
@@ -4062,8 +4078,8 @@ function renderCard(overrideCard) {
   var activeHtml = '<div class="card-3d' + (isStubborn ? ' card-3d-stubborn' : '') + '" id="activeCard">' +
     stubbornFront + stubbornBack +
     /* 收藏按钮（正反各一，backface-visibility 翻卡只显示当前面） */
-    '<button class="fav-mark fav-front" id="favFront" onclick="toggleFav()" title="收藏">☆</button>' +
-    '<button class="fav-mark fav-back" id="favBack" onclick="toggleFav()" title="收藏">☆</button>' +
+    '<button class="fav-mark fav-front" id="favFront" onclick="event.stopPropagation();toggleFav()" title="收藏">☆</button>' +
+    '<button class="fav-mark fav-back" id="favBack" onclick="event.stopPropagation();toggleFav()" title="收藏">☆</button>' +
     /* 滑动反馈遮罩（背面） */
     '<div class="swipe-overlay right" id="overlayRight">' +
       '<div class="swipe-label"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
@@ -4943,6 +4959,9 @@ function cardHtml(item, done) {
       '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>'
     : '';
+  /* 右上角收藏按钮（mock 态，按 item.key 状态） */
+  var favOn = favSet[item.key];
+  var favMark = '<button class="lc-fav' + (favOn ? ' on' : '') + '" data-key="' + item.key + '" title="收藏">' + (favOn ? '★' : '☆') + '</button>';
 
   /* 解析区内容（答案已原位揭示，此处只放解析） */
   var analysisInner =
@@ -4953,7 +4972,7 @@ function cardHtml(item, done) {
     '<div class="lc-a-text lc-a-analysis">' + esc(item.analysis) + '</div>';
 
   if (done) {
-    return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark +
+    return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark + favMark +
       '<div class="lc-head">' + tagHtml(item) + badgesHtml(item, true) + '</div>' +
       '<div class="lc-q">' + clozeHtml(item.question, item.answer) + '</div>' +
       '<div class="lc-answer" data-open="0"><div class="lc-answer-inner">' + analysisInner + '</div></div>' +
@@ -4964,7 +4983,7 @@ function cardHtml(item, done) {
       '</div>';
   }
 
-  return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark +
+  return '<div class="' + cardCls + '" data-key="' + item.key + '">' + stubMark + favMark +
     '<div class="lc-head">' + tagHtml(item) + badgesHtml(item, false) + '</div>' +
     '<div class="lc-q">' + clozeMaskHtml(item.question, item.answer) + '</div>' +
     '<div class="lc-answer" data-open="0"><div class="lc-answer-inner">' + analysisInner + '</div></div>' +
@@ -5085,6 +5104,18 @@ function revealClozeAnswer(cardEl, maskEl) {
 
 /* 事件委托：遮罩展开 / 按钮标记 / 已答卡查看 */
 listEl.addEventListener('click', function(e) {
+  /* 收藏按钮：独立处理，不触发卡片展开/标记 */
+  var favEl = e.target.closest('.lc-fav');
+  if (favEl) {
+    e.stopPropagation();
+    var fkey = favEl.getAttribute('data-key');
+    var on = !favSet[fkey];
+    favSet[fkey] = on;
+    renderList();
+    showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
+    return;
+  }
+
   var cardEl = e.target.closest('.lc-card');
   if (!cardEl) return;
   var key = cardEl.getAttribute('data-key');
