@@ -377,6 +377,7 @@ body.has-appbar .result-body { padding-top: 12px; }
 .tag-picker {
   width: 100%; background: #fff; border-radius: 18px 18px 0 0;
   padding: 16px 16px 28px; animation: tpUp .25s ease;
+  max-height: 70vh; display: flex; flex-direction: column;
 }
 @keyframes tpUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .tp-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
@@ -388,6 +389,26 @@ body.has-appbar .result-body { padding-top: 12px; }
 }
 .tp-opt.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 .tp-close { width: 100%; margin-top: 14px; height: 44px; border-radius: 22px; border: none; background: #F3F5FB; color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* 滑动列表式选择器（题型/错因单级，考点四级级联） */
+.kp-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-shrink: 0; }
+.kp-picker-title { font-size: 15px; font-weight: 700; }
+.kp-picker-skip { font-size: 13px; color: var(--primary); font-weight: 600; cursor: pointer; }
+.kp-path-bar { font-size: 12px; color: var(--text-secondary); padding: 8px 10px; background: #F7F8FC; border-radius: 8px; margin-bottom: 10px; min-height: 18px; flex-shrink: 0; }
+.kp-path-bar .kp-empty { color: var(--text-tertiary); }
+.kp-path-bar .kp-l { color: var(--primary); font-weight: 600; }
+.kp-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; margin-bottom: 12px; }
+.kp-list::-webkit-scrollbar { display: none; }
+.kp-item {
+  padding: 14px 12px; font-size: 14px; font-weight: 500; color: var(--text-primary);
+  border-bottom: 1px solid #F0F2F8; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kp-item:active { background: #F5F6FA; }
+.kp-item.on { color: var(--primary); font-weight: 700; }
+.kp-item .kp-ck { color: var(--primary); font-size: 16px; }
+.kp-item .kp-next { color: var(--text-tertiary); font-size: 15px; }
+.kp-picker-done { flex-shrink: 0; width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
 
 </style>
 </head>
@@ -628,7 +649,7 @@ var WRONG_DATA = {
   }
 })();
 
-var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作错误' };
+var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', audit:'审题错误', blind:'知识盲区' };
 
 /* 与 localStorage 同步（跨页最终一致）：拍照页/本页均写 zsb_wrong_uploads_v1。
    渲染前调用：以 localStorage 为准整体替换（本页自己的保存都已写回 storage）。 */
@@ -897,8 +918,8 @@ function takeNote() {
   showToast('✓ 已存入笔记本，可在笔记本查看');
 }
 
-var TAG_NAME = { stubborn:'顽固错题', confusion:'概念混淆', memory:'记忆不清', operation:'操作失误' };
-var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', image:'图片题' };
+var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', audit:'审题错误', blind:'知识盲区' };
+var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', operate:'操作题', short:'简答题', image:'图片题' };
 var CONCEPT_CATS = [
   { kw:/操作系统|文件系统|进程|线程|内存|磁盘|死锁|调度/, label:'操作系统' },
   { kw:/网络|IP|域名|TCP|UDP|OSI|协议|浏览器|网址/, label:'计算机网络' },
@@ -915,6 +936,8 @@ function suggestType(text) {
   if (/哪些|多选|以下.*几项|多于一项/.test(t)) return 'multi';
   if (/是否正确|对不对|对或错|判断|是否正确说法/.test(t)) return 'judge';
   if (/____|___|______|　_/.test(t)) return 'fill';
+  if (/操作|步骤|实践|上机|命令|终端|流程图/.test(t)) return 'operate';
+  if (/简述|论述|说明|分析|比较.*异同|为什么/.test(t)) return 'short';
   return 'single';
 }
 function suggestConcept(text) {
@@ -927,8 +950,10 @@ function suggestConcept(text) {
 function suggestTag(text) {
   var t = String(text || '');
   if (/概念|特征|区别|原理|定义|分类|特点/.test(t)) return 'confusion';
-  if (/快捷键|操作|步骤|点击|按钮|工具栏/.test(t)) return 'operation';
+  if (/快捷键|操作|步骤|点击|按钮|工具栏|命令|实践/.test(t)) return 'operation';
   if (/记忆|口诀|背诵|顺序|规律/.test(t)) return 'memory';
+  if (/审题|看错|漏选|误读|没看清/.test(t)) return 'audit';
+  if (/不会|没学过|没见过|超纲|陌生/.test(t)) return 'blind';
   return 'confusion';
 }
 
@@ -1003,44 +1028,181 @@ function toggleOcrEdit() {
   }
 }
 
-/* 标签选择器（题型/考点/错因 三维度，AI 已预选可纠错） */
+/* 标签选择器（浮窗滑动列表式）
+   - 题型/错因：单级滑动列表
+   - 考点：四级级联滑动列表（KP_TREE）
+   AI 已预选可纠错 */
 var TAG_OPTIONS = {
   type: [
-    ['single','单选题'], ['multi','多选题'], ['judge','判断题'], ['fill','填空题'], ['image','图片题']
-  ],
-  concept: [
-    ['操作系统','操作系统'], ['计算机网络','计算机网络'], ['Word 文档处理','Word 文档处理'],
-    ['Excel 电子表格','Excel 电子表格'], ['PowerPoint','PowerPoint'], ['数据库','数据库'],
-    ['信息安全','信息安全'], ['新一代信息技术','新一代信息技术'], ['计算机基础','计算机基础'], ['待归类','待归类']
+    ['single','单选题'], ['multi','多选题'], ['judge','判断题'], ['fill','填空题'], ['operate','操作题'], ['short','简答题'], ['image','图片题']
   ],
   tag: [
-    ['confusion','概念混淆'], ['memory','记忆不清'], ['operation','操作失误'], ['stubborn','顽固错题']
+    ['confusion','概念混淆'], ['operation','操作知识错误'], ['memory','记忆遗漏'], ['audit','审题错误'], ['blind','知识盲区']
   ]
 };
+/* 四级知识树（与拍照搜题/笔记本对齐） */
+var KP_TREE = [
+  { name:'计算机基础', children:[
+    { name:'计算机系统', children:[
+      { name:'冯·诺依曼体系', children:['输入输出设备','存储器结构','指令执行'] },
+      { name:'总线与接口', children:['总线分类','接口标准'] }
+    ]},
+    { name:'数制与编码', children:[
+      { name:'数制转换', children:['二进制转十进制','十进制转二进制','十六进制'] },
+      { name:'字符编码', children:['ASCII 码','汉字编码'] }
+    ]}
+  ]},
+  { name:'操作系统', children:[
+    { name:'操作系统基础', children:[
+      { name:'操作系统的基本功能', children:['处理器管理','存储管理','文件管理','设备管理'] },
+      { name:'操作系统的主要功能', children:['进程调度','内存分配','文件组织'] }
+    ]},
+    { name:'进程与线程', children:[
+      { name:'进程的概念', children:['进程三态','进程控制块'] },
+      { name:'线程的概念', children:['线程与进程区别','用户级线程'] }
+    ]}
+  ]},
+  { name:'计算机网络', children:[
+    { name:'网络协议', children:[
+      { name:'TCP/IP 协议体系', children:['三次握手','四次挥手','TIME_WAIT'] },
+      { name:'OSI 参考模型', children:['七层结构','各层功能'] }
+    ]},
+    { name:'IP 地址', children:[
+      { name:'IP 地址与子网掩码', children:['IP 分类','子网划分'] },
+      { name:'域名与 DNS', children:['域名结构','DNS 解析'] }
+    ]}
+  ]},
+  { name:'数据库', children:[
+    { name:'关系数据库', children:[
+      { name:'三级模式结构', children:['外模式','模式','内模式','两级映像'] },
+      { name:'关系代数', children:['传统集合运算','专门关系运算'] }
+    ]},
+    { name:'SQL 语言', children:[
+      { name:'SQL 语句分类', children:['DDL','DML','DQL','DCL'] },
+      { name:'连接查询', children:['内连接','外连接','笛卡尔积'] }
+    ]}
+  ]},
+  { name:'数据结构', children:[
+    { name:'树与图', children:[
+      { name:'二叉树的遍历方法', children:['前序遍历','中序遍历','后序遍历','层序遍历'] },
+      { name:'图的应用', children:['最短路径','最小生成树'] }
+    ]},
+    { name:'线性结构', children:[
+      { name:'栈与队列的特点', children:['栈后进先出','队列先进先出'] },
+      { name:'链表', children:['单链表','循环链表'] }
+    ]}
+  ]}
+];
 var PICKER_FIELD = null;
+/* 考点级联选择临时态（不直接写 CUR，确认后写） */
+var KP_TMP = { l1:'', l2:'', l3:'', l4:'' };
+var KP_LEVEL = 1;
+
 function openTagPicker(field) {
   PICKER_FIELD = field;
+  if (field === 'concept') {
+    /* 考点：四级级联浮窗 */
+    KP_TMP = { l1:'', l2:'', l3:'', l4:'' };
+    KP_LEVEL = 1;
+    renderKpListConcept();
+  } else {
+    /* 题型/错因：单级滑动列表 */
+    renderSingleList(field);
+  }
+  document.getElementById('tagPickerMask').classList.add('on');
+}
+
+/* 单级列表（题型/错因） */
+function renderSingleList(field) {
   var opts = TAG_OPTIONS[field];
-  var titleMap = { type:'选择题型', concept:'选择考点', tag:'选择错因' };
-  var curVal = field === 'type' ? CUR.type : (field === 'concept' ? CUR.concept : CUR.tag);
-  var html = '<div class="tp-title">' + titleMap[field] + '</div>'
-    + '<div class="tp-sub">AI 已预选，可纠错</div><div class="tp-grid">';
+  var titleMap = { type:'选择题型', tag:'选择错因' };
+  var curVal = field === 'type' ? CUR.type : CUR.tag;
+  var html = '<div class="kp-picker-head"><span class="kp-picker-title">' + titleMap[field] + '</span><span class="kp-picker-skip" onclick="confirmTagPicker()">完成</span></div>'
+    + '<div class="kp-path-bar" style="visibility:hidden">&nbsp;</div>'
+    + '<div class="kp-list">';
   opts.forEach(function(o) {
     var val = o[0], lbl = o[1];
     var on = (val === curVal) ? ' on' : '';
-    html += '<button class="tp-opt' + on + '" onclick="pickTag(\'' + val + '\',\'' + escapeQuote(lbl) + '\')">' + lbl + '</button>';
+    html += '<div class="kp-item' + on + '" onclick="pickSingle(\'' + field + '\',\'' + val + '\',\'' + escapeQuote(lbl) + '\')">'
+      + '<span>' + lbl + '</span>' + (on ? '<span class="kp-ck">✓</span>' : '') + '</div>';
   });
-  html += '</div><button class="tp-close" onclick="closeTagPicker()">关闭</button>';
+  html += '</div><button class="kp-picker-done" onclick="confirmTagPicker()">完成</button>';
   document.getElementById('tagPicker').innerHTML = html;
-  document.getElementById('tagPickerMask').classList.add('on');
 }
-function escapeQuote(s) { return String(s).replace(/'/g, "\\'"); }
-function pickTag(val, lbl) {
-  if (PICKER_FIELD === 'type') { CUR.type = val; setPill('pillType', lbl); }
-  else if (PICKER_FIELD === 'concept') { CUR.concept = val; setPill('pillConcept', lbl); }
+
+function pickSingle(field, val, lbl) {
+  if (field === 'type') { CUR.type = val; setPill('pillType', lbl); }
   else { CUR.tag = val; setPill('pillTag', lbl); }
+  confirmTagPicker();
+}
+
+/* 考点四级级联列表 */
+function renderKpListConcept() {
+  var levelNames = ['', '一级', '二级', '三级', '四级'];
+  var opts = [];
+  var curVal = '';
+  if (KP_LEVEL === 1) { opts = KP_TREE.map(function(n){ return n.name; }); curVal = KP_TMP.l1; }
+  else if (KP_LEVEL === 2) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    opts = l1Node ? l1Node.children.map(function(n){ return n.name; }) : [];
+    curVal = KP_TMP.l2;
+  } else if (KP_LEVEL === 3) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === KP_TMP.l2; })[0] : null;
+    opts = l2Node ? l2Node.children.map(function(n){ return n.name; }) : [];
+    curVal = KP_TMP.l3;
+  } else if (KP_LEVEL === 4) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === KP_TMP.l2; })[0] : null;
+    var l3Node = l2Node ? l2Node.children.filter(function(n){ return n.name === KP_TMP.l3; })[0] : null;
+    opts = l3Node ? l3Node.children : [];
+    curVal = KP_TMP.l4;
+  }
+  var parts = [];
+  if (KP_TMP.l1) parts.push(KP_TMP.l1);
+  if (KP_TMP.l2) parts.push(KP_TMP.l2);
+  if (KP_TMP.l3) parts.push(KP_TMP.l3);
+  if (KP_TMP.l4) parts.push(KP_TMP.l4);
+  var pathHtml = parts.length
+    ? parts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
+    : '<span class="kp-empty">未选择（将标记为「待归类」）</span>';
+
+  var html = '<div class="kp-picker-head"><span class="kp-picker-title">选择' + levelNames[KP_LEVEL] + '考点</span><span class="kp-picker-skip" onclick="skipKpConcept()">跳过本级</span></div>'
+    + '<div class="kp-path-bar">' + pathHtml + '</div>'
+    + '<div class="kp-list">';
+  opts.forEach(function(name) {
+    var on = (name === curVal) ? ' on' : '';
+    html += '<div class="kp-item' + on + '" onclick="pickKpConcept(' + KP_LEVEL + ',\'' + escapeQuote(name) + '\')">'
+      + '<span>' + name + '</span>' + (on ? '<span class="kp-ck">✓</span>' : '<span class="kp-next">›</span>') + '</div>';
+  });
+  if (!opts.length) html += '<div style="padding:24px;text-align:center;color:var(--text-tertiary);font-size:13px;">无更多选项，点「跳过本级」或「完成」</div>';
+  html += '</div><button class="kp-picker-done" onclick="confirmTagPicker()">完成</button>';
+  document.getElementById('tagPicker').innerHTML = html;
+}
+
+function pickKpConcept(level, name) {
+  if (level === 1) { KP_TMP.l1 = name; KP_TMP.l2=''; KP_TMP.l3=''; KP_TMP.l4=''; KP_LEVEL = 2; }
+  else if (level === 2) { KP_TMP.l2 = name; KP_TMP.l3=''; KP_TMP.l4=''; KP_LEVEL = 3; }
+  else if (level === 3) { KP_TMP.l3 = name; KP_TMP.l4=''; KP_LEVEL = 4; }
+  else if (level === 4) { KP_TMP.l4 = name; KP_LEVEL = 5; }
+  if (KP_LEVEL > 4) { confirmTagPicker(); return; }
+  renderKpListConcept();
+}
+
+function skipKpConcept() { confirmTagPicker(); }
+
+/* 确认选择：考点把 KP_TMP 派生为 CUR.concept 并回写 pill */
+function confirmTagPicker() {
+  if (PICKER_FIELD === 'concept') {
+    var lbl = KP_TMP.l3 || KP_TMP.l2 || KP_TMP.l1 || '待归类';
+    CUR.concept = lbl;
+    setPill('pillConcept', lbl);
+  }
   closeTagPicker();
 }
+
+function escapeQuote(s) { return String(s).replace(/'/g, "\\'"); }
+
 function closeTagPicker() {
   document.getElementById('tagPickerMask').classList.remove('on');
   PICKER_FIELD = null;
