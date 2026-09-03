@@ -411,7 +411,7 @@
     overflow: hidden;
     display: flex; flex-direction: column;
 
-    background: url('ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+    background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
     background-color: #F8F9FC;
   }
 
@@ -1211,7 +1211,7 @@
     height: 100vh;
     overflow: hidden;
     display: flex; flex-direction: column;
-    background: url('ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+    background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
     background-color: #F8F9FC;
   }
 
@@ -1584,20 +1584,28 @@
   .prev-btn:disabled { opacity: 0.3; cursor: default; }
   .prev-btn svg { width: 15px; height: 15px; stroke: var(--text-secondary); }
 
-  /* 收藏按钮（mock 态：仅切换图标 + Toast，不落库；演示用） */
-  .fav-btn {
+  /* 收藏按钮（mock 态：仅切换图标 + Toast，不落库；演示用）
+     放卡片右上角，正反各一个，与顽固角标同层（backface-visibility 翻卡时只显示当前面）
+     顽固角标在右上 right:12px，收藏按钮放左上 left:12px 避免冲突 */
+  .fav-mark {
+    position: absolute;
+    top: 10px;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px;
+    width: 28px; height: 28px;
     border: none; border-radius: 50%;
-    background: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.7);
     color: var(--text-tertiary);
-    font-size: 16px; line-height: 1;
+    font-size: 15px; line-height: 1;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(54,66,108,0.06);
+    z-index: 15;
     transition: transform .12s ease, color .15s ease;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
-  .fav-btn:active { transform: scale(.92); }
-  .fav-btn.on { color: var(--primary); }
+  .fav-mark:active { transform: scale(.92); }
+  .fav-mark.on { color: var(--primary); background: rgba(255,255,255,0.9); }
+  .fav-front { right: 12px; }
+  .fav-back  { left: 12px; transform: rotateY(180deg); }
 
   /* ========================= 底部统计条 ========================= */
   .bottom-stats {
@@ -1816,8 +1824,8 @@
     -webkit-backface-visibility: hidden;
     z-index: 20;
   }
-  .stub-front { right: 12px; }
-  .stub-back { left: 12px; transform: rotateY(180deg); }
+  .stub-front { left: 12px; }
+  .stub-back { right: 12px; transform: rotateY(180deg); }
   .stub-mark svg {
     width: 12px; height: 12px;
     stroke: var(--warning);
@@ -1909,7 +1917,7 @@
     height: 100vh;
     overflow: hidden;
     display: flex; flex-direction: column;
-    background: url('ui切图/bg-flashcard-home.png') center top / cover no-repeat;
+    background: url('../ui切图/bg-flashcard-home.png') center top / cover no-repeat;
     background-color: #F8F9FC;
   }
 
@@ -2678,7 +2686,6 @@
         </svg>
         上一张
       </button>
-      <button class="fav-btn" id="favBtn" onclick="toggleFav()" title="收藏">☆</button>
       <button class="prev-btn" id="nextBtn" disabled>
         下一张
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3750,8 +3757,7 @@ function toggleFav(){
   var key = currentCard.key;
   var on = !favSet[key];
   favSet[key] = on;
-  var btn = getById('favBtn');
-  if (btn) { btn.textContent = on ? '★' : '☆'; btn.classList.toggle('on', on); }
+  updateFavBtn();
   showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
 }
 
@@ -4055,6 +4061,9 @@ function renderCard(overrideCard) {
   /* 活跃卡片 HTML */
   var activeHtml = '<div class="card-3d' + (isStubborn ? ' card-3d-stubborn' : '') + '" id="activeCard">' +
     stubbornFront + stubbornBack +
+    /* 收藏按钮（正反各一，backface-visibility 翻卡只显示当前面） */
+    '<button class="fav-mark fav-front" id="favFront" onclick="toggleFav()" title="收藏">☆</button>' +
+    '<button class="fav-mark fav-back" id="favBack" onclick="toggleFav()" title="收藏">☆</button>' +
     /* 滑动反馈遮罩（背面） */
     '<div class="swipe-overlay right" id="overlayRight">' +
       '<div class="swipe-label"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
@@ -4489,13 +4498,15 @@ function updateBottomStats() {
   getById('bsForgot').textContent = stats.forgot;
   getById('bsStubborn').textContent = stats.stubborn;
 }
-/* 收藏按钮随当前卡状态刷新 */
+/* 收藏按钮随当前卡状态刷新（正反两个按钮同步） */
 function updateFavBtn() {
-  var btn = getById('favBtn');
-  if (!btn) return;
   var on = currentCard && favSet[currentCard.key];
-  btn.textContent = on ? '★' : '☆';
-  btn.classList.toggle('on', !!on);
+  ['favFront', 'favBack'].forEach(function(id) {
+    var btn = getById(id);
+    if (!btn) return;
+    btn.textContent = on ? '★' : '☆';
+    btn.classList.toggle('on', !!on);
+  });
 }
 
 /* ============================================================
