@@ -750,7 +750,7 @@ body.tab-hidden .report-layer { bottom: 0; }
         <div class="phone-appbar" id="appbar">
           <button class="appbar-exit" id="appbarExit" onclick="handleAppbarExit()" aria-label="返回上一级">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            退出
+            <span id="appbarExitLabel">退出</span>
           </button>
           <span class="appbar-title" id="appbarTitle">AI</span>
           <div class="appbar-right">
@@ -1202,7 +1202,7 @@ function syncChildState() {
 var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 /* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
-var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷' };
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷', fav:'收藏题练习' };
 var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
 var practiceTitle = '';
 var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
@@ -1226,7 +1226,7 @@ function updateAppbar(name) {
     if (camResultOpen && (chapterLayerSub === 'cam' || chapterLayerSub === 'wrong')) {
       t = 'AI识别';
     } else {
-      t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
+      t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题', fav:'收藏本' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
     }
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')
@@ -1286,6 +1286,9 @@ function handleAppbarExit() {
 function updateAppbarUI() {
   updateAppbar(currentTabName());
   updateAppbarExit();
+  /* 左侧按钮文案：AI 识别结果页打开 → 「返回」回相机取景；其余二级页 → 「退出」返回上一级 */
+  var label = document.getElementById('appbarExitLabel');
+  if (label) label.textContent = (chapterLayerOpen && camResultOpen) ? '返回' : '退出';
 }
 function switchTab(name) {
   closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
@@ -1375,6 +1378,8 @@ function openPractice(entry, extra) {
   } else if (entry === 'upload') {
     /* 我的上传（搜题/拍照导入）：qid 定位该题 */
     url += '&qid=' + encodeURIComponent(extra.qid || '');
+  } else if (entry === 'fav') {
+    /* 收藏本：qid 列表已写入 localStorage zsb_fav_practice_v1，做题页读取 */
   }
   if (!practiceFrame.getAttribute('src')) {
     practiceFrame.setAttribute('src', url);

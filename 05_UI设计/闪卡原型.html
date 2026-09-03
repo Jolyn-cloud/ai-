@@ -1584,6 +1584,21 @@
   .prev-btn:disabled { opacity: 0.3; cursor: default; }
   .prev-btn svg { width: 15px; height: 15px; stroke: var(--text-secondary); }
 
+  /* 收藏按钮（mock 态：仅切换图标 + Toast，不落库；演示用） */
+  .fav-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    border: none; border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: var(--text-tertiary);
+    font-size: 16px; line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(54,66,108,0.06);
+    transition: transform .12s ease, color .15s ease;
+  }
+  .fav-btn:active { transform: scale(.92); }
+  .fav-btn.on { color: var(--primary); }
+
   /* ========================= 底部统计条 ========================= */
   .bottom-stats {
     display: flex;
@@ -2663,6 +2678,7 @@
         </svg>
         上一张
       </button>
+      <button class="fav-btn" id="favBtn" onclick="toggleFav()" title="收藏">☆</button>
       <button class="prev-btn" id="nextBtn" disabled>
         下一张
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3726,6 +3742,19 @@ function hidePopTip(){
   tip.className = 'pop-tip';
 }
 
+/* 收藏按钮（mock 态：仅切换图标 + 提示，不落库；演示用）
+   真实联动留二期：落库 zsb_favorites_v1 + 收藏本读取 */
+var favSet = {};   /* { 卡key: true } 会话级，刷新重置 */
+function toggleFav(){
+  if (!currentCard) return;
+  var key = currentCard.key;
+  var on = !favSet[key];
+  favSet[key] = on;
+  var btn = getById('favBtn');
+  if (btn) { btn.textContent = on ? '★' : '☆'; btn.classList.toggle('on', on); }
+  showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
+}
+
 
 /* ============================================================
    跳转单卡模式（仅演示：传章节名称参数，进度数据不联动）
@@ -4081,6 +4110,7 @@ function renderCard(overrideCard) {
   isFlipped = false;
   bindCardEvents();
   refreshOverlayLabels();
+  updateFavBtn();
 }
 
 /* ============================================================
@@ -4458,6 +4488,14 @@ function updateBottomStats() {
   getById('bsRemembered').textContent = stats.remembered;
   getById('bsForgot').textContent = stats.forgot;
   getById('bsStubborn').textContent = stats.stubborn;
+}
+/* 收藏按钮随当前卡状态刷新 */
+function updateFavBtn() {
+  var btn = getById('favBtn');
+  if (!btn) return;
+  var on = currentCard && favSet[currentCard.key];
+  btn.textContent = on ? '★' : '☆';
+  btn.classList.toggle('on', !!on);
 }
 
 /* ============================================================

@@ -351,6 +351,9 @@ body::before {
 <div class="sub-layer" id="camLayer">
   <iframe src="拍照搜题.html"></iframe>
 </div>
+<div class="sub-layer" id="favLayer">
+  <iframe src="收藏本.html"></iframe>
+</div>
 
 <script>
 /* ============================================================
@@ -590,6 +593,7 @@ function quickEntry(name) {
   if (isGuest()) { requireLogin(); return; }
   /* 已登录：走各功能原入口 */
   if (name === '拍照搜题') { openSubLayer('cam'); return; }
+  if (name === '收藏本') { openSubLayer('fav'); return; }
   showToast(name);
 }
 
@@ -602,7 +606,8 @@ var SUB_LAYERS = {
   exam:    document.getElementById('examLayer'),
   real:    document.getElementById('realLayer'),
   wrong:   document.getElementById('wrongLayer'),
-  cam:     document.getElementById('camLayer')
+  cam:     document.getElementById('camLayer'),
+  fav:     document.getElementById('favLayer')
 };
 /* 当前打开的二级层；null=未打开。一次只开一层（互斥） */
 var activeSub = null;
@@ -657,11 +662,12 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'CAM_BACK') {
-    /* 总壳退出（识别结果页态）→ 转发给当前打开的 cam/wrong 子层 iframe */
+    /* 总壳退出（识别结果页态）→ 转发给当前打开的 cam/wrong 子层 iframe。
+       必须用 postMessage 而非跨 frame 直接调函数：file:// 下各 frame origin=null，直接调用会被浏览器拦截 */
     if (activeSub === 'cam' || activeSub === 'wrong') {
       try {
         var inner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
-        if (inner && typeof inner.closeResult === 'function') inner.closeResult();
+        if (inner) inner.postMessage({ type: 'CAM_BACK' }, '*');
       } catch(e) {}
     }
     return;

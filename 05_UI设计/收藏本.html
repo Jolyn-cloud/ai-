@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>收藏本</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页/错题本统一） ====
+   收藏本页：题库首页「收藏本」快捷入口下钻二级页
+   结构：来源 Tab → 筛选栏（全部题型▾ + 全部练习→）→ 按章节分组卡片列表 → 空状态
+   定位：收藏题目的索引列表（非做题页），快速浏览收藏了哪些考点
+   数据：mock 演示期（四来源：章节刷题/模拟考试/历年真题/闪卡）
+   交互：点卡片/全部练习 → 做题页(entry=fav)；收藏图标 → 取消收藏（mock 内存态） */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-mid: #4358D7;
+  --brand-teal: #3FA98B;
+  --accent-grad-end: #62CFA9;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page { display: flex; flex-direction: column; height: 100%; }
+
+/* ===== 来源 Tab ===== */
+.src-tabs {
+  display: flex; gap: 0;
+  padding: 10px 16px 8px;
+  background: #fff;
+  border-bottom: 1px solid #EEF0F6;
+  flex-shrink: 0;
+}
+.src-tab {
+  flex: 1;
+  height: 34px;
+  border: none; background: none;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  position: relative;
+  transition: color .15s ease;
+}
+.src-tab.active { color: var(--primary); }
+.src-tab.active::after {
+  content: ''; position: absolute;
+  bottom: -9px; left: 50%; transform: translateX(-50%);
+  width: 22px; height: 3px; border-radius: 2px;
+  background: var(--primary);
+}
+
+/* ===== 筛选栏 ===== */
+.filter-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+.fav-type {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 30px; padding: 0 12px;
+  border: 1px solid #E5E8F0; border-radius: 15px;
+  background: #fff;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.fav-type:active { transform: scale(.97); }
+.fav-type.open { border-color: var(--primary); color: var(--primary); }
+.fav-type .caret { font-size: 10px; color: var(--text-tertiary); transition: transform .15s ease; }
+.fav-type.open .caret { transform: rotate(180deg); color: var(--primary); }
+
+.fav-practice {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 30px; padding: 0 8px;
+  border: none; background: none;
+  font-size: 13px; font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.fav-practice:active { opacity: .6; }
+
+/* 题型下拉浮层 */
+.type-menu {
+  position: absolute; top: 44px; left: 16px;
+  min-width: 132px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(38,48,96,.14), 0 2px 6px rgba(38,48,96,.06);
+  padding: 6px 0;
+  display: none; z-index: 50;
+  overflow: hidden;
+}
+.type-menu.open { display: block; }
+.type-menu-item {
+  padding: 9px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.type-menu-item:active { background: #F5F6FA; }
+.type-menu-item.active { color: var(--primary); font-weight: 700; }
+.type-menu-item.active::after { content: ' ✓'; color: var(--primary); }
+
+/* ===== 列表区 ===== */
+.list-wrap {
+  flex: 1; overflow-y: auto;
+  padding: 4px 16px 24px;
+}
+
+/* 章节分组 */
+.chap-group { margin-bottom: 6px; }
+.chap-head {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 14px 4px 8px;
+}
+.chap-name { font-size: 14.5px; font-weight: 700; color: var(--text-primary); }
+.chap-count { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* 收藏题卡片 */
+.q-card {
+  background: #fff;
+  border-radius: 13px 11px 15px 10px;
+  padding: 12px 14px;
+  margin: 8px 0 9px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 5px 14px rgba(91,114,245,.06);
+  cursor: pointer;
+  transition: transform .12s ease;
+  position: relative;
+}
+.q-card:active { transform: scale(.985); }
+.q-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+.q-tag { padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.q-tag.type { background: #E8F3FF; color: #2F6FED; }
+.q-tag.src  { background: #F0FAF5; color: var(--brand-teal); }
+.q-tag.src.flash { background: #F5F0FF; color: #7B61D6; }
+.q-title {
+  font-size: 14.5px; font-weight: 600; color: var(--text-primary);
+  line-height: 1.5; margin-bottom: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.q-foot {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.q-time { font-size: 10.5px; color: var(--text-tertiary); }
+.q-fav-ico {
+  font-size: 16px; line-height: 1;
+  color: var(--primary);
+  cursor: pointer;
+  background: none; border: none; padding: 4px;
+  transition: transform .12s ease;
+}
+.q-fav-ico:active { transform: scale(1.2); }
+.q-arrow {
+  font-size: 18px; color: var(--text-tertiary);
+  line-height: 1;
+}
+
+/* ===== 空状态 ===== */
+.empty {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.empty-ico {
+  font-size: 48px; color: var(--text-tertiary); margin-bottom: 18px;
+}
+.empty-title { font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+.empty-desc { font-size: 12.5px; color: var(--text-tertiary); line-height: 1.6; margin-bottom: 20px; max-width: 240px; }
+.empty-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 34px; padding: 0 18px;
+  border: 1.5px solid var(--primary); border-radius: 17px;
+  background: var(--primary-light);
+  font-size: 13px; font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.empty-btn:active { transform: scale(.97); }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,33,48,.88); color: #fff;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 12.5px; z-index: 999;
+  opacity: 0; transition: opacity .2s ease; pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+
+  <!-- 来源 Tab -->
+  <div class="src-tabs" id="srcTabs">
+    <button class="src-tab active" data-src="all" onclick="setSrc('all')">全部</button>
+    <button class="src-tab" data-src="chapter" onclick="setSrc('chapter')">章节刷题</button>
+    <button class="src-tab" data-src="exam" onclick="setSrc('exam')">模拟考试</button>
+    <button class="src-tab" data-src="real" onclick="setSrc('real')">历年真题</button>
+    <button class="src-tab" data-src="flash" onclick="setSrc('flash')">闪卡</button>
+  </div>
+
+  <!-- 筛选栏 -->
+  <div class="filter-bar">
+    <button class="fav-type" id="favType" onclick="toggleTypeMenu()">全部题型 <span class="caret">▾</span></button>
+    <button class="fav-practice" onclick="practiceAll()">全部练习 →</button>
+  </div>
+
+  <!-- 题型下拉 -->
+  <div class="type-menu" id="typeMenu"></div>
+
+  <!-- 列表区 -->
+  <div class="list-wrap" id="listWrap"></div>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty" style="display:none;">
+    <div class="empty-ico">☆</div>
+    <div class="empty-title">还没有收藏题目</div>
+    <div class="empty-desc">做题或背闪卡时遇到值得复习的题目，点击收藏，就会出现在这里</div>
+    <button class="empty-btn" onclick="goChapter()">去章节刷题 →</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   收藏本 mock 数据（演示期；四来源覆盖多章节多题型）
+   字段口径：
+     qid        题目 id（与做题页 qid 对齐，练习/详情定位用）
+     source     来源：chapter 章节刷题 / exam 模拟考试 / real 历年真题 / flash 闪卡
+     chapter    章节名（分组依据）
+     concept    三级标题/考点（卡片主信息，非题干截取）
+     type       题型：single 单选 / multi 多选 / judge 判断 / fill 填空
+     collectedAt 收藏时间 MM-DD
+   ============================================================ */
+var SRC_NAME = { chapter:'章节刷题', exam:'模拟考试', real:'历年真题', flash:'闪卡' };
+var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题' };
+
+var FAV_DATA = [
+  /* qid 复用做题页 wrong 题集（W01-W06），演示期点击收藏题即可进入对应题目练习 */
+  /* —— 计算机基础 —— */
+  { qid:'W01', source:'chapter', chapter:'计算机基础', concept:'计算机系统的组成与工作原理', type:'single', collectedAt:'09-03' },
+  { qid:'W02', source:'real',     chapter:'计算机基础', concept:'数制转换与编码', type:'fill',     collectedAt:'09-02' },
+  { qid:'W03', source:'exam',     chapter:'计算机基础', concept:'字符编码（ASCII/汉字）', type:'single',  collectedAt:'08-30' },
+  { qid:'W04', source:'flash',    chapter:'计算机基础', concept:'信息与数据的区别与联系', type:'judge',   collectedAt:'08-28' },
+
+  /* —— 操作系统 —— */
+  { qid:'W01', source:'chapter',  chapter:'操作系统', concept:'操作系统的基本功能', type:'single', collectedAt:'09-01' },
+  { qid:'W02', source:'real',     chapter:'操作系统', concept:'进程与线程的概念', type:'fill',   collectedAt:'08-29' },
+  { qid:'W03', source:'exam',     chapter:'操作系统', concept:'文件系统与扩展名', type:'judge',  collectedAt:'08-27' },
+  { qid:'W04', source:'flash',     chapter:'操作系统', concept:'存储管理方式', type:'multi',   collectedAt:'08-25' },
+
+  /* —— 计算机网络 —— */
+  { qid:'W05', source:'chapter',  chapter:'计算机网络', concept:'TCP/IP 协议体系', type:'multi',  collectedAt:'09-03' },
+  { qid:'W06', source:'real',     chapter:'计算机网络', concept:'IP 地址与子网掩码', type:'single', collectedAt:'08-31' },
+  { qid:'W05', source:'exam',     chapter:'计算机网络', concept:'WWW 与互联网的区别', type:'judge', collectedAt:'08-24' },
+
+  /* —— 数据库 —— */
+  { qid:'W06', source:'chapter',  chapter:'数据库', concept:'数据库的三级模式结构', type:'single', collectedAt:'09-02' },
+  { qid:'W01', source:'real',     chapter:'数据库', concept:'关系代数运算', type:'fill',   collectedAt:'08-26' },
+  { qid:'W02', source:'flash',    chapter:'数据库', concept:'SQL 语句分类', type:'multi',  collectedAt:'08-22' },
+
+  /* —— 数据结构 —— */
+  { qid:'W03', source:'chapter',  chapter:'数据结构', concept:'二叉树的遍历方法', type:'single', collectedAt:'09-01' },
+  { qid:'W04', source:'exam',     chapter:'数据结构', concept:'栈与队列的特点', type:'judge',  collectedAt:'08-23' }
+];
+
+/* 运行态：取消收藏的题从内存移除（mock 不落库，刷新恢复） */
+var items = FAV_DATA.map(function(x){ return Object.assign({}, x); });
+
+var SRC = 'all';        /* 来源筛选：all/chapter/exam/real/flash */
+var TYPE = 'all';       /* 题型筛选 */
+
+/* ===== 来源筛选 ===== */
+function setSrc(s) {
+  SRC = s;
+  document.querySelectorAll('.src-tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.src === s);
+  });
+  renderList();
+}
+
+/* ===== 题型下拉 ===== */
+function toggleTypeMenu() {
+  var m = document.getElementById('typeMenu');
+  var b = document.getElementById('favType');
+  m.classList.toggle('open');
+  b.classList.toggle('open', m.classList.contains('open'));
+}
+function setType(t) {
+  TYPE = t;
+  document.getElementById('favType').firstChild.textContent = (t === 'all' ? '全部题型' : TYPE_NAME[t]) + ' ';
+  document.getElementById('typeMenu').classList.remove('open');
+  document.getElementById('favType').classList.remove('open');
+  renderList();
+}
+function buildTypeMenu() {
+  var types = ['all','single','multi','judge','fill'];
+  var html = types.map(function(t) {
+    return '<div class="type-menu-item' + (TYPE === t ? ' active' : '') + '" onclick="setType(\'' + t + '\')">'
+      + (t === 'all' ? '全部题型' : TYPE_NAME[t]) + '</div>';
+  }).join('');
+  document.getElementById('typeMenu').innerHTML = html;
+}
+
+/* ===== 过滤 ===== */
+function passFilter(it) {
+  if (SRC !== 'all' && it.source !== SRC) return false;
+  if (TYPE !== 'all' && it.type !== TYPE) return false;
+  return true;
+}
+
+/* ===== 渲染列表 ===== */
+function renderList() {
+  var list = items.filter(passFilter);
+  var wrap = document.getElementById('listWrap');
+  var empty = document.getElementById('empty');
+
+  if (!list.length) {
+    wrap.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  wrap.style.display = 'block';
+  empty.style.display = 'none';
+
+  /* 按章节分组（保持插入顺序） */
+  var groups = {};
+  var order = [];
+  list.forEach(function(it) {
+    if (!groups[it.chapter]) { groups[it.chapter] = []; order.push(it.chapter); }
+    groups[it.chapter].push(it);
+  });
+
+  var html = '';
+  order.forEach(function(ch) {
+    var arr = groups[ch];
+    html += '<div class="chap-group">'
+      +   '<div class="chap-head">'
+      +     '<span class="chap-name">' + ch + '</span>'
+      +     '<span class="chap-count">' + arr.length + ' 道收藏</span>'
+      +   '</div>';
+    arr.forEach(function(it) {
+      html += qCard(it);
+    });
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+
+/* ===== 卡片 ===== */
+function qCard(it) {
+  return '<div class="q-card" onclick="goDetail(\'' + it.qid + '\')">'
+    +   '<div class="q-meta">'
+    +     '<span class="q-tag type">' + (TYPE_NAME[it.type] || '题目') + '</span>'
+    +     '<span class="q-tag src ' + (it.source === 'flash' ? 'flash' : '') + '">' + (SRC_NAME[it.source] || it.source) + '</span>'
+    +   '</div>'
+    +   '<div class="q-title">' + it.concept + '</div>'
+    +   '<div class="q-foot">'
+    +     '<span class="q-time">收藏于 ' + it.collectedAt + '</span>'
+    +     '<button class="q-fav-ico" onclick="event.stopPropagation();toggleFav(\'' + it.qid + '\')">★</button>'
+    +     '<span class="q-arrow">›</span>'
+    +   '</div>'
+    + '</div>';
+}
+
+/* ===== 取消收藏（mock 内存态） ===== */
+function toggleFav(qid) {
+  var i = items.findIndex(function(x){ return x.qid === qid; });
+  if (i >= 0) {
+    items.splice(i, 1);
+    renderList();
+    showToast('已取消收藏');
+  }
+}
+
+/* ===== 进入做题页（复用 REQ_PRACTICE 协议；entry=fav） ===== */
+function practiceAll() {
+  var list = items.filter(passFilter);
+  if (!list.length) { showToast('没有可练习的收藏题'); return; }
+  /* 当前筛选题目写入临时 key，做题页 entry=fav 读取出题 */
+  try {
+    localStorage.setItem('zsb_fav_practice_v1', JSON.stringify(list.map(function(x){
+      return { qid: x.qid, source: x.source, chapter: x.chapter, concept: x.concept, type: x.type };
+    })));
+  } catch(e) {}
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'fav', scope:'all', name:'收藏题练习'
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，开始练习');
+  }
+}
+function goDetail(qid) {
+  var list = items.filter(passFilter);
+  var one = list.filter(function(x){ return x.qid === qid; });
+  if (!one.length) return;
+  try {
+    localStorage.setItem('zsb_fav_practice_v1', JSON.stringify(one.map(function(x){
+      return { qid: x.qid, source: x.source, chapter: x.chapter, concept: x.concept, type: x.type };
+    })));
+  } catch(e) {}
+  try {
+    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
+      entry:'fav', scope:'qid', qid: qid, name:'收藏题详情'
+    } }, '*');
+  } catch(e) {
+    showToast('请从总壳进入，查看题目');
+  }
+}
+
+/* ===== 去章节刷题（空状态入口） ===== */
+function goChapter() {
+  try { window.parent.postMessage({ type:'CLOSE_CHAPTER' }, '*'); } catch(e) {}
+}
+
+/* ===== Toast ===== */
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
+}
+
+/* ===== 点外部收起题型下拉 ===== */
+document.addEventListener('click', function(e) {
+  var m = document.getElementById('typeMenu');
+  var b = document.getElementById('favType');
+  if (m.classList.contains('open') && !m.contains(e.target) && e.target !== b && !b.contains(e.target)) {
+    m.classList.remove('open');
+    b.classList.remove('open');
+  }
+});
+
+/* ===== 返回：通知题库首页收起二级层 ===== */
+/* 页头标题/返回已由总壳 appbar 统一承担，页内不再设返回按钮 */
+
+/* ===== 初始化 ===== */
+buildTypeMenu();
+renderList();
+</script>
+
+</body>
+</html>
