@@ -1226,7 +1226,7 @@ function updateAppbar(name) {
     if (camResultOpen && (chapterLayerSub === 'cam' || chapterLayerSub === 'wrong')) {
       t = 'AI识别';
     } else {
-      t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题', fav:'收藏本', note:'笔记本' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
+      t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题', fav:'收藏本', note:'笔记本', score:'成绩录入' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
     }
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')

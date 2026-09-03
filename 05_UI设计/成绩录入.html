@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>成绩录入</title>
+<style>
+/* ==== Product Theme：蓝靛 #5B72F5（与题库首页/错题本/收藏本/笔记本统一） ====
+   成绩录入页：题库首页「成绩录入」快捷入口下钻二级页
+   结构：成绩概览 → 成绩列表（按考试时间降序）→ 新增/详情/编辑（浮层）→ 空状态
+   数据：localStorage zsb_scores_v1（单点数据源）
+   交互：+ FAB 新增 → 填表 → 保存 → 回列表置顶；点卡片 → 详情 → 编辑/删除 */
+:root{
+  --primary: #5B72F5;
+  --primary-dark: #4358D7;
+  --primary-light: #EEF1FF;
+  --brand-teal: #3FA98B;
+  --text-primary: #1E2130;
+  --text-secondary: #6E778B;
+  --text-tertiary: #98A0B2;
+  --success: #20A866;
+  --warning: #F28B3D;
+  --danger: #EF4444;
+  --card-radius: 17px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text-primary);
+  background-color: #EDEFF7;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page { display: flex; flex-direction: column; height: 100%; }
+
+/* ===== 成绩概览 ===== */
+.overview {
+  display: flex; gap: 0;
+  padding: 14px 16px 12px;
+  background: #fff;
+  border-bottom: 1px solid #EEF0F6;
+  flex-shrink: 0;
+}
+.ov-item { flex: 1; text-align: center; }
+.ov-label { font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 4px; }
+.ov-val { font-size: 20px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.ov-val .unit { font-size: 12px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
+.ov-item + .ov-item { border-left: 1px solid #EEF0F6; }
+
+/* ===== 列表区 ===== */
+.list-wrap {
+  flex: 1; overflow-y: auto;
+  padding: 4px 16px 96px;
+}
+
+.s-card {
+  position: relative;
+  background: #fff;
+  border-radius: 11px 10px 12px 9px;
+  padding: 12px 14px;
+  margin: 6px 0;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.s-card:active { transform: scale(.985); }
+.s-title {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  line-height: 1.4; margin-bottom: 6px;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.s-meta {
+  font-size: 12px; color: var(--text-tertiary); font-weight: 500;
+  margin-bottom: 8px;
+}
+.s-meta .s-type { color: var(--primary); font-weight: 600; }
+.s-bottom {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.s-subject {
+  font-size: 13px; color: var(--text-secondary); font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; flex: 1;
+}
+.s-score {
+  font-size: 22px; font-weight: 800; color: var(--primary);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.s-score .s-su { font-size: 12px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
+.s-arrow {
+  position: absolute; bottom: 12px; right: 12px;
+  font-size: 17px; color: var(--text-tertiary); line-height: 1;
+}
+
+/* ===== 空状态 ===== */
+.empty {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.empty-ico { font-size: 48px; margin-bottom: 18px; }
+.empty-title { font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+.empty-desc { font-size: 12.5px; color: var(--text-tertiary); line-height: 1.6; margin-bottom: 20px; max-width: 240px; }
+.empty-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 36px; padding: 0 20px;
+  border: 1.5px solid var(--primary); border-radius: 18px;
+  background: var(--primary-light);
+  font-size: 13px; font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.empty-btn:active { transform: scale(.97); }
+
+/* ===== 新增 FAB ===== */
+.add-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 96;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  box-shadow: 0 6px 16px rgba(91,114,245,.38);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; outline: none;
+  transition: transform .15s ease;
+  font-size: 28px; font-weight: 300; line-height: 1;
+}
+.add-fab:active { transform: scale(.92); }
+
+/* ===== 表单浮层（新增/编辑通用） ===== */
+.form-mask {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(20,22,35,.4);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.form-mask.on { display: flex; }
+.form-sheet {
+  width: 100%; background: #fff; border-radius: 18px 18px 0 0;
+  padding: 16px 16px 28px; animation: fsUp .25s ease;
+  max-height: 90vh; display: flex; flex-direction: column;
+}
+@keyframes fsUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.form-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-shrink: 0;
+}
+.form-title { font-size: 16px; font-weight: 700; }
+.form-close { font-size: 22px; color: var(--text-tertiary); cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.form-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.form-body::-webkit-scrollbar { display: none; }
+.form-row { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.form-label .req { color: var(--danger); font-size: 11px; }
+.form-input, .form-select, .form-ta {
+  width: 100%; height: 42px; padding: 0 12px;
+  border: 1.5px solid #E5E8F0; border-radius: 10px;
+  background: #FBFBFE; font-size: 14px; color: var(--text-primary);
+  font-family: inherit; outline: none;
+  transition: border-color .15s ease;
+}
+.form-input:focus, .form-select:focus { border-color: var(--primary); background: #fff; }
+.form-select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398A0B2' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.type-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.type-chip {
+  padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  background: #F3F5FB; border: 1.5px solid #E5E8F0; color: var(--text-primary); cursor: pointer;
+}
+.type-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.score-input-wrap { display: flex; align-items: center; gap: 8px; }
+.score-input-wrap .form-input { flex: 1; }
+.score-input-wrap .score-unit { font-size: 14px; color: var(--text-tertiary); font-weight: 600; flex-shrink: 0; }
+.form-btns {
+  display: flex; gap: 10px; flex-shrink: 0; margin-top: 4px;
+}
+.form-btn {
+  flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none;
+}
+.form-btn.primary { background: var(--primary); color: #fff; }
+.form-btn.primary:active { background: var(--primary-dark); }
+.form-btn.cancel { background: #fff; color: var(--text-secondary); border: 1px solid #E5E8F0; }
+.form-err { font-size: 12px; color: var(--danger); margin-top: 4px; display: none; }
+.form-err.show { display: block; }
+
+/* ===== 详情浮层 ===== */
+.detail-mask {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(20,22,35,.4);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.detail-mask.on { display: flex; }
+.detail-sheet {
+  width: 100%; background: #fff; border-radius: 18px 18px 0 0;
+  padding: 16px 16px 28px; animation: fsUp .25s ease;
+  max-height: 80vh; display: flex; flex-direction: column;
+}
+.detail-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-shrink: 0;
+}
+.detail-title { font-size: 16px; font-weight: 700; }
+.detail-close { font-size: 22px; color: var(--text-tertiary); cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.detail-body { flex: 1; overflow-y: auto; }
+.detail-body::-webkit-scrollbar { display: none; }
+.d-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid #F0F2F8;
+}
+.d-row:last-child { border-bottom: none; }
+.d-label { font-size: 13px; color: var(--text-tertiary); font-weight: 500; flex-shrink: 0; }
+.d-val { font-size: 14px; color: var(--text-primary); font-weight: 600; text-align: right; }
+.d-val.score { font-size: 24px; color: var(--primary); font-weight: 800; }
+.d-val .d-su { font-size: 13px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
+.detail-btns { display: flex; gap: 10px; flex-shrink: 0; margin-top: 16px; }
+.detail-btn { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; }
+.detail-btn.edit { background: var(--primary-light); color: var(--primary-dark); }
+.detail-btn.del { background: #FFF1F1; color: var(--danger); }
+
+/* ===== 删除确认 ===== */
+.confirm-mask {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(20,22,35,.45);
+  display: none; align-items: center; justify-content: center;
+}
+.confirm-mask.on { display: flex; }
+.confirm-box {
+  width: 280px; background: #fff; border-radius: 16px;
+  padding: 24px 20px 16px; text-align: center;
+}
+.confirm-msg { font-size: 15px; color: var(--text-primary); font-weight: 600; margin-bottom: 20px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btn { flex: 1; height: 40px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+.confirm-btn.ok { background: var(--danger); color: #fff; }
+.confirm-btn.no { background: #F3F5FB; color: var(--text-secondary); }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,33,48,.88); color: #fff;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 12.5px; z-index: 999;
+  opacity: 0; transition: opacity .2s ease; pointer-events: none;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+
+  <!-- 成绩概览（无数据时隐藏） -->
+  <div class="overview" id="overview" style="display:none;">
+    <div class="ov-item">
+      <div class="ov-label">最近一次</div>
+      <div class="ov-val" id="ovLatest">-<span class="unit">分</span></div>
+    </div>
+    <div class="ov-item">
+      <div class="ov-label">最高成绩</div>
+      <div class="ov-val" id="ovMax">-<span class="unit">分</span></div>
+    </div>
+    <div class="ov-item">
+      <div class="ov-label">平均成绩</div>
+      <div class="ov-val" id="ovAvg">-<span class="unit">分</span></div>
+    </div>
+  </div>
+
+  <!-- 列表区 -->
+  <div class="list-wrap" id="listWrap"></div>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty" style="display:none;">
+    <div class="empty-ico">📊</div>
+    <div class="empty-title">还没有成绩记录</div>
+    <div class="empty-desc">录入你的考试成绩，持续记录学习进步。</div>
+    <button class="empty-btn" onclick="openForm()">＋ 录入成绩</button>
+  </div>
+
+</div>
+
+<!-- 新增 FAB -->
+<button class="add-fab" onclick="openForm()" title="录入成绩">＋</button>
+
+<!-- 表单浮层（新增/编辑） -->
+<div class="form-mask" id="formMask" onclick="if(event.target===this) closeForm()">
+  <div class="form-sheet">
+    <div class="form-head">
+      <span class="form-title" id="formTitle">新增成绩</span>
+      <span class="form-close" onclick="closeForm()">✕</span>
+    </div>
+    <div class="form-body">
+      <div class="form-row">
+        <div class="form-label">考试名称 <span class="req">*</span></div>
+        <input class="form-input" id="fName" placeholder="如：2026年9月模拟考试" />
+        <div class="form-err" id="errName">请填写考试名称</div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">考试日期 <span class="req">*</span></div>
+        <input class="form-input" id="fDate" type="date" />
+        <div class="form-err" id="errDate">请选择考试日期</div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">考试类型 <span class="req">*</span></div>
+        <div class="type-chips" id="fTypeChips">
+          <button class="type-chip on" data-type="模拟考试" onclick="pickType('模拟考试')">模拟考试</button>
+          <button class="type-chip" data-type="历年真题" onclick="pickType('历年真题')">历年真题</button>
+          <button class="type-chip" data-type="学校考试" onclick="pickType('学校考试')">学校考试</button>
+          <button class="type-chip" data-type="其他" onclick="pickType('其他')">其他</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">考试科目 <span class="req">*</span></div>
+        <select class="form-select" id="fSubject">
+          <option value="计算机">计算机</option>
+          <option value="英语">英语</option>
+          <option value="高数">高数</option>
+          <option value="语文">语文</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-label">成绩 <span class="req">*</span></div>
+        <div class="score-input-wrap">
+          <input class="form-input" id="fScore" type="number" placeholder="输入分数" />
+          <span class="score-unit">分</span>
+        </div>
+        <div class="form-err" id="errScore">请填写成绩</div>
+      </div>
+    </div>
+    <div class="form-btns">
+      <button class="form-btn cancel" onclick="closeForm()">取消</button>
+      <button class="form-btn primary" onclick="saveForm()">保存成绩</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情浮层 -->
+<div class="detail-mask" id="detailMask" onclick="if(event.target===this) closeDetail()">
+  <div class="detail-sheet">
+    <div class="detail-head">
+      <span class="detail-title">成绩详情</span>
+      <span class="detail-close" onclick="closeDetail()">✕</span>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+    <div class="detail-btns">
+      <button class="detail-btn edit" onclick="editCurrent()">编辑</button>
+      <button class="detail-btn del" onclick="askDelete()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认 -->
+<div class="confirm-mask" id="confirmMask" onclick="if(event.target===this) closeConfirm()">
+  <div class="confirm-box">
+    <div class="confirm-msg">确定删除这条成绩记录吗？</div>
+    <div class="confirm-btns">
+      <button class="confirm-btn no" onclick="closeConfirm()">取消</button>
+      <button class="confirm-btn ok" onclick="doDelete()">删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   成绩录入 v1.0
+   数据：localStorage zsb_scores_v1
+   结构：[{ id, name, date, type, subject, score, createdAt }]
+   概览：最近一次/最高/平均（无数据时隐藏）
+   排序：考试时间降序
+   ============================================================ */
+
+var KEY = 'zsb_scores_v1';
+var TYPE_OPTIONS = ['模拟考试','历年真题','学校考试','其他'];
+
+/* 当前编辑/新增态 */
+var editId = null;       /* null=新增模式 */
+var currentDetailId = null;
+var pickedType = '模拟考试';
+
+/* 读取数据 */
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; }
+}
+function saveScores(arr) {
+  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+/* ===== 概览 ===== */
+function renderOverview() {
+  var arr = loadScores();
+  var ovEl = document.getElementById('overview');
+  if (!arr.length) { ovEl.style.display = 'none'; return; }
+  ovEl.style.display = 'flex';
+  /* 按考试时间降序取最近一次 */
+  var sorted = arr.slice().sort(function(a,b){ return (a.date||'') < (b.date||'') ? 1 : -1; });
+  var latest = sorted[0];
+  var scores = arr.map(function(x){ return Number(x.score) || 0; });
+  var max = Math.max.apply(null, scores);
+  var avg = Math.round(scores.reduce(function(s,n){ return s+n; },0) / scores.length);
+  document.getElementById('ovLatest').innerHTML = latest.score + '<span class="unit">分</span>';
+  document.getElementById('ovMax').innerHTML = max + '<span class="unit">分</span>';
+  document.getElementById('ovAvg').innerHTML = avg + '<span class="unit">分</span>';
+}
+
+/* ===== 列表 ===== */
+function renderList() {
+  var arr = loadScores();
+  var wrap = document.getElementById('listWrap');
+  var empty = document.getElementById('empty');
+
+  if (!arr.length) {
+    wrap.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  wrap.style.display = 'block';
+  empty.style.display = 'none';
+
+  /* 按考试时间降序 */
+  arr.sort(function(a,b){ return (a.date||'') < (b.date||'') ? 1 : -1; });
+
+  var html = '';
+  arr.forEach(function(it) {
+    html += scoreCard(it);
+  });
+  wrap.innerHTML = html;
+}
+
+/* 成绩卡片 */
+function scoreCard(it) {
+  return '<div class="s-card" onclick="openDetail(\'' + it.id + '\')">'
+    +   '<div class="s-title">' + (it.name || '未命名考试') + '</div>'
+    +   '<div class="s-meta"><span class="s-type">' + (it.type || '其他') + '</span> · ' + (it.date || '') + '</div>'
+    +   '<div class="s-bottom">'
+    +     '<span class="s-subject">' + (it.subject || '') + '</span>'
+    +     '<span class="s-score">' + (it.score || 0) + '<span class="s-su">分</span></span>'
+    +   '</div>'
+    +   '<span class="s-arrow">›</span>'
+    + '</div>';
+}
+
+/* ===== 新增/编辑表单 ===== */
+function openForm(id) {
+  editId = id || null;
+  document.getElementById('formTitle').textContent = id ? '编辑成绩' : '新增成绩';
+  /* 重置错误提示 */
+  ['errName','errDate','errScore'].forEach(function(id){ document.getElementById(id).classList.remove('show'); });
+
+  if (id) {
+    var arr = loadScores();
+    var it = arr.filter(function(x){ return x.id === id; })[0];
+    if (!it) return;
+    document.getElementById('fName').value = it.name || '';
+    document.getElementById('fDate').value = it.date || '';
+    document.getElementById('fSubject').value = it.subject || '计算机';
+    document.getElementById('fScore').value = it.score || '';
+    pickType(it.type || '模拟考试');
+  } else {
+    document.getElementById('fName').value = '';
+    /* 默认今天 */
+    var now = new Date();
+    document.getElementById('fDate').value = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+    document.getElementById('fSubject').value = '计算机';
+    document.getElementById('fScore').value = '';
+    pickType('模拟考试');
+  }
+  document.getElementById('formMask').classList.add('on');
+}
+function closeForm() {
+  document.getElementById('formMask').classList.remove('on');
+}
+
+function pickType(t) {
+  pickedType = t;
+  document.querySelectorAll('#fTypeChips .type-chip').forEach(function(c) {
+    c.classList.toggle('on', c.getAttribute('data-type') === t);
+  });
+}
+
+function saveForm() {
+  var name = document.getElementById('fName').value.trim();
+  var date = document.getElementById('fDate').value;
+  var subject = document.getElementById('fSubject').value;
+  var score = document.getElementById('fScore').value.trim();
+  var ok = true;
+
+  /* 校验 */
+  if (!name) { document.getElementById('errName').classList.add('show'); ok = false; }
+  else document.getElementById('errName').classList.remove('show');
+  if (!date) { document.getElementById('errDate').classList.add('show'); ok = false; }
+  else document.getElementById('errDate').classList.remove('show');
+  if (!score) { document.getElementById('errScore').classList.add('show'); ok = false; }
+  else document.getElementById('errScore').classList.remove('show');
+
+  if (!ok) { showToast('请补全必填信息'); return; }
+
+  var now = new Date();
+  var createdAt = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+  var arr = loadScores();
+  if (editId) {
+    /* 编辑：更新原记录 */
+    arr = arr.map(function(x) {
+      if (x.id === editId) {
+        return Object.assign({}, x, { name:name, date:date, type:pickedType, subject:subject, score:score });
+      }
+      return x;
+    });
+  } else {
+    /* 新增：置顶（unshift，渲染时按 date 降序会重排，但新记录 date 最新自然置顶） */
+    arr.unshift({
+      id: 'S' + Date.now(),
+      name: name, date: date, type: pickedType, subject: subject, score: score,
+      createdAt: createdAt
+    });
+  }
+  saveScores(arr);
+  closeForm();
+  renderOverview();
+  renderList();
+  showToast(editId ? '已更新成绩' : '已录入成绩');
+}
+
+/* ===== 详情 ===== */
+function openDetail(id) {
+  var arr = loadScores();
+  var it = arr.filter(function(x){ return x.id === id; })[0];
+  if (!it) return;
+  currentDetailId = id;
+  var html = ''
+    + '<div class="d-row"><span class="d-label">考试名称</span><span class="d-val">' + (it.name||'') + '</span></div>'
+    + '<div class="d-row"><span class="d-label">考试类型</span><span class="d-val">' + (it.type||'') + '</span></div>'
+    + '<div class="d-row"><span class="d-label">考试日期</span><span class="d-val">' + (it.date||'') + '</span></div>'
+    + '<div class="d-row"><span class="d-label">考试科目</span><span class="d-val">' + (it.subject||'') + '</span></div>'
+    + '<div class="d-row"><span class="d-label">成绩</span><span class="d-val score">' + (it.score||0) + '<span class="d-su">分</span></span></div>';
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailMask').classList.add('on');
+}
+function closeDetail() {
+  document.getElementById('detailMask').classList.remove('on');
+  currentDetailId = null;
+}
+function editCurrent() {
+  if (!currentDetailId) return;
+  closeDetail();
+  openForm(currentDetailId);
+}
+
+/* ===== 删除（二次确认） ===== */
+function askDelete() {
+  if (!currentDetailId) return;
+  closeDetail();
+  document.getElementById('confirmMask').classList.add('on');
+}
+function closeConfirm() {
+  document.getElementById('confirmMask').classList.remove('on');
+}
+function doDelete() {
+  var arr = loadScores().filter(function(x){ return x.id !== currentDetailId; });
+  saveScores(arr);
+  closeConfirm();
+  renderOverview();
+  renderList();
+  showToast('已删除该成绩');
+  currentDetailId = null;
+}
+
+/* ===== 工具 ===== */
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
+}
+
+/* ===== 返回：通知题库收起二级层 ===== */
+/* 页头标题/返回由总壳 appbar 统一承担 */
+
+/* ===== 初始化 ===== */
+renderOverview();
+renderList();
+</script>
+
+</body>
+</html>
