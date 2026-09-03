@@ -339,7 +339,6 @@ body {
 <div class="viewer" id="viewer">
   <div class="viewer-bar">
     <span class="viewer-back" onclick="closeViewer()">‹</span>
-    <span class="viewer-chap" id="viewerChap"></span>
     <span class="viewer-del" onclick="deletePhoto()">删除</span>
   </div>
   <div class="viewer-img">
@@ -734,15 +733,6 @@ function openPhoto(nid) {
   if (!one.length) return;
   currentPhotoNid = nid;
   var it = one[0];
-  /* 查看层章节：按知识点层级显示 */
-  var l1 = it.l1 || '', l2 = it.l2 || '', l3 = it.l3 || '', l4 = it.l4 || '';
-  var parts = [];
-  if (l1) parts.push(l1);
-  if (l2) parts.push(l2);
-  if (l3) parts.push(l3);
-  if (l4) parts.push(l4);  /* 四级在查看层显示完整 */
-  var chapTxt = parts.length ? ('所属：' + parts.join(' › ')) : '拍照笔记（未归类）';
-  document.getElementById('viewerChap').textContent = chapTxt;
   document.getElementById('viewerImg').textContent = '📷 ' + (it.concept || '拍照笔记');
   document.getElementById('viewer').classList.add('show');
 }
