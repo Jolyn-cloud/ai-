@@ -541,7 +541,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W03', path: '操作系统 → 进程与线程 → 进程概念', type: 'fill',
               title: '______是程序的一次执行过程，也是操作系统进行资源分配的基本单位。',
-              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false }
+              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false, addedAt: '2026-08-26 20:30' }
           ]
         },
         {
@@ -549,10 +549,10 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W02', path: '操作系统 → 文件管理 → 扩展名', type: 'judge',
               title: '文件的扩展名相同，其内容一定相同。',
-              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true },
+              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
             { qid: 'W04', path: '操作系统 → 文件管理 → 回收站', type: 'single',
               title: '回收站中的文件被「还原」后，将恢复到（ ）。',
-              tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false }
+              tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false, addedAt: '2026-08-27 14:20' }
           ]
         },
         {
@@ -560,7 +560,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W01', path: '操作系统 → 操作系统概述 → 作用', type: 'single',
               title: '操作系统的作用不包括（ ）。',
-              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false }
+              tag: 'confusion', wrongCount: 2, status: 'pending', stubborn: false, addedAt: '2026-08-25 10:00' }
           ]
         }
       ]
@@ -573,7 +573,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W06', path: '计算机网络 → 网络基础 → IP 地址', type: 'judge',
               title: 'IP 地址是网络中每台联网计算机的唯一标识。',
-              tag: 'memory', wrongCount: 1, status: 'solved', stubborn: false }
+              tag: 'memory', wrongCount: 1, status: 'solved', stubborn: false, addedAt: '2026-08-29 11:00' }
           ]
         }
       ]
@@ -586,7 +586,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W05', path: '电子表格 → 函数与公式 → 常用函数', type: 'multi',
               title: '下列属于 Excel 常用统计函数的有（ ）。',
-              tag: 'operation', wrongCount: 1, status: 'solved', stubborn: false }
+              tag: 'operation', wrongCount: 1, status: 'solved', stubborn: false, addedAt: '2026-08-28 16:45' }
           ]
         }
       ]
@@ -676,12 +676,20 @@ function renderOverview() {
 }
 
 /* ===== 渲染列表 ===== */
+/* 收纳时间降序比较器：取 addedAt（模块题）或 createdAt（上传题），无时间字段退居末尾 */
+function byAddedDesc(a, b) {
+  var ta = a.addedAt || a.createdAt || '';
+  var tb = b.addedAt || b.createdAt || '';
+  if (ta === tb) return 0;
+  return ta < tb ? 1 : -1; /* 字符串比 YYYY-MM-DD HH:MM 天然有序，降序故 ta<tb 返 1 */
+}
+
 function renderList() {
   syncUploads();
   var box = document.getElementById('list');
   var html = '';
-  /* 我的上传区（source=upload）：按筛选显示 */
-  var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); });
+  /* 我的上传区（source=upload）：按筛选显示，按收纳时间降序 */
+  var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); }).sort(byAddedDesc);
   if (ups.length > 0) {
     html += '<div class="module open">'
       + '<div class="module-head"><span class="module-name"><span class="caret">▶</span>我的上传</span>'
@@ -693,7 +701,7 @@ function renderList() {
   WRONG_DATA.modules.forEach(function(m, mi) {
     var chapters = m.chapters
       .map(function(c) {
-        return { c: c, qs: c.questions.filter(function(q) { return passFilter(q); }) };
+        return { c: c, qs: c.questions.filter(function(q) { return passFilter(q); }).sort(byAddedDesc) };
       })
       .filter(function(x) { return x.qs.length > 0; });
     if (chapters.length === 0) return;
@@ -746,7 +754,7 @@ function qCard(q) {
   var pathLine = isUpload
     ? '<div class="q-path">📍 我的上传 <span class="q-path-sub">/ ' + (TYPE_NAME[q.type] || '图片题') + '</span></div>'
     : '<div class="q-path">📍 ' + q.path + '</div>';
-  return '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '">'
+  return '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '" data-qid="' + (q.qid || '') + '">'
     + pathLine
     + body
     + '<div class="q-meta">'
