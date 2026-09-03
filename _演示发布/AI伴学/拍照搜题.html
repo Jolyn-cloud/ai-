@@ -251,14 +251,32 @@ body.has-appbar .note-result .result-body { padding-top: 12px; }
 .kp-path { font-size: 13px; color: var(--text-secondary); line-height: 1.6; padding: 10px 12px; background: #F7F8FC; border-radius: 10px; margin-bottom: 10px; min-height: 20px; }
 .kp-path .kp-empty { color: var(--text-tertiary); }
 .kp-path .kp-l { color: var(--primary); font-weight: 600; }
-.kp-level-hint { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
-.kp-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.kp-opt { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; background: #fff; border: 1.5px solid #E5E8F0; color: var(--text-primary); cursor: pointer; }
-.kp-opt:active { transform: scale(.96); }
-.kp-opt.on { background: var(--primary); border-color: var(--primary); color: #fff; }
-.kp-actions { display: flex; gap: 10px; }
-.kp-reset { flex: 1; height: 36px; border-radius: 18px; border: 1.5px solid #E5E8F0; background: #fff; color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
-.kp-done { flex: 1; height: 36px; border-radius: 18px; border: none; background: var(--primary-light); color: var(--primary-dark); font-size: 13px; font-weight: 700; cursor: pointer; }
+.kp-path .kp-sep { color: var(--text-tertiary); margin: 0 4px; }
+
+/* 知识点级联浮窗（滑动列表） */
+.kp-picker {
+  width: 100%; background: #fff; border-radius: 18px 18px 0 0;
+  padding: 16px 16px 28px; animation: tpUp .25s ease;
+  max-height: 70vh; display: flex; flex-direction: column;
+}
+.kp-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-shrink: 0; }
+.kp-picker-title { font-size: 15px; font-weight: 700; }
+.kp-picker-skip { font-size: 13px; color: var(--primary); font-weight: 600; cursor: pointer; }
+.kp-path-bar { font-size: 12px; color: var(--text-secondary); padding: 8px 10px; background: #F7F8FC; border-radius: 8px; margin-bottom: 10px; min-height: 18px; flex-shrink: 0; }
+.kp-path-bar .kp-empty { color: var(--text-tertiary); }
+.kp-path-bar .kp-l { color: var(--primary); font-weight: 600; }
+.kp-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; margin-bottom: 12px; }
+.kp-list::-webkit-scrollbar { display: none; }
+.kp-item {
+  padding: 14px 12px; font-size: 14px; font-weight: 500; color: var(--text-primary);
+  border-bottom: 1px solid #F0F2F8; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kp-item:active { background: #F5F6FA; }
+.kp-item.on { color: var(--primary); font-weight: 700; }
+.kp-item .kp-ck { color: var(--primary); font-size: 16px; }
+.kp-item .kp-next { color: var(--text-tertiary); font-size: 15px; }
+.kp-picker-done { flex-shrink: 0; width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
 
 /* ===== Toast ===== */
 .toast {
@@ -405,12 +423,8 @@ body.has-appbar .note-result .result-body { padding-top: 12px; }
           <span class="rsc-card-title">选择所属知识点</span>
           <span class="rsc-ai-badge" style="background:rgba(99,131,246,.06); color:var(--text-tertiary);">可选</span>
         </div>
-        <div class="kp-path" id="kpPath"><span class="kp-empty">未选择（将保存为「拍照笔记」）</span></div>
-        <div class="kp-level-hint" id="kpLevelHint">选择一级知识点</div>
-        <div class="kp-opts" id="kpOpts"></div>
-        <div class="kp-actions">
-          <button class="kp-reset" onclick="resetKp()">重置</button>
-          <button class="kp-done" onclick="closeNoteKp()">完成</button>
+        <div class="kp-path" id="kpPath" onclick="openKpPicker()" style="cursor:pointer;">
+          <span class="kp-empty">点这里选择知识点（可不选）</span>
         </div>
       </div>
     </div>
@@ -421,9 +435,17 @@ body.has-appbar .note-result .result-body { padding-top: 12px; }
     </div>
   </div>
 
-  <!-- 知识点级联选择器弹出层（复用 tag-picker-mask） -->
-  <div class="tag-picker-mask" id="kpPickerMask" onclick="if(event.target===this) closeNoteKp()">
-    <div class="tag-picker" id="kpPicker"></div>
+  <!-- 知识点级联选择浮窗（底部弹出，滑动列表逐级选） -->
+  <div class="tag-picker-mask" id="kpPickerMask" onclick="if(event.target===this) closeKpPicker()">
+    <div class="kp-picker" id="kpPicker">
+      <div class="kp-picker-head">
+        <span class="kp-picker-title" id="kpPickerTitle">选择一级知识点</span>
+        <span class="kp-picker-skip" onclick="skipKpLevel()">跳过本级</span>
+      </div>
+      <div class="kp-path-bar" id="kpPathBar"><span class="kp-empty">未选择</span></div>
+      <div class="kp-list" id="kpList"></div>
+      <button class="kp-picker-done" onclick="confirmKp()">完成选择</button>
+    </div>
   </div>
 </div>
 
@@ -779,8 +801,8 @@ var KP_TREE = [
 
 /* 笔记预览页当前态 */
 var CUR_NOTE = { img:'', l1:'', l2:'', l3:'', l4:'' };
-/* 知识点选择当前层级：1=选一级 2=选二级 3=选三级 4=选四级 0=未开始/已完成 */
-var KP_LEVEL = 0;
+/* 知识点选择当前层级：1=一级 2=二级 3=三级 4=四级 */
+var KP_LEVEL = 1;
 
 /* 进入笔记预览页 */
 function showNoteResult() {
@@ -788,7 +810,9 @@ function showNoteResult() {
   res.classList.add('on');
   try { window.parent.postMessage({ type:'CAM_RESULT', data:{ open:true } }, '*'); } catch(e) {}
   document.getElementById('noteImgWrap').innerHTML = '📷';
-  resetKp();
+  /* 重置知识点选择 */
+  CUR_NOTE.l1=''; CUR_NOTE.l2=''; CUR_NOTE.l3=''; CUR_NOTE.l4='';
+  updateKpPath();
 }
 function closeNoteResult() {
   document.getElementById('noteResult').classList.remove('on');
@@ -796,87 +820,108 @@ function closeNoteResult() {
   try { window.parent.postMessage({ type:'CAM_RESULT', data:{ open:false } }, '*'); } catch(e) {}
 }
 
-/* 知识点选择：渲染当前层级可选项 */
-function renderKpOpts() {
-  var optsWrap = document.getElementById('kpOpts');
-  var hintEl = document.getElementById('kpLevelHint');
-  var pathEl = document.getElementById('kpPath');
+/* 预览页知识点路径显示 */
+function updateKpPath() {
+  var el = document.getElementById('kpPath');
+  var parts = [];
+  if (CUR_NOTE.l1) parts.push(CUR_NOTE.l1);
+  if (CUR_NOTE.l2) parts.push(CUR_NOTE.l2);
+  if (CUR_NOTE.l3) parts.push(CUR_NOTE.l3);
+  if (CUR_NOTE.l4) parts.push(CUR_NOTE.l4);
+  el.innerHTML = parts.length
+    ? parts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join('<span class="kp-sep">›</span>')
+    : '<span class="kp-empty">点这里选择知识点（可不选）</span>';
+}
+
+/* 打开知识点浮窗 */
+function openKpPicker() {
+  KP_LEVEL = 1;
+  renderKpList();
+  document.getElementById('kpPickerMask').classList.add('on');
+}
+function closeKpPicker() {
+  document.getElementById('kpPickerMask').classList.remove('on');
+}
+
+/* 渲染当前层级列表 */
+function renderKpList() {
+  var titleEl = document.getElementById('kpPickerTitle');
+  var listEl = document.getElementById('kpList');
+  var pathBar = document.getElementById('kpPathBar');
   var opts = [];
+  var curVal = '';
+  var levelNames = ['', '一级', '二级', '三级', '四级'];
 
-  /* 更新已选路径 */
-  var pathParts = [];
-  if (CUR_NOTE.l1) pathParts.push(CUR_NOTE.l1);
-  if (CUR_NOTE.l2) pathParts.push(CUR_NOTE.l2);
-  if (CUR_NOTE.l3) pathParts.push(CUR_NOTE.l3);
-  if (CUR_NOTE.l4) pathParts.push(CUR_NOTE.l4);
-  pathEl.innerHTML = pathParts.length
-    ? pathParts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
-    : '<span class="kp-empty">未选择（将保存为「拍照笔记」）</span>';
+  /* 路径条 */
+  var parts = [];
+  if (CUR_NOTE.l1) parts.push(CUR_NOTE.l1);
+  if (CUR_NOTE.l2) parts.push(CUR_NOTE.l2);
+  if (CUR_NOTE.l3) parts.push(CUR_NOTE.l3);
+  if (CUR_NOTE.l4) parts.push(CUR_NOTE.l4);
+  pathBar.innerHTML = parts.length
+    ? parts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
+    : '<span class="kp-empty">未选择</span>';
 
-  /* 确定当前层级可选项 */
-  if (KP_LEVEL === 0) {
-    /* 初始：展开一级 */
-    KP_LEVEL = 1;
-  }
   if (KP_LEVEL === 1) {
-    hintEl.textContent = '选择一级知识点（可不选，点完成跳过）';
     opts = KP_TREE.map(function(n){ return n.name; });
+    curVal = CUR_NOTE.l1;
   } else if (KP_LEVEL === 2) {
-    hintEl.textContent = '选择二级知识点（可不选，点完成跳过）';
     var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
     opts = l1Node ? l1Node.children.map(function(n){ return n.name; }) : [];
+    curVal = CUR_NOTE.l2;
   } else if (KP_LEVEL === 3) {
-    hintEl.textContent = '选择三级知识点（可不选，点完成跳过）';
     var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
     var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === CUR_NOTE.l2; })[0] : null;
     opts = l2Node ? l2Node.children.map(function(n){ return n.name; }) : [];
+    curVal = CUR_NOTE.l3;
   } else if (KP_LEVEL === 4) {
-    hintEl.textContent = '选择四级知识点（可不选，点完成跳过）';
     var l1Node = KP_TREE.filter(function(n){ return n.name === CUR_NOTE.l1; })[0];
     var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === CUR_NOTE.l2; })[0] : null;
     var l3Node = l2Node ? l2Node.children.filter(function(n){ return n.name === CUR_NOTE.l3; })[0] : null;
     opts = l3Node ? l3Node.children : [];
-  } else {
-    /* 已选到四级或无更深层级 */
-    hintEl.textContent = '已选到最深层级';
-    opts = [];
+    curVal = CUR_NOTE.l4;
   }
 
-  /* 渲染选项 */
+  titleEl.textContent = '选择' + levelNames[KP_LEVEL] + '知识点';
+
   var html = '';
   opts.forEach(function(name) {
-    var sel = (KP_LEVEL === 1 && CUR_NOTE.l1 === name)
-      || (KP_LEVEL === 2 && CUR_NOTE.l2 === name)
-      || (KP_LEVEL === 3 && CUR_NOTE.l3 === name)
-      || (KP_LEVEL === 4 && CUR_NOTE.l4 === name);
-    html += '<button class="kp-opt' + (sel ? ' on' : '') + '" onclick="pickKp(' + KP_LEVEL + ',\'' + escapeQuote(name) + '\')">' + name + '</button>';
+    var on = (name === curVal) ? ' on' : '';
+    html += '<div class="kp-item' + on + '" onclick="pickKp(' + KP_LEVEL + ',\'' + escapeQuote(name) + '\')">'
+      +   '<span>' + name + '</span>'
+      +   (on ? '<span class="kp-ck">✓</span>' : '<span class="kp-next">›</span>')
+      + '</div>';
   });
-  optsWrap.innerHTML = html || '<span class="kp-empty" style="font-size:12.5px;">当前层级无更多选项</span>';
+  if (!opts.length) html = '<div style="padding:24px;text-align:center;color:var(--text-tertiary);font-size:13px;">当前层级无更多选项，点「跳过本级」或「完成选择」</div>';
+  listEl.innerHTML = html;
 }
 
-/* 选择某层级知识点 */
+/* 选择某层级知识点 → 自动进下一级 */
 function pickKp(level, name) {
   if (level === 1) { CUR_NOTE.l1 = name; CUR_NOTE.l2=''; CUR_NOTE.l3=''; CUR_NOTE.l4=''; KP_LEVEL = 2; }
   else if (level === 2) { CUR_NOTE.l2 = name; CUR_NOTE.l3=''; CUR_NOTE.l4=''; KP_LEVEL = 3; }
   else if (level === 3) { CUR_NOTE.l3 = name; CUR_NOTE.l4=''; KP_LEVEL = 4; }
   else if (level === 4) { CUR_NOTE.l4 = name; KP_LEVEL = 5; }
-  renderKpOpts();
+  if (KP_LEVEL > 4) {
+    /* 选到四级，直接完成 */
+    confirmKp();
+    return;
+  }
+  renderKpList();
 }
 
-/* 重置知识点 */
-function resetKp() {
-  CUR_NOTE.l1=''; CUR_NOTE.l2=''; CUR_NOTE.l3=''; CUR_NOTE.l4='';
-  KP_LEVEL = 1;
-  renderKpOpts();
+/* 跳过当前层级（不选，直接完成） */
+function skipKpLevel() {
+  confirmKp();
 }
 
-/* 完成知识点选择（收起选项区） */
-function closeNoteKp() {
-  document.getElementById('kpOpts').innerHTML = '';
-  document.getElementById('kpLevelHint').textContent = '知识点已选好，点保存笔记';
+/* 完成选择：关闭浮窗，回写预览页路径 */
+function confirmKp() {
+  closeKpPicker();
+  updateKpPath();
 }
 
-/* 保存笔记：写 zsb_notes_v1 */
+/* 保存笔记：写 zsb_notes_v1 → 关闭拍照搜题层 → 通知题库打开笔记本 */
 function saveNote() {
   var now = new Date();
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -903,7 +948,11 @@ function saveNote() {
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
 
   closeNoteResult();
-  showToast('✓ 已存入笔记本，可在笔记本查看');
+  /* 关闭拍照搜题层 → 回题库 → 打开笔记本层 */
+  try {
+    window.parent.postMessage({ type:'NOTE_SAVED_OPEN_NOTEBK' }, '*');
+  } catch(e) {}
+  showToast('✓ 已存入笔记本');
 }
 
 /* ===== Toast ===== */

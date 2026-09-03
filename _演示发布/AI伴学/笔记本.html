@@ -409,7 +409,7 @@ var NOTE_DATA = [
 /* 运行态副本：拍照笔记读真实 localStorage zsb_notes_v1（拍照搜题记笔记写入），
    无真实数据时回退 mock，保证演示始终有数据 */
 var items = NOTE_DATA.map(function(x){ return Object.assign({}, x); });
-(function loadRealNotes() {
+function loadRealNotes() {
   var real = [];
   try { real = JSON.parse(localStorage.getItem('zsb_notes_v1') || '[]'); } catch(e) {}
   if (real && real.length) {
@@ -427,7 +427,14 @@ var items = NOTE_DATA.map(function(x){ return Object.assign({}, x); });
       });
     });
   }
-})();
+}
+loadRealNotes();
+/* 题库层切回笔记本时调，刷新真实数据 */
+function reloadNotes() {
+  loadRealNotes();
+  buildChapMenu();
+  renderList();
+}
 
 var SRC = 'all';        /* 类型筛选：all/quiz/photo */
 var CHAP = 'all';       /* 章节筛选 */

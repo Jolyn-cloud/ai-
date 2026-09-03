@@ -693,6 +693,21 @@ window.addEventListener('message', function(evt) {
     } catch(e) {}
     return;
   }
+  if (d.type === 'NOTE_SAVED_OPEN_NOTEBK') {
+    /* 拍照记笔记保存成功 → 关闭 cam 层 → 打开笔记本层 */
+    if (activeSub === 'cam') {
+      SUB_LAYERS.cam.classList.remove('show');
+    }
+    activeSub = 'note';
+    SUB_LAYERS.note.classList.add('show');
+    notifyShellChapter(true, 'note');
+    /* 通知笔记本 iframe 重新读取数据 */
+    try {
+      var noteInner = SUB_LAYERS.note.querySelector('iframe').contentWindow;
+      if (noteInner && noteInner.reloadNotes) noteInner.reloadNotes();
+    } catch(e) {}
+    return;
+  }
 });
 
 /* ---------- Toast ---------- */
