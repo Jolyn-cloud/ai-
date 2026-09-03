@@ -3766,13 +3766,14 @@ function hidePopTip(){
 }
 
 /* 收藏按钮（mock 态：仅切换图标 + 提示，不落库；演示用）
-   真实联动留二期：落库 zsb_favorites_v1 + 收藏本读取 */
-var favSet = {};   /* { 卡key: true } 会话级，刷新重置 */
+   真实联动留二期：落库 zsb_favorites_v1 + 收藏本读取
+   挂 window 供列表模式 IIFE 共享（两 script 块作用域隔离） */
+glob.favSet = glob.favSet || {};
 function toggleFav(){
   if (!currentCard) return;
   var key = currentCard.key;
-  var on = !favSet[key];
-  favSet[key] = on;
+  var on = !glob.favSet[key];
+  glob.favSet[key] = on;
   updateFavBtn();
   showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
 }
@@ -4162,6 +4163,8 @@ function bindCardEvents() {
    ============================================================ */
 function onCardTap(e) {
   if (isAnimating) return;
+  /* 收藏按钮点击不触发翻页 */
+  if (e.target.closest('.fav-mark')) return;
   if (hasMoved) { hasMoved = false; return; }
   if (touchStarted) return; // 触摸设备由 touchend 处理
 
@@ -4516,7 +4519,7 @@ function updateBottomStats() {
 }
 /* 收藏按钮随当前卡状态刷新（正反两个按钮同步） */
 function updateFavBtn() {
-  var on = currentCard && favSet[currentCard.key];
+  var on = currentCard && glob.favSet[currentCard.key];
   ['favFront', 'favBack'].forEach(function(id) {
     var btn = getById(id);
     if (!btn) return;
@@ -4959,8 +4962,8 @@ function cardHtml(item, done) {
       '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>'
     : '';
-  /* 右上角收藏按钮（mock 态，按 item.key 状态） */
-  var favOn = favSet[item.key];
+  /* 右上角收藏按钮（mock 态，按 item.key 状态；favSet 在单卡 IIFE 挂 window 共享） */
+  var favOn = glob.favSet[item.key];
   var favMark = '<button class="lc-fav' + (favOn ? ' on' : '') + '" data-key="' + item.key + '" title="收藏">' + (favOn ? '★' : '☆') + '</button>';
 
   /* 解析区内容（答案已原位揭示，此处只放解析） */
@@ -5109,8 +5112,8 @@ listEl.addEventListener('click', function(e) {
   if (favEl) {
     e.stopPropagation();
     var fkey = favEl.getAttribute('data-key');
-    var on = !favSet[fkey];
-    favSet[fkey] = on;
+    var on = !glob.favSet[fkey];
+    glob.favSet[fkey] = on;
     renderList();
     showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
     return;
