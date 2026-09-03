@@ -126,42 +126,44 @@ body {
   padding: 4px 16px 24px;
 }
 
-/* 章节分组 */
-.chap-group { margin-bottom: 6px; }
+/* 章节分组（一级标题） */
+.chap-group { margin-bottom: 4px; }
 .chap-head {
   display: flex; align-items: baseline; gap: 8px;
-  padding: 14px 4px 8px;
+  padding: 16px 4px 6px;
 }
-.chap-name { font-size: 14.5px; font-weight: 700; color: var(--text-primary); }
+.chap-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
 .chap-count { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
 
-/* 收藏题卡片 */
+/* 收藏题卡片（二级标题入口） */
 .q-card {
   position: relative;
   background: #fff;
-  border-radius: 13px 11px 15px 10px;
-  padding: 12px 14px;
-  margin: 8px 0 9px;
-  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 5px 14px rgba(91,114,245,.06);
+  border-radius: 11px 10px 12px 9px;
+  padding: 9px 12px 9px 14px;
+  margin: 6px 0;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
   cursor: pointer;
   transition: transform .12s ease;
-  position: relative;
 }
 .q-card:active { transform: scale(.985); }
-.q-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
-.q-tag { padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.q-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.q-tag { padding: 1px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 600; }
 .q-tag.type { background: #E8F3FF; color: #2F6FED; }
 .q-tag.src  { background: #F0FAF5; color: var(--brand-teal); }
 .q-tag.src.flash { background: #F5F0FF; color: #7B61D6; }
 .q-title {
-  font-size: 14.5px; font-weight: 600; color: var(--text-primary);
-  line-height: 1.5; margin-bottom: 8px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  line-height: 1.45; margin-bottom: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
 }
-.q-foot {
-  display: flex; align-items: center; justify-content: space-between;
+.q-title-text {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1;
 }
-.q-time { font-size: 10.5px; color: var(--text-tertiary); }
+.q-arrow {
+  font-size: 17px; color: var(--text-tertiary); line-height: 1; margin-left: 6px;
+  flex-shrink: 0;
+}
 /* 收藏标志放卡片右上角 */
 .q-fav-ico {
   position: absolute;
@@ -381,7 +383,7 @@ function renderList() {
   wrap.innerHTML = html;
 }
 
-/* ===== 卡片 ===== */
+/* ===== 卡片（二级标题入口） ===== */
 function qCard(it) {
   return '<div class="q-card" onclick="goDetail(\'' + it.qid + '\')">'
     +   '<button class="q-fav-ico" onclick="event.stopPropagation();toggleFav(\'' + it.qid + '\')" title="取消收藏">★</button>'
@@ -389,11 +391,7 @@ function qCard(it) {
     +     '<span class="q-tag type">' + (TYPE_NAME[it.type] || '题目') + '</span>'
     +     '<span class="q-tag src ' + (it.source === 'flash' ? 'flash' : '') + '">' + (SRC_NAME[it.source] || it.source) + '</span>'
     +   '</div>'
-    +   '<div class="q-title">' + it.concept + '</div>'
-    +   '<div class="q-foot">'
-    +     '<span class="q-time">收藏于 ' + it.collectedAt + '</span>'
-    +     '<span class="q-arrow">›</span>'
-    +   '</div>'
+    +   '<div class="q-title"><span class="q-title-text">' + it.concept + '</span><span class="q-arrow">›</span></div>'
     + '</div>';
 }
 
