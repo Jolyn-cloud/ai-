@@ -139,27 +139,24 @@ body {
 }
 .q-card:active { transform: scale(.985); }
 
-/* 第一行：一级·二级标题（辅助信息，视觉弱） */
+/* 第一行：一级·二级标题 + 时间（辅助信息，视觉弱） */
 .n-meta {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   font-size: 12px; font-weight: 500;
   color: var(--text-tertiary);
   line-height: 1.3; margin-bottom: 5px;
 }
+.n-meta .n-time { flex-shrink: 0; font-variant-numeric: tabular-nums; }
 /* 第二行：三级标题（视觉重点） */
 .n-title {
   font-size: 15px; font-weight: 700; color: var(--text-primary);
   line-height: 1.4; margin-bottom: 6px;
 }
-/* 第三行：笔记内容（辅助） */
+/* 第三行：笔记内容（辅助，1 行省略） */
 .n-content {
   font-size: 13px; color: var(--text-secondary);
   line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.q-arrow {
-  position: absolute;
-  bottom: 10px; right: 12px;
-  font-size: 17px; color: var(--text-tertiary); line-height: 1;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 /* ===== 拍照笔记卡片 ===== */
@@ -498,20 +495,19 @@ function renderList() {
   wrap.innerHTML = html;
 }
 
-/* ===== 题目笔记卡片（三行：一级·二级 / 三级标题 / 笔记内容） ===== */
+/* ===== 题目笔记卡片（三行：一级·二级+时间 / 三级标题 / 笔记内容1行省略） ===== */
 function quizCard(it) {
   var l1l2 = (it.l1 && it.l2) ? (it.l1 + ' · ' + it.l2) : (it.l1 || it.chapter || '');
+  var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
   return '<div class="q-card" onclick="goQuiz(\'' + it.nid + '\')">'
-    +   '<div class="n-meta">' + l1l2 + '</div>'
+    +   '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>'
     +   '<div class="n-title">' + it.concept + '</div>'
     +   '<div class="n-content">' + (it.content || '') + '</div>'
-    +   '<span class="q-arrow">›</span>'
     + '</div>';
 }
 
 /* ===== 拍照笔记卡片 ===== */
 function photoCard(it) {
-  var chapLine = it.chapter ? '<div class="p-chap">' + it.chapter + '</div>' : '';
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
   return '<div class="p-card" onclick="openPhoto(\'' + it.nid + '\')">'
     +   '<div class="p-head">'
@@ -519,7 +515,6 @@ function photoCard(it) {
     +     '<span class="p-time">' + timeStr + '</span>'
     +   '</div>'
     +   '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
-    +   chapLine
     + '</div>';
 }
 
