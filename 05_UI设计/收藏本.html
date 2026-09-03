@@ -164,20 +164,6 @@ body {
   font-size: 17px; color: var(--text-tertiary); line-height: 1; margin-left: 6px;
   flex-shrink: 0;
 }
-/* 收藏标志放卡片右上角 */
-.q-fav-ico {
-  position: absolute;
-  top: 10px; right: 12px;
-  width: 26px; height: 26px;
-  border: none; border-radius: 50%;
-  background: rgba(91,114,245,0.08);
-  color: var(--primary);
-  font-size: 14px; line-height: 1;
-  cursor: pointer; z-index: 5;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: transform .12s ease;
-}
-.q-fav-ico:active { transform: scale(1.2); }
 .q-arrow {
   font-size: 18px; color: var(--text-tertiary);
   line-height: 1;
@@ -386,7 +372,6 @@ function renderList() {
 /* ===== 卡片（二级标题入口） ===== */
 function qCard(it) {
   return '<div class="q-card" onclick="goDetail(\'' + it.qid + '\')">'
-    +   '<button class="q-fav-ico" onclick="event.stopPropagation();toggleFav(\'' + it.qid + '\')" title="取消收藏">★</button>'
     +   '<div class="q-meta">'
     +     '<span class="q-tag type">' + (TYPE_NAME[it.type] || '题目') + '</span>'
     +     '<span class="q-tag src ' + (it.source === 'flash' ? 'flash' : '') + '">' + (SRC_NAME[it.source] || it.source) + '</span>'
@@ -395,15 +380,7 @@ function qCard(it) {
     + '</div>';
 }
 
-/* ===== 取消收藏（mock 内存态） ===== */
-function toggleFav(qid) {
-  var i = items.findIndex(function(x){ return x.qid === qid; });
-  if (i >= 0) {
-    items.splice(i, 1);
-    renderList();
-    showToast('已取消收藏');
-  }
-}
+/* ===== 取消收藏：已移除首页收藏按钮（改由做题页/闪卡页收藏操作管理） ===== */
 
 /* ===== 进入做题页（复用 REQ_PRACTICE 协议；entry=fav） ===== */
 function practiceAll() {

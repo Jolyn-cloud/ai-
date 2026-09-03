@@ -50,6 +50,9 @@ body {
   padding: 0 10px; padding-top: env(safe-area-inset-top);
   font-size: 15px; font-weight: 600;
 }
+/* 总壳演示时：相机页顶部「✕」与小程序栏左侧「退出」重复（同为收起拍照搜题回题库）→ 隐藏整条顶部栏，相机全屏更沉浸。
+   仅作用于拍照搜题独立相机页；错题本内嵌拍照录入的相机「✕」是关浮层回列表，语义不同，不在此列 */
+body.has-appbar .cam-topbar { display: none; }
 .cam-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 8px 10px; }
 .cam-viewport {
   flex: 1; position: relative; overflow: hidden;
@@ -653,12 +656,14 @@ function showToast(msg) {
   toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
 }
 
-/* 处于总壳演示（存在 appbar）→ 隐藏页内自绘页头，导航由 appbar 统一承担 */
+/* 处于总壳演示（本页嵌在 camLayer iframe，parent 非顶层窗口）→ 页内自绘页头交给 appbar 统一承担。
+   注意：不能读 top.document 探测 #appbar——file:// 下各 frame origin=null 会抛 SecurityError 被 catch 吞掉，
+   改用 window 层级判定（window 引用比较不触发跨域），独立调试本文件（无嵌套）时仍保留页头兜底 */
 try {
-  if (window.top && window.top.document && window.top.document.getElementById('appbar')) {
+  if (window.top && window.parent && window.top !== window.parent) {
     document.body.classList.add('has-appbar');
   }
-} catch(e) { /* 跨域独立调试时忽略 */ }
+} catch(e) { /* 极端环境忽略 */ }
 
 /* 监听总壳 appbar 退出（识别结果页态）→ 关结果页回取景 */
 window.addEventListener('message', function(evt) {
