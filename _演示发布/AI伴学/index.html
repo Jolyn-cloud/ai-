@@ -1195,7 +1195,7 @@ function syncChildState() {
 var TAB_NAMES = { study: 'AI', quiz: '题库', flash: '闪卡', mine: '我的' };
 var TAB_FRAMES = ['study', 'quiz', 'flash', 'mine'];
 /* 小程序栏标题：根据当前页判断（含二级：答题页 / 闪卡单卡·列表） */
-var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷' };
+var PRACTICE_TITLES = { today:'今日学习', wrong:'错题本练习', chapter:'章节练习', exam:'模拟考试', real:'历年真题', upload:'我的上传', trial:'免费体验卷', fav:'收藏题练习' };
 var FLASH_TITLES = { 'view-single':'单卡模式', 'view-list':'列表模式', 'view-complete':'完成结算页' };
 var practiceTitle = '';
 var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
@@ -1214,7 +1214,7 @@ function updateAppbar(name) {
   } else if (practiceLayer.classList.contains('show')) {
     t = practiceTitle || (TAB_NAMES[n] || '');              /* 答题页标题（含二级） */
   } else if (chapterLayerOpen) {
-    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
+    t = ({ chapter:'章节刷题', exam:'模拟考场', real:'历年真题', wrong:'错题本', cam:'拍照搜题', fav:'收藏本' }[chapterLayerSub]) || '章节刷题';  /* 题库 tab 内二级层标题 */
   } else if (n === 'flash') {
     t = (flashView === 'view-home' || flashView === 'view-stats')
       ? (TAB_NAMES.flash || '闪卡')
@@ -1354,6 +1354,8 @@ function openPractice(entry, extra) {
   } else if (entry === 'upload') {
     /* 我的上传（搜题/拍照导入）：qid 定位该题 */
     url += '&qid=' + encodeURIComponent(extra.qid || '');
+  } else if (entry === 'fav') {
+    /* 收藏本：qid 列表已写入 localStorage zsb_fav_practice_v1，做题页读取 */
   }
   if (!practiceFrame.getAttribute('src')) {
     practiceFrame.setAttribute('src', url);
