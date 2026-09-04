@@ -725,7 +725,7 @@ body.tab-hidden .report-layer { bottom: 0; }
 .logic-label .k { flex-shrink: 0; font-weight: 600; color: var(--primary-dark); min-width: 58px; }
 .logic-label .v { color: var(--text-primary); }
 .logic-note { margin-top: 6px; font-size: 11.5px; color: var(--text-tertiary); background: #F5F6FB; border-radius: 8px; padding: 6px 10px; line-height: 1.5; }
-.logic-table { width: 100%; margin: 8px 0; border-collapse: collapse; font-size: 12px; }
+.logic-table { width: calc(100% - 24px); margin: 8px 0; border-collapse: collapse; font-size: 12px; }
 .logic-table th, .logic-table td { border: 1px solid #EAEDF6; padding: 6px 8px; text-align: left; vertical-align: top; }
 .logic-table th { background: #F8F9FC; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
 </style>
@@ -1134,8 +1134,10 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'CLOSE_PRACTICE') {
-    /* 做题页点关闭/完成 → 收起做题层回原页 */
+    /* 做题页点关闭/完成 → 收起做题层回原页 + 逻辑面板恢复当前 tab */
     closePractice();
+    var tab = currentTabName();
+    if (tab) updateLogicForTab(tab);
     return;
   }
   if (d.type === 'CHAPTER_LAYER') {
@@ -1942,86 +1944,86 @@ var PANELS = {
     ]
   },
   'view-practice': {
-    desc: '统一做题页（题库/错题本/章节练习/模拟考试/历年真题/体验卷/我的上传/收藏/笔记共用）。entry 区分来源，决定模式默认值、进度算法、答题卡形态、交卷去向。系统级规则见 PRD §六。',
+    desc: '统一做题页，题库/错题本/章节/模拟/真题/体验卷等共用一页。入口来源决定模式默认值、进度算法、答题卡形态、交卷去向。系统级规则见 PRD §六。',
     sections: [
       { num:'1', title:'顶部导航',
         paras: [
-          '模式切换（左）：做题 exam / 背题 study。考试卷（entry=exam/real/trial）强制锁 exam 并隐藏切换按钮；练习类默认 exam，可手动切 study。',
-          '计时（中）：练习类隐藏 navTimer（后台仍计时，finalSec 用于结果页「用时」）；考试卷显示剩余倒计时 MM:SS，从卷限时分钟×60 倒扣，归零自动交卷。',
+          '模式切换（左）：做题 / 背题。考试卷强制锁定做题模式并隐藏切换按钮；练习类默认做题，可手动切背题。',
+          '计时（中）：练习类不显示计时（后台仍计时，供结果页「用时」取值）；考试卷显示剩余倒计时，到点自动交卷。',
           '答题卡入口（右）：点开上滑浮窗（见区块④）。'
         ],
-        tableHead:['entry','模式默认','模式切换按钮','计时显示'],
+        tableHead:['入口来源','模式默认','切换按钮','计时显示'],
         table: [
-          ['today/chapter/wrong/upload/fav/note','exam','显示','隐藏（后台计时）'],
-          ['exam/real','exam（锁定）','隐藏','剩余倒计时'],
-          ['trial','exam（锁定）','隐藏','剩余倒计时 15 分钟']
+          ['今日学习/错题本/章节/上传/收藏/笔记','做题','显示','隐藏（后台计时）'],
+          ['模拟考试/历年真题','做题（锁定）','隐藏','剩余倒计时'],
+          ['免费体验卷','做题（锁定）','隐藏','剩余倒计时 15 分钟']
         ],
         labels: [
-          {k:'计时起算', v:'进入做题页即起 startAt=Date.now()，切模式不清零'},
-          {k:'交卷定格', v:'doSubmit → stopTimer → finalSec 保留，结果页「用时」取此值'}
+          {k:'计时起算', v:'进入做题页即起算，切模式不清零'},
+          {k:'交卷定格', v:'交卷停止计时，结果页「用时」取定格值'}
         ] },
       { num:'2', title:'进度条',
         paras: [
-          '进度算法随 entry 分两套：练习类=整卷进度；考试卷=题型内进度。',
-          '练习类：左=第 X 题（idx+1），右=Y/Z（当前题序/总题数），进度条=（idx+1）/total×100%。',
-          '考试卷：左=题型名+第 X 题（如「单项选择题 第 2 题」），右=offset+1/本大题题数，进度条=（题内序号+1）/本大题题数；做到下一题型自动切换。'
+          '进度算法分两套：练习类=整卷进度；考试卷=题型内进度。',
+          '练习类：左=第 X 题，右=当前题序/总题数，进度条按比例填充。',
+          '考试卷：左=题型名+第 X 题（如「单项选择题 第 2 题」），右=本大题内序号/本大题题数；做到下一题型自动切换。'
         ],
         labels: [
-          {k:'题型分段', v:'sectionInfo(idx) 返回 {typeName,start,end,count,offset,bigNo}；非考试卷返回 null 回退整卷逻辑'},
-          {k:'规则页触发', v:'考试卷进某题型首题（offset===0）且该题型未看过规则页 → 停规则页，左滑进题；已看过不再停'}
+          {k:'题型分段', v:'考试卷按题型连续分段，每段有大题号；练习类不分段'},
+          {k:'规则页', v:'考试卷进某题型首题且该题型未看过规则页 → 停规则页，左滑进题；已看过不再停'}
         ] },
       { num:'3', title:'题目区渲染',
         paras: [
-          '题型×模式→渲染分支：单选/多选/判断=选项卡；填空=输入框+轻提交；操作/分析/综合运用=分屏（详见 PRD §六（一.1））；简答=多行输入。',
-          '背题模式：每答一题立即显解析（studyReveal=true 触发）；做题模式：全部答完交卷后才统一显解析。',
+          '题型→渲染：单选/多选/判断=选项卡；填空=输入框+轻提交；操作/分析/综合运用=分屏（详见 PRD §六（一.1））；简答=多行输入。',
+          '背题模式：每答一题立即显解析；做题模式：全部答完交卷后才统一显解析。',
           '解析区九节结构、易错/易漏选标签、题目反馈——详见 PRD §六（四）（五），此处不复制。'
         ],
         tableHead:['题型','渲染组件','判定方式'],
         table: [
-          ['单选/多选/判断','选项卡（点击选中）','checkAnswer 比对答案'],
-          ['填空','输入框+轻提交按钮','trim 后逐空比对'],
-          ['操作/分析/综合运用','分屏（题干区+分界线+子题作答区+横向 tab）','子题逐题核对，全对才答对'],
-          ['简答','多行 textarea+提交','主观题，交卷后展示参考答案']
+          ['单选/多选/判断','选项卡（点击选中）','比对答案'],
+          ['填空','输入框+轻提交按钮','去空格后逐空比对'],
+          ['操作/分析/综合运用','分屏（题干区+分界线+子题作答区+横向标签）','子题逐题核对，全对才答对'],
+          ['简答','多行输入框+提交','主观题，交卷后展示参考答案']
         ],
         labels: [
-          {k:'答案存储', v:'answers[idx]=作答；操作题 answers[idx][subIdx]=子题作答；切题不丢失'},
-          {k:'交卷后渲染', v:'submitted=true → 选项/填空标对错色、输入禁用；操作题仍走分屏但带对错着色'}
+          {k:'答案存储', v:'每题作答存对象，切题不丢失；操作题按子题存'},
+          {k:'交卷后渲染', v:'选项/填空标对错色、输入禁用；操作题仍走分屏但带对错着色'}
         ] },
       { num:'4', title:'答题卡',
         paras: [
           '入口：顶部「答题卡」按钮，点击上滑浮窗。图例+题号网格+底部「确认交卷」。',
-          '图例随 entry 分两套：练习类=作答态（当前题/已答/未答/已标记）；考试卷=判定态（交卷后显示答对/答对一半/答错/未答/已标记）。',
+          '图例分两套：练习类=作答态（当前题/已答/未答/已标记）；考试卷=判定态（交卷后显示答对/答对一半/答错/未答/已标记）。',
           '考试卷答题卡按题型分区：每段前插规则块（中文大题号+本大题共 N 小题+分值说明）；练习类平铺不分段。'
         ],
         labels: [
-          {k:'实时刷新', v:'浮窗打开期间答题/标记/切模式自动 renderSheet，图例计数与格状态同步'},
-          {k:'点题号跳转', v:'jumpTo(i) → 更新 idx+renderQuestion+关闭浮窗'},
-          {k:'确认交卷', v:'submitFromSheet → closeSheet+doSubmit（交卷入口统一走答题卡核对，无独立确认弹窗）'}
+          {k:'实时刷新', v:'浮窗打开期间答题/标记/切模式自动刷新，图例计数与格状态同步'},
+          {k:'点题号跳转', v:'点格→切到该题并关闭浮窗'},
+          {k:'确认交卷', v:'底部「确认交卷」→ 收卡+提交（交卷入口统一走答题卡核对，无独立确认弹窗）'}
         ] },
       { num:'5', title:'底部栏',
         paras: [
-          '收藏/标记/分享 常驻；交卷按钮：未交卷显示、交卷后隐藏（updateBottomBar 控制）。',
-          '收藏：toggleFav → fav[idx] 切换 ☆/★，存 localStorage；标记：toggleMark → marked[idx] 切换；分享：openShare → 生成分享卡片。',
-          '交卷：openSubmit → openSheet（上滑答题卡核对，不弹独立确认弹窗）。'
+          '收藏/标记/分享 常驻；交卷按钮：未交卷显示、交卷后隐藏。',
+          '收藏：切换☆/★，存本地；标记：切换标记态；分享：生成分享卡片。',
+          '交卷：点交卷→上滑答题卡核对（不弹独立确认弹窗）。'
         ],
         tableHead:['按钮','显隐','点击系统行为'],
         table: [
-          ['收藏','常驻','toggleFav → fav[idx] 取反 + 存 localStorage + ico 切换 ☆/★'],
-          ['标记','常驻','toggleMark → marked[idx] 取反 + btnMark.on 切换'],
-          ['分享','常驻','openShare → 生成分享卡片 + Toast'],
-          ['交卷','未交卷显 / 交卷后隐','openSubmit → openSheet（答题卡核对）']
+          ['收藏','常驻','切换☆/★ + 存本地'],
+          ['标记','常驻','切换标记态'],
+          ['分享','常驻','生成分享卡片 + 提示'],
+          ['交卷','未交卷显 / 交卷后隐','打开答题卡核对']
         ] },
       { num:'6', title:'交卷去向',
         paras: [
-          '交卷后去向随 entry 分两套：考试卷→上报成绩报告；练习类→直接进解析。',
-          '考试卷（exam/real/trial）：doSubmit → buildReport → postMessage REQ_REPORT → 总壳打开报告层（成绩+答题统计+题型概况）。',
-          '练习类（today/wrong/chapter/upload/fav/note）：doSubmit → submitted=true → idx=0 → reviewAnswers（直接进解析，不弹成绩弹窗）。',
-          '自动交卷：考试卷倒计时归零（tickTimer 检测 sec===0）→ closeSheet + doSubmit（AUTO_SUBMIT_DONE 防重复触发）。'
+          '交卷后去向分两套：考试卷→上报成绩报告；练习类→直接进解析。',
+          '考试卷：交卷→生成成绩报告→通知总壳打开报告层（成绩+答题统计+题型概况）。',
+          '练习类：交卷→标记已交卷→回到第 1 题进入解析（不弹成绩弹窗）。',
+          '自动交卷：考试卷倒计时归零→收起答题卡+自动交卷（防重复触发）。'
         ],
         labels: [
-          {k:'成绩口径', v:'score=逐题分值累加（calcPaperScore，答对得该题 score 分，答错/未答 0）；满分=fullScore（模拟/真题 150，体验卷 100）'},
-          {k:'报告字段', v:'paperId/type/name/minutes/fullScore/usedSec/score/sheet/typeStats/right/wrong/skip/submitTime'},
-          {k:'解析门禁', v:'游客体验卷交卷后看解析需登录（review 登录来源）；详见 PRD §七'}
+          {k:'成绩口径', v:'答对得该题分值，答错/未答 0 分，逐题累加；满分：模拟/真题 150，体验卷 100'},
+          {k:'报告字段', v:'卷号/类型/卷名/限时/满分/用时/得分/答题序列/题型统计/对/错/未答/交卷时间'},
+          {k:'解析门禁', v:'游客体验卷交卷后看解析需登录；详见 PRD §七'}
         ] }
     ]
   },
