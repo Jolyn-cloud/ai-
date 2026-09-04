@@ -717,41 +717,6 @@ body{
   box-shadow:0 0 0 2px var(--primary-light), 0 0 0 3.5px var(--primary);
 }
 
-/* ===== 右侧逻辑说明面板（布局内，不遮挡页面；2026-09-04） ===== */
-.logic-btn{
-  position:absolute; right:12px; top:10px; z-index:50;
-  width:28px; height:28px; border-radius:8px; border:1px solid #E3E8F2;
-  background:#fff; color:var(--text-secondary); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; line-height:1; transition:all .15s ease;
-}
-.logic-btn:hover{ border-color:var(--primary); color:var(--primary); }
-.logic-btn.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
-
-.logic-col{
-  position:absolute; top:0; right:0; bottom:0; z-index:40;
-  width:0; overflow:hidden; background:#FBFBFF; border-left:1px solid #ECEFF6;
-  display:flex; flex-direction:column; flex-shrink:0;
-  transition:width .25s ease;
-}
-.logic-col.open{ width:460px; }
-.logic-panel{ flex:1; min-height:0; overflow-y:auto; padding:16px 18px; }
-.logic-panel::-webkit-scrollbar{ width:5px; }
-.logic-panel::-webkit-scrollbar-thumb{ background:#DDE2EE; border-radius:3px; }
-.lp-title{ font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
-.lp-desc{ font-size:12px; color:var(--text-tertiary); line-height:1.6; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #ECEFF6; }
-.lp-sec{ margin-bottom:18px; }
-.lp-sec-h{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:8px; }
-.lp-sec-num{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:600; flex-shrink:0; }
-.lp-para{ font-size:12px; color:var(--text-secondary); line-height:1.7; margin:0 0 4px 24px; }
-.lp-table{ width:calc(100% - 24px); margin-left:24px; border-collapse:collapse; font-size:11px; }
-.lp-table th{ background:#F0F2F8; color:var(--text-secondary); font-weight:500; padding:6px 8px; text-align:left; border:1px solid #ECEFF6; }
-.lp-table td{ padding:6px 8px; border:1px solid #ECEFF6; color:var(--text-primary); vertical-align:top; line-height:1.6; }
-.lp-label{ display:flex; gap:6px; margin:4px 0 0 24px; font-size:11px; }
-.lp-label .k{ color:var(--text-tertiary); white-space:nowrap; }
-.lp-label .v{ color:var(--text-secondary); line-height:1.6; }
-.lp-close{ position:absolute; right:8px; top:8px; width:24px; height:24px; border:none; background:transparent; font-size:16px; color:var(--text-tertiary); cursor:pointer; }
-
 </style>
 </head>
 <body>
@@ -770,7 +735,6 @@ body{
     </svg>
     <span>答题卡</span>
   </button>
-  <button class="logic-btn" id="logicBtn" onclick="toggleLogic()" title="逻辑说明">ⓘ</button>
 </div>
 
 <!-- 进度条：左 = 第 X 题；右 = 当前进度 Y/Z -->
@@ -909,12 +873,6 @@ body{
     <button class="share-cancel" onclick="closeShare()">取消</button>
   </div>
 </div>
-
-<!-- 右侧逻辑说明面板（布局内，不遮挡；2026-09-04） -->
-<aside class="logic-col" id="logicCol">
-  <button class="lp-close" onclick="toggleLogic()">×</button>
-  <div class="logic-panel" id="logicPanel"></div>
-</aside>
 
 <script>
 /* ============================================================
@@ -2599,131 +2557,6 @@ if (IS_EXAM_PAPER) {
 startTimer();              /* 进入即起表（会话级计时；练习类在后台计时不显示 UI） */
 enterRuleIfNeeded();       /* 考试卷进卷首题型先停规则页（PM 2026-09-02） */
 renderQuestion();
-
-/* ============================================================
-   做题页逻辑说明面板（页面级口径，PRD §六已覆盖的放指针不复制）
-   2026-09-04 · 甲1 方案：做题页内自建右侧布局内面板
-   ============================================================ */
-var LP = {
-  title: '做题页 · 逻辑说明',
-  desc: '统一做题页（题库/错题本/章节练习/模拟考试/历年真题/体验卷/我的上传/收藏/笔记共用）。entry 区分来源，决定模式默认值、进度算法、答题卡形态、交卷去向。系统级规则见 PRD §六。',
-  sections: [
-    { num:'1', title:'顶部导航',
-      paras: [
-        '模式切换（左）：做题 exam / 背题 study。考试卷（entry=exam/real/trial）强制锁 exam 并隐藏切换按钮；练习类默认 exam，可手动切 study。',
-        '计时（中）：练习类隐藏 navTimer（后台仍计时，finalSec 用于结果页「用时」）；考试卷显示剩余倒计时 MM:SS，从卷限时分钟×60 倒扣，归零自动交卷。',
-        '答题卡入口（右）：点开上滑浮窗（见区块④）。'
-      ],
-      tableHead:['entry','模式默认','模式切换按钮','计时显示'],
-      table: [
-        ['today/chapter/wrong/upload/fav/note','exam','显示','隐藏（后台计时）'],
-        ['exam/real','exam（锁定）','隐藏','剩余倒计时'],
-        ['trial','exam（锁定）','隐藏','剩余倒计时 15 分钟']
-      ],
-      labels:[
-        {k:'计时起算',v:'进入做题页即起 startAt=Date.now()，切模式不清零'},
-        {k:'交卷定格',v:'doSubmit → stopTimer → finalSec 保留，结果页「用时」取此值'}
-      ] },
-    { num:'2', title:'进度条',
-      paras: [
-        '进度算法随 entry 分两套：练习类=整卷进度；考试卷=题型内进度。',
-        '练习类：左=第 X 题（idx+1），右=Y/Z（当前题序/总题数），进度条=（idx+1）/total×100%。',
-        '考试卷：左=题型名+第 X 题（如「单项选择题 第 2 题」），右=offset+1/本大题题数，进度条=（题内序号+1）/本大题题数；做到下一题型自动切换。'
-      ],
-      labels:[
-        {k:'题型分段',v:'sectionInfo(idx) 返回 {typeName,start,end,count,offset,bigNo}；非考试卷返回 null 回退整卷逻辑'},
-        {k:'规则页触发',v:'考试卷进某题型首题（offset===0）且该题型未看过规则页 → 停规则页，左滑进题；已看过不再停'}
-      ] },
-    { num:'3', title:'题目区渲染',
-      paras: [
-        '题型×模式→渲染分支：单选/多选/判断=选项卡；填空=输入框+轻提交；操作/分析/综合运用=分屏（详见 PRD §六（一.1））；简答=多行输入。',
-        '背题模式：每答一题立即显解析（studyReveal=true 触发）；做题模式：全部答完交卷后才统一显解析。',
-        '解析区九节结构、易错/易漏选标签、题目反馈——详见 PRD §六（四）（五），此处不复制。'
-      ],
-      tableHead:['题型','渲染组件','判定方式'],
-      table: [
-        ['单选/多选/判断','选项卡（点击选中）','checkAnswer 比对答案'],
-        ['填空','输入框+轻提交按钮','trim 后逐空比对'],
-        ['操作/分析/综合运用','分屏（题干区+分界线+子题作答区+横向 tab）','子题逐题核对，全对才答对'],
-        ['简答','多行 textarea+提交','主观题，交卷后展示参考答案']
-      ],
-      labels:[
-        {k:'答案存储',v:'answers[idx]=作答；操作题 answers[idx][subIdx]=子题作答；切题不丢失'},
-        {k:'交卷后渲染',v:'submitted=true → 选项/填空标对错色、输入禁用；操作题仍走分屏但带对错着色'}
-      ] },
-    { num:'4', title:'答题卡',
-      paras: [
-        '入口：顶部「答题卡」按钮，点击上滑浮窗。图例+题号网格+底部「确认交卷」。',
-        '图例随 entry 分两套：练习类=作答态（当前题/已答/未答/已标记）；考试卷=判定态（交卷后显示答对/答对一半/答错/未答/已标记）。',
-        '考试卷答题卡按题型分区：每段前插规则块（中文大题号+本大题共 N 小题+分值说明）；练习类平铺不分段。'
-      ],
-      labels:[
-        {k:'实时刷新',v:'浮窗打开期间答题/标记/切模式自动 renderSheet，图例计数与格状态同步'},
-        {k:'点题号跳转',v:'jumpTo(i) → 更新 idx+renderQuestion+关闭浮窗'},
-        {k:'确认交卷',v:'submitFromSheet → closeSheet+doSubmit（交卷入口统一走答题卡核对，无独立确认弹窗）'}
-      ] },
-    { num:'5', title:'底部栏',
-      paras: [
-        '收藏/标记/分享 常驻；交卷按钮：未交卷显示、交卷后隐藏（updateBottomBar 控制）。',
-        '收藏：toggleFav → fav[idx] 切换 ☆/★，存 localStorage；标记：toggleMark → marked[idx] 切换；分享：openShare → 生成分享卡片。',
-        '交卷：openSubmit → openSheet（上滑答题卡核对，不弹独立确认弹窗）。'
-      ],
-      tableHead:['按钮','显隐','点击系统行为'],
-      table: [
-        ['收藏','常驻','toggleFav → fav[idx] 取反 + 存 localStorage + ico 切换 ☆/★'],
-        ['标记','常驻','toggleMark → marked[idx] 取反 + btnMark.on 切换'],
-        ['分享','常驻','openShare → 生成分享卡片 + Toast'],
-        ['交卷','未交卷显 / 交卷后隐','openSubmit → openSheet（答题卡核对）']
-      ] },
-    { num:'6', title:'交卷去向',
-      paras: [
-        '交卷后去向随 entry 分两套：考试卷→上报成绩报告；练习类→直接进解析。',
-        '考试卷（exam/real/trial）：doSubmit → buildReport → postMessage REQ_REPORT → 总壳打开报告层（成绩+答题统计+题型概况）。',
-        '练习类（today/wrong/chapter/upload/fav/note）：doSubmit → submitted=true → idx=0 → reviewAnswers（直接进解析，不弹成绩弹窗）。',
-        '自动交卷：考试卷倒计时归零（tickTimer 检测 sec===0）→ closeSheet + doSubmit（AUTO_SUBMIT_DONE 防重复触发）。'
-      ],
-      labels:[
-        {k:'成绩口径',v:'score=逐题分值累加（calcPaperScore，答对得该题 score 分，答错/未答 0）；满分=fullScore（模拟/真题 150，体验卷 100）'},
-        {k:'报告字段',v:'paperId/type/name/minutes/fullScore/usedSec/score/sheet/typeStats/right/wrong/skip/submitTime'},
-        {k:'解析门禁',v:'游客体验卷交卷后看解析需登录（review 登录来源）；详见 PRD §七'}
-      ] }
-  ]
-};
-
-/* 面板开关：展开/收起 + 按钮态 */
-function toggleLogic(){
-  var col = document.getElementById('logicCol');
-  var btn = document.getElementById('logicBtn');
-  col.classList.toggle('open');
-  btn.classList.toggle('active', col.classList.contains('open'));
-}
-/* 面板渲染：结构化数据 → HTML（和总壳/题库页形态一致） */
-function renderLogicPanel(){
-  var h = '<div class="lp-title">' + LP.title + '</div>'
-    + '<div class="lp-desc">' + LP.desc + '</div>';
-  LP.sections.forEach(function(s){
-    h += '<div class="lp-sec" id="lp-sec-' + s.num + '">'
-      +  '<div class="lp-sec-h"><span class="lp-sec-num">' + s.num + '</span>' + s.title + '</div>';
-    if (s.paras) s.paras.forEach(function(p){ h += '<p class="lp-para">' + p + '</p>'; });
-    if (s.tableHead && s.table) {
-      h += '<table class="lp-table"><thead><tr>';
-      s.tableHead.forEach(function(th){ h += '<th>' + th + '</th>'; });
-      h += '</tr></thead><tbody>';
-      s.table.forEach(function(row){
-        h += '<tr>';
-        row.forEach(function(td){ h += '<td>' + td + '</td>'; });
-        h += '</tr>';
-      });
-      h += '</tbody></table>';
-    }
-    if (s.labels) s.labels.forEach(function(l){
-      h += '<div class="lp-label"><span class="k">' + l.k + '：</span><span class="v">' + l.v + '</span></div>';
-    });
-    h += '</div>';
-  });
-  document.getElementById('logicPanel').innerHTML = h;
-}
-renderLogicPanel();
 </script>
 </body>
 </html>
