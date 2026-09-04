@@ -387,38 +387,42 @@ var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
 /* ============================================================
    薄弱与顽固标签（通用 · 闪卡 / 题库共用，口径与逻辑面板 + PRD §四（六）一致）
    ------------------------------------------------------------
-   层级：第一级考点（章）→ … → 四级考点（最后一级）→ 具体考题。
-   ① 薄弱：考点内 错误考题数 ÷ 答过考题数 ≥ 30% 且 答题样本 ≥ 1。
-   ② 顽固：考点内 错误考题数 ÷ 答过考题数 ≥ 50% 且 错误数 ≥ 2（防冷启动误判）。
+   层级：一级考点（章）→ 二级考点 → 三级考点（判定层+首页展示层）→ 四级考点 → 具体考题。
+   ① 薄弱：三级考点内 错误考题数 ÷ 答过考题数 ≥ 30% 且 答题样本 ≥ 1。
+   ② 顽固：三级考点内 错误考题数 ÷ 答过考题数 ≥ 50% 且 错误数 ≥ 2（防冷启动误判）。
    ◆ 顽固是薄弱中更严重一档（50% ≥ 30%，触发顽固必同时满足薄弱）。
    ◆ 分母统一为「答过考题数」，非考题总数。
    ◆ 2026-09-04 PM 拍板：薄弱降门槛到样本≥1（原≥5）；顽固分母改答过考题数（原考题总数）+错误数≥2。
 
-   今日任务组题（AI 定制 · 题库「今日任务」，固定 35 道，逐层兜底）
+   今日任务组题（AI 定制 · 题库「今日任务」，目标 35 道，逐层兜底，不足收缩）
    ------------------------------------------------------------
-   ① 顽固考点错题 → ② 一般薄弱考点错题 → ③ 薄弱考点未答考题 → ④ 按考纲顺序未学考点题。
-   不足逐层下探到 35；做题页内同考点错题优先展示（展示顺序，与组题范围分开）。
-   冷启动无薄弱 → 走第④层：从第 1 章顺序出 35 道入门卷，标签「入门」。
+   组题范围 = 选定二级下所有三级考点的考题（首页展示该二级）。
+   选定二级：含顽固三级的优先 → 含薄弱三级的 → 按考纲顺序。
+   分层取题（在选定二级内跨三级）：
+   ① 顽固三级考点的错题 → ② 薄弱三级考点的错题 → ③ 上述三级的未答考题。
+   三层取完不足 35 → 收缩到实际可用题量（不跨二级补齐）。
+   做题页内同三级考点错题优先展示（展示顺序，与组题范围分开）。
+   冷启动无薄弱 → 按考纲顺序选首个二级，走③出未答题，标签「入门」。
    ============================================================ */
 
-/* 考点数据（演示 demo）：第一级考点 chapter → 考点 name → 下挂具体考题 questions
+/* 考点数据（演示 demo）：一级 chapter → 二级 secondary → 三级 name → 下挂具体考题 questions
    qid=考题号；wrong=该考题答错次数；answered=是否答过（用于算答过考题数分母） */
 var WEAK_POINTS = [
-  { id: 'p1', chapter: '第3章 操作系统', name: '文件管理', freq: 8, questions: [
+  { id: 'p1', chapter: '第3章 操作系统', secondary: '操作系统基础', name: '文件管理', freq: 8, questions: [
       { qid: 'Q101', wrong: 1, answered: true },
       { qid: 'Q102', wrong: 1, answered: true },
       { qid: 'Q103', wrong: 1, answered: true },
       { qid: 'Q104', wrong: 0, answered: true },
       { qid: 'Q105', wrong: 0, answered: false } ] },   /* 答过4错3 → 错误率75%≥50% 且错误数3≥2 → 顽固 */
-  { id: 'p2', chapter: '第3章 操作系统', name: '进程与线程', freq: 5, questions: [
+  { id: 'p2', chapter: '第3章 操作系统', secondary: '操作系统基础', name: '进程与线程', freq: 5, questions: [
       { qid: 'Q201', wrong: 1, answered: true },
       { qid: 'Q202', wrong: 0, answered: true },
       { qid: 'Q203', wrong: 0, answered: true },
       { qid: 'Q204', wrong: 0, answered: false } ] }    /* 答过3错1 → 错误率33%≥30% → 薄弱 */
 ];
 
-/* 薄弱与顽固识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
-   wrongRate（考点错误率）/ wrongQuestions（错过的考题）——2026-09-04 考点级，分母=答过考题数 */
+/* 薄弱与顽固识别：返回 { stubborn:[三级考点], weak:[三级考点] }，考点附带
+   wrongRate（错误率）/ wrongQuestions（错过的考题）——2026-09-04 三级考点级，分母=答过考题数 */
 function identifyWeakPoints() {
   var stubborn = [], weak = [];
   WEAK_POINTS.forEach(function(p) {
@@ -435,22 +439,27 @@ function identifyWeakPoints() {
   return { stubborn: stubborn, weak: weak };
 }
 
-/* 今日任务组装（组题规则）：按考点识别结果分层取题，演示 demo */
+/* 今日任务组装（组题规则）：选定二级 → 其下三级跨级分层取题，演示 demo */
 function buildTodayTask() {
   var points = identifyWeakPoints();
   var focus = points.stubborn.concat(points.weak);       /* 顽固优先，插队最前 */
   var hasWeak = focus.length > 0;
-  var names = hasWeak ? focus.map(function(p) { return p.name; }).join(' · ') : '基础知识入门';
+
+  /* 选定二级：含顽固/薄弱三级的取首个出现二级；无则按考纲顺序首个二级 */
+  var secondary = hasWeak ? focus[0].secondary : WEAK_POINTS[0].secondary;
   var first = focus[0] || null;
   var flag = points.stubborn.length ? '顽固' : (points.weak.length ? '薄弱' : '入门');
-  var count = 35;                                         /* 固定 35 道（原 15-20，2026-09-04 改） */
+
+  /* 题量：目标 35，不足收缩到实际可用（三层取完的题数） */
+  var count = 35;
   var minutes = Math.max(15, Math.round(count / 1.5));
   var reason = hasWeak
     ? '「' + first.name + '」考点错误率 ' + Math.round(first.wrongRate * 100) + '%（' + flag + '），近5年考 ' + first.freq + ' 次，答题时优先展示错过的考题。'
-    : '首次学习，从基础开始建立摸底，按考纲顺序从第1章出题。';
+    : '首次学习，从基础开始建立摸底，按考纲顺序出题。';
   return {
-    chapter: first ? first.chapter : '第1章 计算机基础',   /* 第一级考点（章）；冷启动走第1章 */
-    section: names,
+    secondary: secondary,                                  /* 首页展示的二级考点 */
+    chapter: first ? first.chapter : WEAK_POINTS[0].chapter,   /* 一级考点（章） */
+    section: first ? first.name : '基础知识入门',              /* 三级考点（做题页展示） */
     count: count,
     minutes: minutes,
     reason: reason,
@@ -519,7 +528,7 @@ function renderAiCard() {
     +   '</span>'
     +   '<span class="ai-task-title">今日学习任务</span>'
     + '</div>'
-    + '<div class="ai-task-chapter">' + t.chapter + '</div>'
+    + '<div class="ai-task-chapter">' + t.secondary + '</div>'
     + '<div class="ai-task-section">' + t.section + ' — 继续上次进度</div>'
     + '<div class="ai-task-meta">'
     +   '<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + t.count + '道题</div>'
