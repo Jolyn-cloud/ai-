@@ -1393,8 +1393,10 @@ function openPractice(entry, extra) {
   practiceLayer.classList.add('show');
   updateTabBar();
   updateAppbarUI();
-  /* 做题层打开 → 逻辑面板切到做题页说明（和题库/闪卡 tab 一样的右侧面板） */
+  /* 做题层打开 → 逻辑面板切到答题页说明（标题同步为「逻辑说明·答题页」） */
   activePanel = 'view-practice';
+  var titleEl = document.querySelector('.logic-head .title');
+  if (titleEl) titleEl.textContent = PRACTICE_LOGIC_TITLE;
   renderLogicPanel(PANELS['view-practice'] || { desc: '做题页逻辑说明待补', sections: [] });
 }
 function closePractice() {
@@ -1896,6 +1898,66 @@ var PANELS = {
         ] }
     ]
   },
+  /* 学习页 · 解析页子 tab：做题页解析态的页面级规则（只写看不到的口径，页面可见交互不写） */
+  'view-study-analysis': {
+    desc: '解析页 = 做题页解析态（做题模式交卷后整卷进解析 / 背题模式答一题立即显该题解析）。页面上可见的九节标题、答题结果行、选项对错着色等不写；只写看不到的判定与数据口径。系统级解析结构见 PRD §六（二）。',
+    sections: [
+      { num:'1', title:'解析触发与范围',
+        paras: [
+          '做题模式：全部答完点交卷 → 整卷进解析（submitted=true，回第 1 题开始渲染解析区）。',
+          '背题模式：每答一题立即显该题解析（单选/判断选中即显；填空/简答点「查看解析」即显）；不整卷、不阻断继续翻题。',
+          '解析态翻题与答题态同手势（左右滑）；操作题解析态仍走分屏，分屏不占满、分界线隐藏，空间让给解析区。'
+        ],
+        labels: [
+          {k:'reveal 判定', v:'reveal = submitted || (MODE===\'study\' && 当前题已答)；未答/未交卷不渲染解析区'},
+          {k:'考试卷例外', v:'考试卷交卷 → 上报成绩报告，不进解析；报告页「查看解析」再进做题页解析态'}
+        ] },
+      { num:'2', title:'操作题解析（分屏单题）',
+        paras: [
+          '操作题解析只渲染当前横向 tab 选中子题的解析卡片（小题正误/答案/你的答案/该子题详解），tab 切换与题目区同步；不平铺全部子题、无整题总评（q.analysis 保留不展示）。',
+          '答题结果行只显示「回答正确/错误 + 子题答对 N/M」，不展开长串子题答案。'
+        ],
+        labels: [
+          {k:'数据保留', v:'q.analysis（整题考点串联）字段保留不删，仅不渲染；避免数据层迁移'}
+        ] },
+      { num:'3', title:'易错 / 易漏选标签',
+        paras: [
+          '仅选择题（单选/多选/判断）打标签；填空/简答/操作题不打。',
+          '显示时机：仅答案出现后显示（做题交卷后 / 背题已答后）；答题期间不显示，避免泄露正误。'
+        ],
+        tableHead:['标签','定义','颜色','位置'],
+        table: [
+          ['易错','该选项为错选项 + 错选次数/总答次数 ≥ 30%','红 #EF4444','选项卡最右端'],
+          ['易漏选','该选项为正确项 + 漏选次数/总答次数 ≥ 30%','橙 #F28B3D','选项卡最右端']
+        ],
+        labels: [
+          {k:'互斥', v:'同一选项最多一个标签（错选项不可能是正确项）；优先级 易错 > 易漏选'},
+          {k:'阈值', v:'暂定 ≥ 30%，PM 可调；总答次数 = 该题被作答过的总人次（不含未答）'},
+          {k:'数据来源', v:'v5.0 接埋点平台；演示期手写 q.hotWrong / q.hotMiss 模拟'}
+        ] },
+      { num:'4', title:'题目反馈',
+        paras: [
+          '入口：题目下方「题目有错误？点击反馈」；解析区「解析有误？反馈」。两个独立浮窗，各只显示对应错误类型组。',
+          '错误类型多选 chips；补充说明选填 textarea，200 字内。提交 → Toast「已反馈，谢谢」+ 关闭。'
+        ],
+        tableHead:['浮窗','错误类型','feedbackType'],
+        table: [
+          ['题目反馈','题干错误/选项错误/答案错误/题型错误','题目'],
+          ['解析反馈','答案解析错误/文字解析错误/图片解析错误','解析']
+        ],
+        labels: [
+          {k:'payload', v:'{type:QUESTION_FEEDBACK, questionId, entry, feedbackType, errorTypes:[], detail, ts}；演示期 console+postMessage 转总壳，v5.0 接后台反馈管理模块'}
+        ] },
+      { num:'5', title:'错题本专用扩展',
+        paras: [
+          'entry=wrong 时，解析区在第①节答题结果后额外插两张卡：诊断卡 + 统计卡（其他 entry 不显示）。'
+        ],
+        labels: [
+          {k:'诊断卡', v:'renderWrongDiag：该题错因诊断（mock）'},
+          {k:'统计卡', v:'renderWrongStats：该题历史答错次数/最近答错时间（mock）'}
+        ] }
+    ]
+  },
   'view-quiz-placeholder': {
     desc: '题库首页：考试倒计时 + AI 今日任务 + 自主学习。游客可免登录体验一次，正式功能需登录；今日任务按薄弱/顽固自动组题。',
     sections: [
@@ -2064,12 +2126,14 @@ var LOGIC_TABS = {
   quiz:  { title: '📋 逻辑说明 · 题库',             panel: 'view-quiz-placeholder' },
   mine:  { title: '📋 逻辑说明 · 我的',             panel: 'view-mine-placeholder' }
 };
+var PRACTICE_LOGIC_TITLE = '📋 逻辑说明 · 答题页';
 var studySwitch = document.getElementById('studySwitch');
 
-/* 学习页子 tab 数据：登录 / 学习页 */
+/* 学习页子 tab 数据：登录 / 答题 / 解析页 */
 var STUDY_SUBTABS = [
-  { id: 'login', title: '登录',       panel: 'view-study-login' },
-  { id: 'page',  title: '学习页',     panel: 'view-study-page' }
+  { id: 'login',    title: '登录',     panel: 'view-study-login' },
+  { id: 'answer',   title: '答题',     panel: 'view-study-page' },
+  { id: 'analysis', title: '解析页',   panel: 'view-study-analysis' }
 ];
 var studySubActive = 'login';   /* 学习页子 tab 当前激活 */
 
@@ -2106,9 +2170,10 @@ function updateLogicForTab(name) {
   /* 闪卡状态通栏（已记住/未记住/顽固）仅闪卡 tab 显示 */
   if (logicGlobal) logicGlobal.style.display = (name === 'flash') ? '' : 'none';
   if (name === 'study') {
-    /* 学习 tab → 学习页子 tab（登录/学习页），默认激活「登录」 */
-    activePanel = PANELS['view-study-' + studySubActive] ? 'view-study-' + studySubActive : 'view-study-login';
-    renderLogicPanel(PANELS[activePanel] || { desc: '', sections: [] });
+    /* 学习 tab → 学习页子 tab（登录/答题/解析页），按 STUDY_SUBTABS 的 panel 字段查表 */
+    var sub = STUDY_SUBTABS.filter(function(s){ return s.id === studySubActive; })[0] || STUDY_SUBTABS[0];
+    activePanel = sub.panel;
+    renderLogicPanel(PANELS[sub.panel] || { desc: '', sections: [] });
   } else if (cfg.panel) {
     /* 固定面板：题库占位 / 我的占位 */
     activePanel = cfg.panel;
