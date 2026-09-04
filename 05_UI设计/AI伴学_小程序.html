@@ -1148,6 +1148,17 @@ window.addEventListener('message', function(evt) {
     chapterLayerSub = (d.data && d.data.sub) || (chapterLayerOpen ? 'chapter' : '');
     if (!chapterLayerOpen) camResultOpen = false;   /* 收起二级层顺手重置识别结果页状态 */
     updateAppbarUI();
+    /* 章节刷题子层打开 → 逻辑面板切到章节练习说明；关闭 → 恢复题库 tab */
+    if (chapterLayerOpen && chapterLayerSub === 'chapter') {
+      activePanel = 'view-chapter';
+      var tEl = document.querySelector('.logic-head .title');
+      if (tEl) tEl.textContent = CHAPTER_LOGIC_TITLE;
+      renderLogicPanel(PANELS['view-chapter'] || { desc: '章节练习逻辑说明待补', sections: [] });
+      if (practiceSwitch) practiceSwitch.style.display = 'none';
+      if (studySwitch) studySwitch.style.display = 'none';
+    } else if (!chapterLayerOpen) {
+      updateLogicForTab(currentTabName());
+    }
     return;
   }
   if (d.type === 'CAM_RESULT') {
@@ -1932,16 +1943,15 @@ var PANELS = {
         ],
         tableHead:['卡片','数据来源','口径'],
         table: [
-          ['视频解析','后台维护（题库挂视频）','VIP 解锁观看占位，v5.0 接会员/视频库'],
+          ['视频解析','后台维护（题库挂视频）','VIP 解锁观看占位，接会员/视频库'],
           ['考点对比','后台维护（每考点配易混考点）','本考点 vs 易混考点两列对照'],
           ['举一反三','后台维护（题库关联变式题）','同 concept 变式，点击进练习（v5.0 接题库）'],
           ['我的笔记','前端本地 localStorage','按题 id 存；空态显引导；保存/清空 Toast；仅本地可见'],
-          ['答题时间·耗时','前端计算（会话计时）','本题耗时=总耗时÷题数；交卷后显对比条']
+          ['答题时间·耗时','计进入答题-结束时间（会话计时）','本题耗时=上一题-本题时间；全场耗时=总时长；空状态下不显示']
         ],
         labels: [
           {k:'笔记 id', v:'getNoteId(q)：取题目唯一标识，笔记按题存'},
-          {k:'耗时显隐', v:'未交卷显「交卷后展示对比」占位；交卷后（finalSec≠null）显本题/全场耗时+对比条'},
-          {k:'全站平均', v:'演示期写死 45s/题，v5.0 由后台给'}
+          {k:'耗时显隐', v:'未交卷显「交卷后展示对比」占位；交卷后 显本题/全场耗时+对比条'}
         ] },
       { num:'4', title:'易错 / 易漏选标签',
         paras: [
@@ -2089,6 +2099,66 @@ var PANELS = {
         ] }
     ]
   },
+  /* 章节练习（题库 tab 内二级层 章节刷题.html） */
+  'view-chapter': {
+    desc: '章节刷题：题库首页「章节刷题」入口下钻二级页。左侧一级章导航 + 右侧当前章四层（二/三/四级手风琴）。刷题指标与闪卡章节页（记忆度）口径分离。',
+    sections: [
+      { num:'1', title:'层级结构',
+        paras: [
+          '一级章（10章）→ 二级节 → 三级主题 → 四级考点。左栏只放一级短名（无数据/进度），右栏当前章的二三四级。',
+          '左栏底部独立「我的上传」入口，与章节分隔线隔开，点击右侧切到上传题列表。'
+        ] },
+      { num:'2', title:'刷题指标',
+        paras: [
+          '每级四字段：total（该级题数）/ done（已做）/ right（答对）/ wrong（答错）。',
+          '正确率=right÷done×100%（done=0 时不显示，显「未做」标签）；父级聚合=下级求和（章指标=各节加总，节=各三级加总）。'
+        ],
+        tableHead:['字段','计算','空态'],
+        table: [
+          ['正确率','right÷done×100%','done=0 显「未做」不显 0%'],
+          ['未做数','total − done','—'],
+          ['章进度条','done÷total×100%','done=0 不显进度条显「未练习」']
+        ],
+        labels: [
+          {k:'指标归属', v:'刷题指标本页独立，与闪卡章节页「记忆度」口径分离，不共用'},
+          {k:'正确率色档', v:'<60% 低 / 60-79% 中 / ≥80% 高'}
+        ] },
+      { num:'3', title:'顽固标签',
+        paras: [
+          '仅三级主题标顽固；四级考点不标（2026-09-02 PM 拍板：顽固仅考点级=三级标题）。'
+        ],
+        labels: [
+          {k:'判定', v:'三级 wrong÷total≥50% 显「顽固」标签；done=0 不标'},
+          {k:'口径', v:'与 PRD §四（六）顽固判定一致；分母用该三级考题总数（非答过数）'}
+        ] },
+      { num:'4', title:'手风琴交互',
+        paras: [
+          '同级单开：同一章下同时只展开一个二级；同一二级下同时只展开一个三级。',
+          '展开二级默认连带展开第一个三级（四级同时出现）；再点已展开项收起；切一级章全部重置。'
+        ],
+        labels: [
+          {k:'展开方向', v:'二级展开→三/四级同时出现；三级展开→四级出现'},
+          {k:'章头展开/收起', v:'openSub=null 时点「展开」→展开第一个二级+其第一个三级；非 null 时点「收起」→全部收起'}
+        ] },
+      { num:'5', title:'入口与去向',
+        paras: [
+          '点任一级标题→进做题页章节练习（entry=chapter，带 level+cname）。',
+          '我的上传「去刷」→进做题页（entry=upload，qid 定位该题）。',
+          '做题页按路径取题（v5.0 接数据层）；当前 mock 按 entry+level 展示对应范围题目。'
+        ],
+        tableHead:['点击位置','去向','参数'],
+        table: [
+          ['一级章名','做题页 章级练习','entry=chapter, level=l1, cid=章id'],
+          ['二级节名','做题页 节级练习','entry=chapter, level=l2'],
+          ['三级主题名','做题题 主题级练习','entry=chapter, level=l3'],
+          ['四级考点','做题页 考点级练习','entry=chapter, level=l4'],
+          ['我的上传·去刷','做题页 上传题','entry=upload, qid=题id']
+        ],
+        labels: [
+          {k:'返回', v:'退出→通知题库首页收起章节层（保留展开状态），不回做题页'}
+        ] }
+    ]
+  },
   'view-mine-placeholder': {
     desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §四，权益规则见 §四（五）。',
     sections: [
@@ -2143,6 +2213,7 @@ var LOGIC_TABS = {
   mine:  { title: '📋 逻辑说明 · 我的',             panel: 'view-mine-placeholder' }
 };
 var PRACTICE_LOGIC_TITLE = '📋 逻辑说明 · 答题页';
+var CHAPTER_LOGIC_TITLE = '📋 逻辑说明 · 章节练习';
 var studySwitch = document.getElementById('studySwitch');
 
 /* 学习页子 tab 数据：登录 / 答题 / 解析页 */
