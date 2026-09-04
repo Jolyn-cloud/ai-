@@ -385,50 +385,49 @@ var today = new Date(2026, 7, 31);
 var SHELL_STATE = null;            /* 总壳广播的登录/画像/VIP 状态 */
 
 /* ============================================================
-   顽固标签规则（通用 · 闪卡 / 题库共用，口径与逻辑面板一致）
+   薄弱与顽固标签（通用 · 闪卡 / 题库共用，口径与逻辑面板 + PRD §四（六）一致）
    ------------------------------------------------------------
    层级：第一级考点（章）→ … → 四级考点（最后一级）→ 具体考题。
-   ① 考点级顽固：考点内 错误考题数 ÷ 该考点考题总数 × 100% ≥ 50%
-      → 该考点标记「顽固」。展示位置 = 章节练习三级标题 + 做题页考点标签。
-   ② 薄弱（PM 拍板）：考点正确率 < 60% 且答题样本 ≥ 5 → 薄弱。
-   ◆ 顽固包含在薄弱中：顽固 = 薄弱项中更严重的一档（考点级顽固）。
-   ◆ 2026-09-02 PM 拍板：考题不再单独标顽固（废除「答错≥3次→考题顽固」口径）。
+   ① 薄弱：考点内 错误考题数 ÷ 答过考题数 ≥ 30% 且 答题样本 ≥ 1。
+   ② 顽固：考点内 错误考题数 ÷ 答过考题数 ≥ 50% 且 错误数 ≥ 2（防冷启动误判）。
+   ◆ 顽固是薄弱中更严重一档（50% ≥ 30%，触发顽固必同时满足薄弱）。
+   ◆ 分母统一为「答过考题数」，非考题总数。
+   ◆ 2026-09-04 PM 拍板：薄弱降门槛到样本≥1（原≥5）；顽固分母改答过考题数（原考题总数）+错误数≥2。
 
-   首次分配题目规则（AI 定制 · 题库「今日任务」）
+   今日任务组题（AI 定制 · 题库「今日任务」，固定 35 道，逐层兜底）
    ------------------------------------------------------------
-   ① 出题范围：从第一级考点（章）中搜集「薄弱项」（顽固 ⊂ 薄弱）出题。
-   ② 优先级：顽固 > 一般薄弱（顽固优先，插队最前）。
-   ③ 题量：目标 15-20 道，各考点考题数求和后收敛到区间。
-   ④ 时间：约 count ÷ 1.5 分钟。
-   ⑤ 页面展示：第几章 - 哪个考点（chapter = 第一级考点，section = 四级薄弱考点）。
-   ⑥ 文案：取首个考点 → 错误率%（顽固/薄弱）+ 近5年考频，
-      标注「答题时优先展示错过的考题」。
+   ① 顽固考点错题 → ② 一般薄弱考点错题 → ③ 薄弱考点未答考题 → ④ 按考纲顺序未学考点题。
+   不足逐层下探到 35；做题页内同考点错题优先展示（展示顺序，与组题范围分开）。
+   冷启动无薄弱 → 走第④层：从第 1 章顺序出 35 道入门卷，标签「入门」。
    ============================================================ */
 
-/* 四级考点数据（演示 demo）：第一级考点 chapter → 四级考点 name → 下挂具体考题 questions
-   qid=考题号；wrong=该考题答错次数（用于算考点错误率，≥50% → 考点顽固；2026-09-02 考题不再单独标） */
+/* 考点数据（演示 demo）：第一级考点 chapter → 考点 name → 下挂具体考题 questions
+   qid=考题号；wrong=该考题答错次数；answered=是否答过（用于算答过考题数分母） */
 var WEAK_POINTS = [
   { id: 'p1', chapter: '第3章 操作系统', name: '文件管理', freq: 8, questions: [
-      { qid: 'Q101', wrong: 4 },   /* 答错4次≥3 → 考题顽固 */
-      { qid: 'Q102', wrong: 1 },
-      { qid: 'Q103', wrong: 0 },
-      { qid: 'Q104', wrong: 0 } ] },   /* 错误考题2/4=50% → 考点顽固 */
+      { qid: 'Q101', wrong: 1, answered: true },
+      { qid: 'Q102', wrong: 1, answered: true },
+      { qid: 'Q103', wrong: 1, answered: true },
+      { qid: 'Q104', wrong: 0, answered: true },
+      { qid: 'Q105', wrong: 0, answered: false } ] },   /* 答过4错3 → 错误率75%≥50% 且错误数3≥2 → 顽固 */
   { id: 'p2', chapter: '第3章 操作系统', name: '进程与线程', freq: 5, questions: [
-      { qid: 'Q201', wrong: 3 },   /* 答错3次≥3 → 考题顽固 */
-      { qid: 'Q202', wrong: 2 },
-      { qid: 'Q203', wrong: 0 },
-      { qid: 'Q204', wrong: 0 } ] }    /* 错误考题2/4=50% → 考点顽固 */
+      { qid: 'Q201', wrong: 1, answered: true },
+      { qid: 'Q202', wrong: 0, answered: true },
+      { qid: 'Q203', wrong: 0, answered: true },
+      { qid: 'Q204', wrong: 0, answered: false } ] }    /* 答过3错1 → 错误率33%≥30% → 薄弱 */
 ];
 
-/* 顽固标签识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
-   wrongRate（考点错误率）/ wrongQuestions（错过的考题）——2026-09-02 仅考点级顽固 */
+/* 薄弱与顽固识别：返回 { stubborn:[考点], weak:[考点] }，考点附带
+   wrongRate（考点错误率）/ wrongQuestions（错过的考题）——2026-09-04 考点级，分母=答过考题数 */
 function identifyWeakPoints() {
   var stubborn = [], weak = [];
   WEAK_POINTS.forEach(function(p) {
-    var wrongQuestions    = p.questions.filter(function(q) { return q.wrong > 0; });
-    var wrongRate = wrongQuestions.length / p.questions.length;
-    var isStubborn = wrongRate >= 0.5;                    /* 考点级顽固：错误考题数/总数 ≥ 50% */
-    var isWeak = (1 - wrongRate) < 0.6 && p.questions.length >= 5;   /* 薄弱：正确率<60% 且样本≥5 */
+    var answered = p.questions.filter(function(q) { return q.answered; });
+    var wrongQuestions = p.questions.filter(function(q) { return q.wrong > 0; });
+    if (answered.length === 0) return;                    /* 无答题样本，不参与判定 */
+    var wrongRate = wrongQuestions.length / answered.length;
+    var isStubborn = wrongRate >= 0.5 && wrongQuestions.length >= 2;   /* 顽固：错误率≥50% 且错误数≥2 */
+    var isWeak = wrongRate >= 0.3 && answered.length >= 1;             /* 薄弱：错误率≥30% 且样本≥1 */
     var info = { wrongRate: wrongRate, wrongQuestions: wrongQuestions };
     if (isStubborn) stubborn.push(Object.assign({}, p, info));
     else if (isWeak) weak.push(Object.assign({}, p, info));
@@ -436,21 +435,21 @@ function identifyWeakPoints() {
   return { stubborn: stubborn, weak: weak };
 }
 
-/* 今日任务组装（首次分配题目规则）：按考点识别结果分配，演示 demo */
+/* 今日任务组装（组题规则）：按考点识别结果分层取题，演示 demo */
 function buildTodayTask() {
   var points = identifyWeakPoints();
   var focus = points.stubborn.concat(points.weak);       /* 顽固优先，插队最前 */
-  var names = focus.length ? focus.map(function(p) { return p.name; }).join(' · ') : '基础知识巩固';
+  var hasWeak = focus.length > 0;
+  var names = hasWeak ? focus.map(function(p) { return p.name; }).join(' · ') : '基础知识入门';
   var first = focus[0] || null;
-  var flag = points.stubborn.length ? '顽固' : (points.weak.length ? '薄弱' : '巩固');
-  var count = focus.reduce(function(s, p) { return s + p.questions.length; }, 0);
-  count = Math.max(15, Math.min(20, count));             /* 目标 15-20 道 */
-  var minutes = Math.max(8, Math.round(count / 1.5));
-  var reason = first
+  var flag = points.stubborn.length ? '顽固' : (points.weak.length ? '薄弱' : '入门');
+  var count = 35;                                         /* 固定 35 道（原 15-20，2026-09-04 改） */
+  var minutes = Math.max(15, Math.round(count / 1.5));
+  var reason = hasWeak
     ? '「' + first.name + '」考点错误率 ' + Math.round(first.wrongRate * 100) + '%（' + flag + '），近5年考 ' + first.freq + ' 次，答题时优先展示错过的考题。'
-    : '今日按考点分配基础巩固任务，稳步提升。';
+    : '首次学习，从基础开始建立摸底，按考纲顺序从第1章出题。';
   return {
-    chapter: first ? first.chapter : '基础知识巩固',   /* 第一级考点（章） */
+    chapter: first ? first.chapter : '第1章 计算机基础',   /* 第一级考点（章）；冷启动走第1章 */
     section: names,
     count: count,
     minutes: minutes,
