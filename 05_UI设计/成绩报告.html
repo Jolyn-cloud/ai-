@@ -107,6 +107,7 @@ body {
   border: none;
 }
 .sheet-cell.correct { background: #E5F6EE; color: var(--success); }
+.sheet-cell.half     { background: #FFF7E6; color: #F59E0B; }
 .sheet-cell.wrong   { background: #FDEBEA; color: var(--danger); }
 .sheet-cell.unanswered { background: #F2F4F9; color: var(--text-tertiary); }
 .legend {
@@ -119,6 +120,7 @@ body {
   width: 10px; height: 10px; border-radius: 3px; display: inline-block;
 }
 .legend i.correct { background: var(--success); }
+.legend i.half { background: #F59E0B; }
 .legend i.wrong { background: var(--danger); }
 .legend i.unanswered { background: #C7CDDA; }
 
@@ -177,6 +179,7 @@ body {
     <div class="sheet-grid" id="sheetGrid"></div>
     <div class="legend">
       <span><i class="correct"></i>答对</span>
+      <span><i class="half"></i>答对一半</span>
       <span><i class="wrong"></i>答错</span>
       <span><i class="unanswered"></i>未答</span>
     </div>
@@ -225,7 +228,7 @@ function render() {
   var grid = document.getElementById('sheetGrid');
   var gh = '';
   (r.sheet || []).forEach(function(v, i) {
-    var cls = v === 1 ? 'correct' : (v === 0 ? 'wrong' : 'unanswered');
+    var cls = v === 1 ? 'correct' : (v === 2 ? 'half' : (v === 0 ? 'wrong' : 'unanswered'));
     gh += '<button class="sheet-cell ' + cls + '" onclick="jumpTo(' + i + ')" aria-label="第' + (i+1) + '题">' + (i+1) + '</button>';
   });
   grid.innerHTML = gh;

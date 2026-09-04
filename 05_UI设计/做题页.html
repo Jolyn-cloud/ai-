@@ -2238,12 +2238,13 @@ function doSubmit() {
 }
 /* 考试报告数据：对齐成绩报告页字段契约（paperId/type/name/minutes/fullScore/usedSec/score/rank/beat/sheet/typeStats/label/submitTime） */
 function buildReport() {
-  var right = 0, wrong = 0, skip = 0, i;
+  var right = 0, wrong = 0, half = 0, skip = 0, i;
   var sheet = [];
   for (i = 0; i < total; i++) {
     var c = classifyResult(QUESTIONS[i], answers[i]);
     if (c === 'correct') { right++; sheet.push(1); }
-    else if (c === 'wrong' || c === 'half') { wrong++; sheet.push(0); }
+    else if (c === 'half') { half++; sheet.push(2); }
+    else if (c === 'wrong') { wrong++; sheet.push(0); }
     else { skip++; sheet.push(-1); }
   }
   /* 题型概况：按 TYPE_NAME 归类 */
@@ -2268,7 +2269,7 @@ function buildReport() {
     sheet: sheet,
     typeStats: names.map(function(n){ return tmap[n]; }),
     label: (ENTRY === 'real') ? '本次真题考试' : (ENTRY === 'trial' ? '本次体验卷' : '本次模拟考试'),
-    right, wrong, skip
+    right, wrong, half, skip
   };
 }
 /* 逐题分值累加（考试模式）：答对得该题分值，答错/未答 0 分 */
