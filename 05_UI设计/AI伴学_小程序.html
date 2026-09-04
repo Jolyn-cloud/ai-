@@ -1391,11 +1391,15 @@ function openPractice(entry, extra) {
   practiceLayer.classList.add('show');
   updateTabBar();
   updateAppbarUI();
+  /* 做题页自带右侧逻辑面板（甲1），打开做题层时收起总壳面板，避免两层面板重叠 */
+  logicCol.classList.remove('open');
 }
 function closePractice() {
   practiceLayer.classList.remove('show');
   updateTabBar();
   updateAppbarUI();
+  /* 退出做题层恢复总壳面板（若之前是展开态） */
+  logicCol.classList.add('open');
 }
 
 /* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */
