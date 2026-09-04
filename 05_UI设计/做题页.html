@@ -1516,10 +1516,9 @@ function renderQuestion() {
   document.getElementById('tagArea').innerHTML = tags;
 
   /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染）
-     考试卷题号由进度条「题型 第X题 X/Y」表达，题干前不再重复绝对题号（PM 2026-09-02） */
-  var qNumPrefix = IS_EXAM_PAPER ? '' : '<span class="q-num">' + (idx+1) + '.</span>';
+     题号统一由进度条「第X题 / 题型第X题」表达，题干前不再重复序号（PM 2026-09-04） */
   var html = (OP_TYPES.indexOf(q.type) < 0)
-    ? '<div class="stem-wrap"><div class="stem">' + qNumPrefix + q.stem + '</div></div>'
+    ? '<div class="stem-wrap"><div class="stem">' + q.stem + '</div></div>'
     : '';
   html += renderBody(q, answers[idx], reveal);
 
