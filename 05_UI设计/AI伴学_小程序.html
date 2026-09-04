@@ -2386,7 +2386,7 @@ function currentLogicData() {
 
 function renderLogicPanel(data) {
   logicBody.innerHTML = '';
-  var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc || ''; logicBody.appendChild(de);
+  if (data.desc) { var de = document.createElement('div'); de.className = 'logic-desc'; de.textContent = data.desc; logicBody.appendChild(de); }
   (data.sections || []).forEach(function(sec) {
     var card = document.createElement('div'); card.className = 'logic-sec';
     var head = document.createElement('div'); head.className = 'logic-sec-head';
