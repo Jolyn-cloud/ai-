@@ -963,6 +963,7 @@ body.tab-hidden .report-layer { bottom: 0; }
       </div>
       <div class="view-switch" id="viewSwitch"></div>
       <div class="view-switch" id="studySwitch" style="display:none"></div>
+      <div class="view-switch" id="practiceSwitch" style="display:none"></div>
       <div class="logic-global" id="logicGlobal">
         <span class="g-tab g-ok">已记住 · 右滑</span>
         <span class="g-tab g-no">未记住 · 左滑</span>
@@ -1398,13 +1399,19 @@ function openPractice(entry, extra) {
   var titleEl = document.querySelector('.logic-head .title');
   if (titleEl) titleEl.textContent = PRACTICE_LOGIC_TITLE;
   renderLogicPanel(PANELS['view-practice'] || { desc: '做题页逻辑说明待补', sections: [] });
+  /* 答题页子 tab（答案/解析页）：做题层打开才显示，默认激活「答案」 */
+  if (practiceSwitch) {
+    practiceSwitch.style.display = '';
+    setPracticeSub('answer');
+  }
 }
 function closePractice() {
   practiceLayer.classList.remove('show');
   updateTabBar();
   updateAppbarUI();
-  /* 退出做题层 → 恢复当前 tab 对应的面板 */
-  updateLogicForTab(currentTabName);
+  /* 退出做题层 → 隐藏答题页子 tab + 恢复当前 tab 对应的面板 */
+  if (practiceSwitch) practiceSwitch.style.display = 'none';
+  updateLogicForTab(currentTabName());
 }
 
 /* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */
@@ -2158,6 +2165,39 @@ function buildStudySwitch() {
     c.classList.toggle('active', c.getAttribute('data-sub') === studySubActive);
   });
 }
+
+/* 答题页子 tab（答案/解析页）：做题层打开时显示，答案→做题页逻辑，解析页→解析页逻辑 */
+var PRACTICE_SUBTABS = [
+  { id: 'answer',   title: '答案',   panel: 'view-practice' },
+  { id: 'analysis', title: '解析页', panel: 'view-study-analysis' }
+];
+var practiceSubActive = 'answer';
+var practiceSwitch = document.getElementById('practiceSwitch');
+
+function buildPracticeSwitch() {
+  if (!practiceSwitch) return;
+  practiceSwitch.innerHTML = '';
+  PRACTICE_SUBTABS.forEach(function(st) {
+    var b = document.createElement('button');
+    b.className = 'view-chip';
+    b.textContent = st.title;
+    b.setAttribute('data-sub', st.id);
+    b.addEventListener('click', function() {
+      setPracticeSub(st.id);
+    });
+    practiceSwitch.appendChild(b);
+  });
+}
+function setPracticeSub(id) {
+  practiceSubActive = id;
+  var sub = PRACTICE_SUBTABS.filter(function(s){ return s.id === id; })[0] || PRACTICE_SUBTABS[0];
+  activePanel = sub.panel;
+  renderLogicPanel(PANELS[sub.panel] || { desc: '', sections: [] });
+  document.querySelectorAll('#practiceSwitch .view-chip').forEach(function(c) {
+    c.classList.toggle('active', c.getAttribute('data-sub') === id);
+  });
+}
+buildPracticeSwitch();
 
 function updateLogicForTab(name) {
   var cfg = LOGIC_TABS[name] || LOGIC_TABS.study;
