@@ -84,9 +84,19 @@ body {
 .fav-type .caret { font-size: 10px; color: var(--text-tertiary); transition: transform .15s ease; }
 .fav-type.open .caret { transform: rotate(180deg); color: var(--primary); }
 
-.sort-hint {
-  font-size: 11.5px; color: var(--text-tertiary); font-weight: 500;
+/* 排序切换（按章节 / 按时间，默认按章节，PM 2026-09-05） */
+.sort-switch {
+  display: inline-flex;
+  background: #F0F2F8; border-radius: 15px; padding: 2px;
 }
+.sort-btn {
+  border: none; background: transparent;
+  height: 26px; padding: 0 12px; border-radius: 13px;
+  font-size: 12px; font-weight: 600; color: var(--text-tertiary); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.sort-btn:active { opacity: .7; }
+.sort-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(38,48,96,.12); }
 
 /* 章节下拉浮层 */
 .type-menu {
@@ -125,6 +135,23 @@ body {
 }
 .date-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
 .date-count { font-size: 11.5px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ===== 按章节分组（按 1 级考点 → 2 级 → 3 级逐层归类，PM 2026-09-05） ===== */
+.chap-group { margin-bottom: 14px; }
+.chap-head {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 14px 4px 4px;
+}
+.chap-name { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.chap-count { font-size: 11px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
+.chap-sub {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  padding: 10px 6px 0 10px;
+}
+.chap-leaf {
+  font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+  padding: 6px 6px 0 18px;
+}
 
 /* ===== 左滑删除（iOS 风格） ===== */
 .swipe-cell {
@@ -180,6 +207,12 @@ body {
   line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
+
+/* 卡片内层级标题（章节分组视图：一级考点在外=组头；卡片内 =（轻量）二级 - 三级主标题，PM 2026-09-05） */
+.c-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.c-l2 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.c-sep { font-size: 12px; color: var(--text-tertiary); }
+.c-l3 { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
 
 /* ===== 拍照笔记卡片 ===== */
 .p-card {
@@ -308,7 +341,10 @@ body {
   <!-- 筛选栏 -->
   <div class="filter-bar">
     <button class="fav-type" id="chapFilter" onclick="toggleChapMenu()">全部章节 <span class="caret">▾</span></button>
-    <span class="sort-hint">按时间降序</span>
+    <div class="sort-switch">
+      <button class="sort-btn active" data-sort="chapter" onclick="setSort('chapter')">按章节</button>
+      <button class="sort-btn" data-sort="time" onclick="setSort('time')">按时间</button>
+    </div>
   </div>
 
   <!-- 章节下拉 -->
@@ -437,6 +473,13 @@ function reloadNotes() {
 
 var SRC = 'all';        /* 类型筛选：all/quiz/photo */
 var CHAP = 'all';       /* 章节筛选 */
+var SORT_MODE = 'chapter';   /* 列表排序：chapter 按章节分组（默认）/ time 按时间（PM 2026-09-05） */
+function setSort(m) { SORT_MODE = m; syncSortBtns(); renderList(); }
+function syncSortBtns() {
+  document.querySelectorAll('.sort-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-sort') === SORT_MODE);
+  });
+}
 var currentPhotoNid = null;
 
 /* ===== 章节列表（从数据派生，保持插入顺序，去重） ===== */
@@ -517,7 +560,12 @@ function renderList() {
   wrap.style.display = 'block';
   empty.style.display = 'none';
 
-  /* 按日期分组 */
+  syncSortBtns();
+  wrap.innerHTML = (SORT_MODE === 'chapter') ? chapterGroupHtml(list) : timeGroupHtml(list);
+}
+
+/* ===== 按时间分组渲染（切到「按时间」时） ===== */
+function timeGroupHtml(list) {
   var groups = {}, order = [];
   list.forEach(function(it) {
     var lab = dateLabel(it.createdAt);
@@ -538,7 +586,51 @@ function renderList() {
     });
     html += '</div>';
   });
-  wrap.innerHTML = html;
+  return html;
+}
+
+/* ===== 按章节分组渲染（默认）：同一 1 级考点一组，组内按同一 2 级、3 级逐层归类；
+   未选择考点（无 l1）的条目归入「未分类」组；组内每层叶子仍按时间倒序（PM 2026-09-05） ===== */
+function chapterGroupHtml(list) {
+  var l1order = [], l1map = {}, uncat = [];
+  list.forEach(function(it) {
+    var l1 = it.l1 || '';
+    if (!l1) { uncat.push(it); return; }
+    if (!l1map[l1]) { l1map[l1] = { l2order: [], l2map: {} }; l1order.push(l1); }
+    var grp = l1map[l1];
+    var l2 = it.l2 || '';
+    if (!grp.l2map[l2]) { grp.l2map[l2] = { l3order: [], l3map: {} }; grp.l2order.push(l2); }
+    var sub = grp.l2map[l2];
+    var l3 = it.l3 || '';
+    if (!sub.l3map[l3]) { sub.l3map[l3] = []; sub.l3order.push(l3); }
+    sub.l3map[l3].push(it);
+  });
+  function cardOf(it) { return (it.type === 'photo') ? photoCard(it, true) : quizCard(it, true); }
+  var html = '';
+  l1order.forEach(function(l1) {
+    var grp = l1map[l1];
+    var n = 0;
+    grp.l2order.forEach(function(l2) { var s = grp.l2map[l2]; s.l3order.forEach(function(l3){ n += s.l3map[l3].length; }); });
+    html += '<div class="chap-group">'
+      +   '<div class="chap-head"><span class="chap-name">' + l1 + '</span><span class="chap-count">' + n + ' 条</span></div>';
+    grp.l2order.forEach(function(l2) {
+      var sub = grp.l2map[l2];
+      if (l2) html += '<div class="chap-sub">' + l2 + '</div>';
+      sub.l3order.forEach(function(l3) {
+        var arr = sub.l3map[l3];
+        if (l3) html += '<div class="chap-leaf">' + l3 + '</div>';
+        arr.forEach(function(it){ html += cardOf(it); });
+      });
+    });
+    html += '</div>';
+  });
+  if (uncat.length) {
+    html += '<div class="chap-group">'
+      +   '<div class="chap-head"><span class="chap-name">未分类</span><span class="chap-count">' + uncat.length + ' 条</span></div>';
+    uncat.forEach(function(it){ html += cardOf(it); });
+    html += '</div>';
+  }
+  return html;
 }
 
 /* ===== 左滑删除包裹层（题目笔记 + 拍照笔记通用） ===== */
@@ -550,12 +642,20 @@ function swipeWrap(nid, innerHtml, action) {
 }
 
 /* ===== 题目笔记卡片（三行：一级·二级+时间 / 三级标题 / 笔记内容1行省略） ===== */
-function quizCard(it) {
+function quizCard(it, inGroup) {
   var l1l2 = (it.l1 && it.l2) ? (it.l1 + ' · ' + it.l2) : (it.l1 || it.chapter || '');
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
+  var t2 = it.l2 || '', t3 = it.concept || '';
+  /* 章节分组视图：组头已展示一级，卡片 meta 仅保留时间；标题=（轻量）二级 - 三级 */
+  var metaHtml = inGroup
+    ? '<div class="n-meta"><span></span><span class="n-time">' + timeStr + '</span></div>'
+    : '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>';
+  var titleHtml = inGroup
+    ? '<div class="c-line">' + (t2 ? '<span class="c-l2">' + t2 + '</span><span class="c-sep">-</span>' : '') + '<span class="c-l3">' + t3 + '</span></div>'
+    : '<div class="n-title">' + t3 + '</div>';
   var inner = '<div class="q-card">'
-    +   '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>'
-    +   '<div class="n-title">' + it.concept + '</div>'
+    + metaHtml
+    + titleHtml
     +   '<div class="n-content">' + (it.content || '') + '</div>'
     + '</div>';
   return swipeWrap(it.nid, inner, 'goQuiz');
@@ -567,27 +667,29 @@ function quizCard(it) {
      到一级       → 一级标题
      到二级       → 一级 · 二级
      到三级/四级  → 一级·二级（meta 弱）+ 三级标题（title 重，四级存但不展示） */
-function photoCard(it) {
+function photoCard(it, inGroup) {
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
   var l1 = it.l1 || '', l2 = it.l2 || '', l3 = it.l3 || '';
-  var headHtml = '', metaHtml = '';
+  var metaHtml = '';
+  var titleHtml = '';
   if (!l1) {
-    headHtml = '<span class="p-title">拍照笔记</span>';
+    titleHtml = '<span class="p-title">拍照笔记</span>';
+  } else if (inGroup) {
+    /* 章节分组视图：一级考点在卡片外（组头）；标题按（轻量）二级 - 三级显示 */
+    if (!l2) titleHtml = '<span class="p-title">' + l1 + '</span>';
+    else if (!l3) titleHtml = '<span class="p-title">' + l2 + '</span>';
+    else titleHtml = '<div class="c-line"><span class="c-l2">' + l2 + '</span><span class="c-sep">-</span><span class="c-l3">' + l3 + '</span></div>';
   } else if (!l2) {
-    headHtml = '<span class="p-title">' + l1 + '</span>';
+    titleHtml = '<span class="p-title">' + l1 + '</span>';
   } else if (!l3) {
-    headHtml = '<span class="p-title">' + l1 + ' · ' + l2 + '</span>';
+    titleHtml = '<span class="p-title">' + l1 + ' · ' + l2 + '</span>';
   } else {
     metaHtml = '<div class="n-meta" style="margin-bottom:5px;"><span>' + l1 + ' · ' + l2 + '</span></div>';
-    headHtml = '<div class="p-head"><span class="p-title">' + l3 + '</span><span class="p-time">' + timeStr + '</span></div>';
-    var inner = '<div class="p-card">'
-      + metaHtml + headHtml
-      + '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
-      + '</div>';
-    return swipeWrap(it.nid, inner, 'openPhoto');
+    titleHtml = '<span class="p-title">' + l3 + '</span>';
   }
   var inner = '<div class="p-card">'
-    +   '<div class="p-head">' + headHtml + '<span class="p-time">' + timeStr + '</span></div>'
+    + metaHtml
+    +   '<div class="p-head">' + titleHtml + '<span class="p-time">' + timeStr + '</span></div>'
     +   '<div class="p-thumb"><span class="cam-ico">📷</span></div>'
     + '</div>';
   return swipeWrap(it.nid, inner, 'openPhoto');
