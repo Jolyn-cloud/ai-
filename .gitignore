@@ -10,3 +10,6 @@
 
 # CDP 回归测试 / 截图验证的本地 Chrome 用户目录（.tmp-* 一律不入库）
 05_UI设计/.tmp-*/.claude/
+
+.tmp-chrome*/
+.tmp-chromeFav/
