@@ -1172,7 +1172,8 @@ window.addEventListener('message', function(evt) {
         real:    { panel:'view-real',    title:REAL_LOGIC_TITLE },
         wrong:   { panel:'view-wrong',   title:WRONG_LOGIC_TITLE },
         fav:     { panel:'view-fav',     title:FAV_LOGIC_TITLE },
-        note:    { panel:'view-note',   title:NOTE_LOGIC_TITLE }
+        note:    { panel:'view-note',   title:NOTE_LOGIC_TITLE },
+        cam:     { panel:'view-cam',    title:CAM_LOGIC_TITLE }
       };
       var cfg = subMap[chapterLayerSub];
       if (cfg) {
@@ -2423,6 +2424,70 @@ var PANELS = {
         ] }
     ]
   },
+  'view-cam': {
+    desc: '拍照搜题（题库 tab 二级层）。三模式共用一页：AI搜题（搜题库匹配）/ 录错题（拍错题入库）/ 记笔记（拍笔记存笔记本）；默认 AI搜题。拍照→OCR→AI识别结构化标签→用户检查编辑→保存分流三路。',
+    sections: [
+      { num:'1', title:'三模式与保存分流',
+        paras: [
+          '三个模式共用取景页与 OCR 流程，按拍照后走的结果页区分；默认 AI搜题。'
+        ],
+        tableHead:['模式','保存去向','localStorage key','qid 前缀'],
+        table: [
+          ['AI搜题','章节刷题「我的上传」（审核通过后计入）','zsb_share_uploads_v1','S'],
+          ['录错题','错题本「我的上传」（审核通过后计入错题本）','zsb_wrong_uploads_v1','U'],
+          ['记笔记','笔记本（拍照笔记，即时入库）','zsb_notes_v1','N（nid 前缀）']
+        ],
+        labels: [
+          {k:'qid 编号', v:'搜题/录错题在各自 key 内取已有最大序号 +1，补零至 2 位（S01/U01）；记笔记 nid 取时间戳余数补零'}
+        ] },
+      { num:'2', title:'AI 识别流程',
+        paras: [
+          '拍照 → OCR 动画（搜题/录错题 1s，记笔记 0.5s）→ 结果页。',
+          '识别成功：显示 OCR 文字 + AI 预选标签，用户可编辑后加入上传。',
+          '未识别：保留图片，OCR 区空，提示手动补充，题型兜底为「图片题」，考点「待归类」，错因「概念混淆」。'
+        ],
+        labels: [
+          {k:'识别成败判定', v:'演示按拍照序号奇偶模拟（奇数=成功，偶数=未识别）；真实接入后由 OCR 引擎决定'},
+          {k:'结果页态', v:'打开 → postMessage CAM_RESULT{open:true}，appbar 标题改「AI识别」、退出回取景'}
+        ] },
+      { num:'3', title:'AI 识别选项（三模式各自维度）',
+        paras: [
+          'AI搜题与录错题走同一结果页，三个维度标签都可编辑；记笔记走笔记预览页，不做识别标签，只选知识点路径。'
+        ],
+        tableHead:['模式','可编辑识别维度','AI 预选依据'],
+        table: [
+          ['AI搜题','题型 / 考点 / 错因','关键词匹配 OCR 文本'],
+          ['录错题','题型 / 考点 / 错因','同上（mock 文案不同，识别逻辑一致）'],
+          ['记笔记','无识别标签；仅选知识点路径（1-4 级，可不选）','不预选，由用户手选或不选']
+        ],
+        labels: [
+          {k:'题型 5 类', v:'单选 / 多选 / 判断 / 填空 / 图片题；AI 按「哪些/多选」→多选、「是否/判断」→判断，「____」→填空，其余→单选'},
+          {k:'考点一级 9 类', v:'操作系统 / 计算机网络 / Word 文档处理 / Excel 电子表格 / PowerPoint / 数据库 / 信息安全 / 新一代信息技术 / 计算机基础；AI 按关键词命中归类，不命中→「待归类」（考点一级共 9 类 + 待归类 = 10 个可选）'},
+          {k:'错因 4 类', v:'概念混淆 / 记忆不清 / 操作失误 / 顽固错题；AI 按「概念/特征/区别/原理/定义」→概念混淆，「快捷键/操作/步骤」→操作失误，「记忆/口诀/顺序」→记忆不清，默认→概念混淆'},
+          {k:'用户纠错', v:'点标签 → 浮窗选其他选项，AI 预选项标 ✓，改后即生效'}
+        ] },
+      { num:'4', title:'记笔记流程',
+        paras: [
+          '流程：拍照/相册选 1 张 → 笔记预览页 → 选知识点（1-4 级逐级下钻，每级可跳过，可不选）→ 保存。',
+          '知识点路径 4 级：一级考点（9 类）→ 二级 → 三级 → 四级；选某级后自动进下一级，末级无子项时提示完成。'
+        ],
+        labels: [
+          {k:'派生展示字段', v:'chapter 取一级（无则解析页来源兜底）；concept 取二级或一级（笔记本卡片标题用）'},
+          {k:'解析页来源', v:'解析页「我的笔记」拍照 → NOTE_CTX.from=practice，保存后回跳做题页原题并关联本题（qkey/quizRef）'},
+          {k:'笔记本 FAB 来源', v:'笔记本右下 FAB → postMessage TAKE_NOTE → 进入记笔记模式，保存后回题库并打开笔记本层'}
+        ] },
+      { num:'5', title:'入口与去向',
+        paras: [
+          '顶栏退出 → postMessage CLOSE_CHAPTER 回题库首页（题库.html 收起 camLayer）。',
+          '结果页打开 → appbar 标题改「AI识别」，退出回取景（不切面板，拍照搜题二级层说明保持）。',
+          '手电筒、相册导入为取景辅助；相册导入在记笔记模式走预览页，其他模式提示（演示）。',
+          '左滑/点击逻辑由笔记本页承担，本页无左滑。'
+        ],
+        labels: [
+          {k:'面板不随结果页切', v:'CAM_RESULT 是子态，逻辑面板保持 view-cam 说明，不另切面板'}
+        ] }
+    ]
+  },
   'view-mine-placeholder': {
     desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §四，权益规则见 §四（五）。',
     sections: [
@@ -2483,6 +2548,7 @@ var REAL_LOGIC_TITLE = '📋 逻辑说明 · 历年真题';
 var WRONG_LOGIC_TITLE = '📋 逻辑说明 · 错题本';
 var FAV_LOGIC_TITLE = '📋 逻辑说明 · 收藏本';
 var NOTE_LOGIC_TITLE = '📋 逻辑说明 · 笔记本';
+var CAM_LOGIC_TITLE = '📋 逻辑说明 · 拍照搜题';
 var studySwitch = document.getElementById('studySwitch');
 
 /* 学习页子 tab 数据：登录 / 答题 / 解析页 */
