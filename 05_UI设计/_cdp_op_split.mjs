@@ -1,7 +1,7 @@
 /** 操作题分屏模式验证（PM 2026-09-02）：
  *  一 分屏结构：题干区 + 拖拽分界线 + 子题作答区（默认 40% / 可拖 25%~65%）
  *  二 题干独立滚动 / 独立区域
- *  三 子题导航：横向 tab，当前高亮，已答标✓，点击切换
+ *  三 子题导航：横向 tab，当前高亮（只做选中态，无对错/完成标志），点击切换
  *  四 交互：题干常显、不遮罩；切题保留答案；上下区域独立滚动；限制=用户点导航/底部钮切换
  *  五 底部：上一题/下一题；最后子题显示「完成操作题」→ 全答后进下一道普通题
  */
@@ -116,7 +116,7 @@ r = await evalJs(`(async function(){
   var activeIdx = Array.prototype.indexOf.call(document.querySelectorAll('.op-tab'), activeTab);
   return { done0: done0, saved0: saved0, sub2stem: sub2stem, restored: restored, activeIdx: activeIdx };
 })()`);
-check('答后 tab 标✓', r.done0 === true, '');
+check('答后 tab 不加✓/不变色（只做选中态，PM 2026-09-05）', r.done0 === false, '');
 check('第1题答案保留 (切走再切回仍B)', r.saved0 === 1 && r.restored === 1, JSON.stringify(r));
 check('切到第2题显示对应子题题干', r.sub2stem && r.sub2stem.length > 0, r.sub2stem);
 check('当前 active tab = 返回的第1题', r.activeIdx === 0, 'activeIdx='+r.activeIdx);
@@ -158,27 +158,40 @@ check('分屏无底部按钮行', r.hasNavRow === false && r.navBtns === 0, 'nav
 check('tab 个数=子题数5', r.tabCount === 5, 'tabCount='+r.tabCount);
 check('点 tab 切换到对应子题', r.activeIdx === 2, 'activeIdx='+r.activeIdx);
 
-/* 7. 全答后自动前进到下一道普通题（scheduleAutoNext，exam 卷操作题在第4题=中间位） */
-await gotoT(`http://localhost:${PORT}/做题页.html?entry=exam&paperId=exam1&minutes=100&fullScore=150`);
+/* 7. 全答后自动前进到下一题（scheduleAutoNext；mock 卷 op 均在末题，故运行时追加占位题构造“中间位”场景） */
+await gotoT(`http://localhost:${PORT}/做题页.html?entry=today`);
 r = await evalJs(`(async function(){
-  for (var i=0;i<QUESTIONS.length;i++) if (QUESTIONS[i].type==='operation') { idx=i; break; }
-  resetOp(true); renderQuestion(); await new Promise(r=>setTimeout(r,60));
-  var q0 = QUESTIONS[idx];
-  var all = {};
-  for (var i=0;i<q0.sub.length;i++) {
-    var s = q0.sub[i];
-    all[i] = (s.type==='single'||s.type==='judge') ? s.answer : (s.fill || 'x');
-  }
+  QUESTIONS.push({ type:'single', concept:'占位', difficulty:'低', stem:'占位题', options:['A','B'], answer:0, analysis:'占位' });
+  total = QUESTIONS.length;   /* 同步 total，让 op 不再被视为末题 */
+  var oi = null;
+  for (var i = 0; i < QUESTIONS.length; i++) if (QUESTIONS[i].type === 'operation') { oi = i; break; }
+  idx = oi; resetOp(true); renderQuestion(); await new Promise(r => setTimeout(r, 60));
+  var q0 = QUESTIONS[idx], all = {};
+  for (var j = 0; j < q0.sub.length; j++) { var s = q0.sub[j]; all[j] = (s.type === 'single' || s.type === 'judge') ? s.answer : (s.fill || 'x'); }
   answers[idx] = all;
-  var posBefore = idx;
-  /* 全部子题已答 → 触发 scheduleAutoNext（最后子题答完 0.6s 后自动进下一题） */
+  var pos = idx;
   scheduleAutoNext();
-  await new Promise(r=>setTimeout(r,800));
-  var qNext = QUESTIONS[idx];
-  return { posBefore: posBefore, newIdx: idx, moved: idx>posBefore,
-           nextType: qNext.type, nextNotOp: qNext.type!=='operation', subCount: q0.sub.length };
+  await new Promise(r => setTimeout(r, 800));
+  return { pos: pos, after: idx, moved: idx > pos, midPos: pos < QUESTIONS.length - 1 };
 })()`);
-check('全答后自动前进到下一道普通题', r && r.moved && r.nextNotOp, JSON.stringify(r));
+check('全答后自动前进到下一题', r && r.midPos === true && r.moved === true && r.after === r.pos + 1, JSON.stringify(r));
+
+/* 7b. 末题操作题全答不自动跳（scheduleAutoNext 的末题保护；exam1 mock 卷 op 为第7题=末题） */
+await gotoT(`http://localhost:${PORT}/做题页.html?entry=exam&paperId=exam1`);
+r = await evalJs(`(async function(){
+  if (pendingRule) leaveRulePage();
+  var oi = null;
+  for (var i = 0; i < QUESTIONS.length; i++) if (QUESTIONS[i].type === 'operation') { oi = i; break; }
+  idx = oi; resetOp(true); renderQuestion(); await new Promise(r => setTimeout(r, 60));
+  var q0 = QUESTIONS[idx], all = {};
+  for (var j = 0; j < q0.sub.length; j++) { var s = q0.sub[j]; all[j] = (s.type === 'single' || s.type === 'judge') ? s.answer : (s.fill || 'x'); }
+  answers[idx] = all;
+  var pos = idx;
+  scheduleAutoNext();
+  await new Promise(r => setTimeout(r, 800));
+  return { last: idx >= total - 1, after: idx, moved: idx !== pos, pos: pos };
+})()`);
+check('末题操作题全答不自动跳（末题保护）', r && r.last === true && r.moved === false, JSON.stringify(r));
 
 /* 8. 交卷解析=单题分屏：分屏 tab + 仅当前子题解析 + 无整题总评 */
 r = await evalJs(`(function(){

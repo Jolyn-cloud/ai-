@@ -143,16 +143,8 @@ body {
   font-size: 11.5px; color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
-.ch-metrics .m-done strong { color: var(--text-secondary); font-weight: 700; }
-.ch-metrics .m-rate { color: var(--primary); font-weight: 800; }
-.ch-metrics .m-rate.low { color: var(--danger); }
-.ch-metrics .m-rate.mid { color: var(--warning); }
-.ch-metrics .m-rate.high { color: var(--success); }
-.ch-metrics .m-wrong {
-  color: var(--warning);
-  background: var(--warning-light);
-  padding: 1px 6px; border-radius: 5px; font-size: 10.5px; font-weight: 700;
-}
+/* 考题标签数字统一主题蓝（PM 2026-09-05）：已做/正确率/错 的数值用主色，前缀说明文字保持弱灰 */
+.ch-metrics .m-done strong, .ch-metrics .m-rate b, .ch-metrics .m-wrong strong { color: var(--primary); font-weight: 800; }
 .ch-metrics .fresh-tag {
   font-size: 10.5px; color: var(--primary); font-weight: 700;
   background: var(--primary-light); padding: 2px 8px; border-radius: 6px;
@@ -179,23 +171,16 @@ body {
   box-shadow: 0 1px 2px rgba(38,48,96,.03);
 }
 .sub-row:active { background: rgba(91,114,245,.045); }
-.sub-row::before {
-  content: '';
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--primary); flex-shrink: 0;
-}
+/* 二级行标题前原主题蓝圆点已改为浅灰上下展开箭头（PM 2026-09-05） */
 .sub-title {
   flex: 1; min-width: 0;
   font-size: 13px; font-weight: 600; color: var(--primary-dark);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;   /* 点标题 → 进二级刷题 */
 }
-.sub-rate { font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.sub-rate.low { color: var(--danger); }
-.sub-rate.mid { color: var(--warning); }
-.sub-rate.high { color: var(--success); }
-.sub-rate.void { color: var(--text-tertiary); font-weight: 600; font-size: 11px; }
-/* 二级右侧展开按钮（轻量：无底色小灰箭头，独立热区） */
+.sub-rate { font-size: 11px; font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.sub-rate b { color: var(--primary); font-weight: 800; }   /* 正确率数值主题蓝 */
+/* 二级行首展开按钮（PM 2026-09-05：唯一展开入口，浅灰上下箭头，独立热区） */
 .sub-arrow {
   flex-shrink: 0;
   width: 26px; height: 26px;
@@ -228,7 +213,7 @@ body {
   transition: background .12s ease;
 }
 .lv3-row:active { background: rgba(91,114,245,.05); }
-/* 三级右侧展开按钮（轻量：无底色小灰箭头，独立热区） */
+/* 三级行左侧展开按钮（轻量：无底色小灰箭头，独立热区） */
 .lv3-row .pick {
   flex-shrink: 0;
   width: 24px; height: 24px;
@@ -247,11 +232,8 @@ body {
   cursor: pointer;   /* 点标题 → 进三级刷题 */
 }
 .lv3-meta { flex-shrink: 0; display: flex; align-items: baseline; gap: 5px; font-size: 10.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
-.lv3-meta .m-done { color: var(--text-secondary); font-weight: 600; }
-.lv3-meta .m-rate { font-weight: 800; }
-.lv3-meta .m-rate.low { color: var(--danger); }
-.lv3-meta .m-rate.mid { color: var(--warning); }
-.lv3-meta .m-rate.high { color: var(--success); }
+.lv3-meta .m-done { color: var(--primary); font-weight: 800; }   /* 已做 X/Y 数字主题蓝 */
+.lv3-meta .m-rate b { color: var(--primary); font-weight: 800; }   /* 正确率数值主题蓝 */
 .lv3-meta .m-stubborn {
   color: #CF1322; font-weight: 800; font-size: 10px;
   background: #FFF1F0; padding: 2px 6px; border-radius: 5px;
@@ -354,7 +336,7 @@ body {
      wrong   答错题数（done=right+wrong+空答，演示简化 wrong=done-right）
      todo    未做题数 = total - done
      rate    正确率 = done? right/done : null
-   颜色档：<60% low红 / 60-80% mid橙 / ≥80% high绿 / 未做 null灰
+   考题标签数字统一主题蓝（PM 2026-09-05），未做显示「未做」灰态
    ============================================================ */
 
 /* ===== 「我的上传」搜题数据（source=upload）
@@ -873,7 +855,6 @@ var ICONS = {
 
 /* ===== 计算与格式 ===== */
 function rateOf(done, right){ return done ? Math.round(right/done*100) : null; }
-function rateClass(r){ if(r===null) return ''; return r<60?'low':(r<80?'mid':'high'); }
 function rateText(r){ return r===null ? '未做' : r+'%'; }
 function todoOf(total, done){ return total - done; }
 
@@ -973,7 +954,6 @@ function renderContent(){
   if(!ch){ box.innerHTML = ''; return; }
 
   var r = rateOf(ch.done, ch.right);
-  var rc = rateClass(r);
   var fresh = ch.fresh || ch.done===0;
   var html = '';
 
@@ -988,8 +968,8 @@ function renderContent(){
   if(fresh){
     html += '<span class="fresh-tag">未练习</span>';
   } else {
-    if(ch.wrong>0) html += '<span class="m-wrong">错 '+ch.wrong+'</span>';
-    html += '<span class="m-rate '+rc+'">'+r+'%</span>';
+    html += '<span class="m-rate">正确率 <b>'+r+'%</b></span>';
+    if(ch.wrong>0) html += '<span class="m-wrong">错 <strong>'+ch.wrong+'</strong></span>';
   }
   html += '</div>';
   if(!fresh){
@@ -999,22 +979,21 @@ function renderContent(){
   html += '</div>'; // ch-head
 
   /* 二级 → 三级 → 四级（手风琴单开）
-     二级：点标题→进练习；点右侧⌄ → 展开，三级+四级同时出现
-     三级：点标题→进练习；点右侧▸ → 展开四级考点
+     二级：点标题→进练习；点行首上下箭头（唯一展开入口）→ 展开，三级+四级同时出现
+     三级：点标题→进练习；点左侧▸ → 展开四级考点
      展开二级默认展开第一个三级（联动出四级，见核心交互） */
   html += '<div class="base-card ch-body">';
   var openingIndex = (openSub!==null);   // 当前章是否有任一二级展开中（用来让未展开二级 flat 连排）
   ch.subs.forEach(function(sub, si){
     var sr = rateOf(sub.done, sub.right);
-    var src = rateClass(sr);
     var sfresh = sub.done===0;
     var isOpen = (openSub===si);
-    /* 二级行：标题点击 → 进二级练习；右侧展开按钮 → 展开/收起 */
+    /* 二级行：标题点击 → 进二级练习；行首上下箭头（唯一展开入口）→ 展开三级+四级（PM 2026-09-05） */
     html += '<div class="sub-row' + (isOpen?' open':'') + (openingIndex?' flat':'') + '">'
+      + '<span class="sub-arrow" onclick="toggleSub('+si+')">'+(isOpen?'⌃':'⌄')+'</span>'
       + '<span class="sub-title" onclick="goQuiz(\'l2\','+ch.id+',\''+escapeName(sub.name)+'\')">'+sub.name+'</span>'
       + (sfresh ? '<span class="sub-rate void">未做</span>'
-                : '<span class="sub-rate '+src+'">'+sr+'%</span>')
-      + '<span class="sub-arrow" onclick="toggleSub('+si+')">'+(isOpen?'⌃':'⌄')+'</span>'
+                : '<span class="sub-rate">正确率 <b>'+sr+'%</b></span>')
       + '</div>';
 
     /* 展开态卡片：三级列表 + 四级考点（同时出现） */
@@ -1022,18 +1001,17 @@ function renderContent(){
     html += '<div class="lv3-list">';
     sub.level3.forEach(function(l3, li){
       var l3r = rateOf(l3.done, l3.right);
-      var l3c = rateClass(l3r);
       var l3fresh = l3.done===0;
       var l3Stubborn = !l3fresh && l3.total>0 && (l3.wrong/l3.total>=0.5);
       var isL3Open = (openL3===li);
-      /* 三级行：标题点击 → 进三级练习；右侧展开按钮 → 展开/收起四级（单开） */
+      /* 三级行：标题点击 → 进三级练习；左侧展开箭头 → 展开/收起四级（单开） */
       html += '<div class="lv3-row'+(isL3Open?' open':'')+'">'
         + '<span class="pick" onclick="toggleL3('+si+','+li+')">'+(isL3Open?'⌃':'▸')+'</span>'
         + '<span class="lv3-title" onclick="goQuiz(\'l3\','+ch.id+',\''+escapeName(l3.name)+'\')">'+l3.name+'</span>'
         + '<span class="lv3-meta">'
         + (l3fresh ? '<span>未做</span>'
                    : '<span class="m-done">'+l3.done+'/'+l3.total+'</span>'
-                      + '<span class="m-rate '+l3c+'">'+l3r+'%</span>')
+                      + '<span class="m-rate">正确率 <b>'+l3r+'%</b></span>')
         + (l3Stubborn ? '<span class="m-stubborn">顽固</span>' : '')
         + '</span>'
         + '</div>';

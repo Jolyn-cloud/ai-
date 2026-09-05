@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<html lang="zh-CN" data-page-node-id="AB04raeVjxvQ4ruA3m8PNl">
+<head data-page-node-id="5BkDCGTOpsf88A8xmklyaT">
+<meta charset="UTF-8" data-page-node-id="NPYaAKYYqzgUDAlyc1qbNl" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="TdxCm8xfHlTUQYTkI5ICaA" />
 <title>做题页 · 统一做题</title>
 <style>
 /* ============================================================
@@ -160,17 +160,19 @@ body{
 .fill-input.correct{ border-color:var(--success); background:#F0FBF4; color:#1F7A4D; }
 .fill-input.wrong{ border-color:var(--danger); background:#FFF0F0; color:#C0392B; }
 .fill-input.committed{ border-color:var(--primary); background:#F2F5FF; color:#333; }   /* 回车确认态：蓝色回显 */
-/* 填空/简答 轻提交按钮（2026-09-02 PM：输入框下方右侧、无底色主色小字文字链） */
+/* 填空/简答/多选 轻按钮（2026-09-02 PM：输入框下方右侧、无底色主色小字文字链；2026-09-05 多选题同款） */
 .fill-wrap, .essay-wrap{ display:flex; flex-direction:column; align-items:stretch; }   /* 输入框全宽 */
-.fill-submit, .essay-submit{
+.fill-submit, .essay-submit, .multi-submit{
   display:inline-flex; align-items:center; gap:1px;
-  align-self:flex-end;                    /* 按钮右对齐，不影响输入框内文本 */
-  margin-top:8px; padding:4px 6px; border:none; background:none;
+  padding:4px 6px; border:none; background:none;
   color:var(--primary); font-size:12px; font-weight:500; cursor:pointer;
   opacity:.82; transition:opacity .12s ease;
 }
-.fill-submit:active, .essay-submit:active{ opacity:.55; }
-.fill-submit:disabled, .essay-submit:disabled{ opacity:.35; cursor:default; }
+.fill-submit, .essay-submit{ align-self:flex-end; margin-top:8px; }   /* 填空/简答：输入框下方右对齐 */
+.fill-submit:active, .essay-submit:active, .multi-submit:active{ opacity:.55; }
+.fill-submit:disabled, .essay-submit:disabled, .multi-submit:disabled{ opacity:.35; cursor:default; }
+/* 多选轻按钮容器（选项列表下方右对齐；-12px 抵消 .options 底部 12px padding，使按钮距末选项约 8px 与填空一致） */
+.multi-bar{ display:flex; justify-content:flex-end; padding:8px 16px 12px; margin-top:-12px; }
 /* 简答 */
 .essay-wrap{ padding:0 16px 12px; }
 .essay-textarea{
@@ -497,22 +499,9 @@ body{
   border:1.5px solid transparent;
 }
 .op-tab.active{ background:var(--primary-light); color:var(--primary); border-color:var(--primary); }
-.op-tab.done{ color:var(--success); }
-.op-tab.done::after{ content:"✓"; margin-left:3px; color:var(--success); }
-.op-tab.done.active::after{ color:var(--primary); }
-/* 解析态 tab：答对(✓)/答错(✗)/未答(—) */
-.op-tab.right{ color:var(--success); }
-.op-tab.right::after{ content:"✓"; margin-left:3px; color:var(--success); }
-.op-tab.wrong{ color:var(--danger); }
-.op-tab.wrong::after{ content:"✗"; margin-left:3px; color:var(--danger); }
-.op-tab.todo{ color:var(--text-tertiary); }
-.op-tab.todo::after{ content:"—"; margin-left:3px; color:var(--text-tertiary); }
-.op-tab.right.active::after,
-.op-tab.wrong.active::after{ color:var(--primary); }
+/* 子题 tab 只做选中态（PM 2026-09-05：删对错/完成变色与 ✓/✗/— 标志） */
 .op-answer-scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px 8px; }
-.op-sub-label{ font-size:11px; font-weight:700; color:var(--primary); margin-bottom:8px; }
 .op-sub-stem{ font-size:14px; line-height:1.7; color:#333; margin-bottom:12px; }
-.op-sub-stem .sub-no{ color:var(--primary); font-weight:600; margin-right:4px; }
 
 
 
@@ -719,158 +708,158 @@ body{
 
 </style>
 </head>
-<body>
+<body data-page-node-id="Y7FRa5VFH0vVFgSK9z7UR0">
 
 <!-- 顶部导航：模式切换 左 | 计时 中 | 答题卡 右；内部 ✕ 已删（2026-08-31），统一走总壳 appbar -->
-<div class="practice-nav">
-  <div class="mode-switch" id="modeSwitch">
-    <span class="mode-btn active" id="modeExam" onclick="setMode('exam')">做题</span>
-    <span class="mode-btn" id="modeStudy" onclick="setMode('study')">背题</span>
+<div class="practice-nav" data-page-node-id="areFT9VwDOyHst1YC0OGSq">
+  <div class="mode-switch" id="modeSwitch" data-page-node-id="CV5UBvbN4yDjeIutdG2T4l">
+    <span class="mode-btn active" id="modeExam" onclick="setMode('exam')" data-page-node-id="CMcHavyZHoefdUyJEDehDe">做题</span>
+    <span class="mode-btn" id="modeStudy" onclick="setMode('study')" data-page-node-id="VFuWMESRyajEvqvnS5SDad">背题</span>
   </div>
-  <span class="nav-timer" id="navTimer" title="本次答题用时">00:00</span>
-  <button class="nav-sheet-btn" id="navSheetBtn" onclick="openSheet()" aria-label="答题卡">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+  <span class="nav-timer" id="navTimer" title="本次答题用时" data-page-node-id="m7txg5ca2lIcCB0eZoVapG">00:00</span>
+  <button class="nav-sheet-btn" id="navSheetBtn" onclick="openSheet()" aria-label="答题卡" data-page-node-id="k5or9pEOUvMI6CW1GZj91x">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="T8FNDpDP0b8ez4F6AdXg0b">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" data-page-node-id="VNa5UTUbxjcVL6IjvLz8Ic"/><rect x="14" y="3" width="7" height="7" rx="1.5" data-page-node-id="JTvFMSJWIrCylDlIRVe3DV"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5" data-page-node-id="xgh84xf2VhEo3WgUKjMqWD"/><rect x="14" y="14" width="7" height="7" rx="1.5" data-page-node-id="vfbRwi3GoAXAFILIa3CE8q"/>
     </svg>
-    <span>答题卡</span>
+    <span data-page-node-id="dgNqt7jU25wr7d0MCdEvv6">答题卡</span>
   </button>
 </div>
 
 <!-- 进度条：左 = 第 X 题；右 = 当前进度 Y/Z -->
-<div class="progress-wrap">
-  <div class="progress-top">
-    <span class="q-num" id="qNum">第 1 题</span>
-    <span class="q-pos" id="navProgress">1/5</span>
+<div class="progress-wrap" id="progressWrap" data-page-node-id="OSaE2OG5x2Z40VIicGFkQM">
+  <div class="progress-top" data-page-node-id="kgbRTypb2LrIYFbfcBUrHB">
+    <span class="q-num" id="qNum" data-page-node-id="jQRYA8gStH12RC7Hx6jsEZ">第 1 题</span>
+    <span class="q-pos" id="navProgress" data-page-node-id="wdrlFUbfhCnIdFvdOC0IPa">1/5</span>
   </div>
-  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="progress-bar" data-page-node-id="b8wO6mvzsSPAYyvi36OZQO"><div class="progress-fill" id="progressFill" style="width:0%" data-page-node-id="CyH1rJheqAzZgCRf4HjDiK"></div></div>
 </div>
 
 <!-- 标签区 -->
-<div class="tag-area" id="tagArea"></div>
+<div class="tag-area" id="tagArea" data-page-node-id="xgeEigBaImudhRToIc2Bzi"></div>
 
 <!-- 题目区：独立滚动，承载 题干→选项→反馈→解析（PM 2026-08-31） -->
-<div class="question-area" id="questionArea">
+<div class="question-area" id="questionArea" data-page-node-id="PVHEIqrbgabxEwZIPdgQGE">
   <!-- 题干/选项/填空/操作题主体由 renderQuestion 注入 -->
-  <div id="qaBody"></div>
+  <div id="qaBody" data-page-node-id="ZYWCeDwO2P50hMIexpiGsm"></div>
   <!-- 反馈入口：选项下方居中，不显眼字体 -->
-  <div class="feedback-entry">
-    <button class="feedback-link" onclick="openFeedback()">题目有错误？点击反馈</button>
+  <div class="feedback-entry" data-page-node-id="rPes7PDiydnMg5g2Sfn0Na">
+    <button class="feedback-link" onclick="openFeedback()" data-page-node-id="Mwd0ph0dDFbW2ybtyBd9Vj">题目有错误？点击反馈</button>
   </div>
   <!-- 九节解析区 -->
-  <div class="analysis-area" id="analysisArea"></div>
+  <div class="analysis-area" id="analysisArea" data-page-node-id="h1MnupBHHLjNA50GC4yFE1"></div>
 </div>
 
 <!-- 底部操作栏：收藏 / 标记 / 分享 + 交卷（上一题/下一题改手势滑动） -->
-<div class="bottom-bar">
-  <button class="tool-btn" id="btnFav" onclick="toggleFav()">
-    <span class="ico" id="favIco">☆</span><span class="lbl">收藏</span>
+<div class="bottom-bar" id="bottomBar" data-page-node-id="43WO4bubzBquQqpGnBRC9b">
+  <button class="tool-btn" id="btnFav" onclick="toggleFav()" data-page-node-id="FQGfCYfxGFoLYf1w6IDjiF">
+    <span class="ico" id="favIco" data-page-node-id="mpQaIGIZ0v0B7tI7WHfaDP">☆</span><span class="lbl" data-page-node-id="Jn8Cp7gXHWWz3jNr2fSvFc">收藏</span>
   </button>
-  <button class="tool-btn" id="btnMark" onclick="toggleMark()">
-    <span class="ico">🚩</span><span class="lbl">标记</span>
+  <button class="tool-btn" id="btnMark" onclick="toggleMark()" data-page-node-id="goiHTqqANs6FBXTBQBAw9O">
+    <span class="ico" data-page-node-id="gnGrVCoCrHzFwM9avFLTbf">🚩</span><span class="lbl" data-page-node-id="LSlutezBIQJu0EhT8YFTaq">标记</span>
   </button>
-  <button class="tool-btn" id="btnShare" onclick="openShare()">
-    <span class="ico">↗</span><span class="lbl">分享</span>
+  <button class="tool-btn" id="btnShare" onclick="openShare()" data-page-node-id="dpHzBhxabrDUXfOSEmB1ox">
+    <span class="ico" data-page-node-id="LOs2Qk4ELqmfIdYnVQYYTs">↗</span><span class="lbl" data-page-node-id="lWM8pAPyVhxZhGUTQk7fL6">分享</span>
   </button>
-  <button class="btn-submit" id="btnSubmit" onclick="openSubmit()">交卷</button>
+  <button class="btn-submit" id="btnSubmit" onclick="openSubmit()" data-page-node-id="wEExc3DTNuF6NYgw1jcgng">交卷</button>
 </div>
 
 <!-- 答题卡：上滑遮罩浮窗（已答 / 未答 / 已标记 三态；点题号跳转） -->
-<div class="sheet-mask" id="sheetMask" onclick="if(event.target===this) closeSheet()">
-  <div class="sheet-panel">
-    <div class="sheet-grab"></div>
-    <div class="sheet-head">
-      <div class="sheet-title">答题卡</div>
-      <button class="sheet-close" onclick="closeSheet()" aria-label="关闭">×</button>
+<div class="sheet-mask" id="sheetMask" onclick="if(event.target===this) closeSheet()" data-page-node-id="D1ajjyHOQd7kFNyyDHTXij">
+  <div class="sheet-panel" data-page-node-id="xrvgs71MlQNZHS6s4Xv2Fn">
+    <div class="sheet-grab" data-page-node-id="VZ0qMWeV5co7ciudzd7Aqb"></div>
+    <div class="sheet-head" data-page-node-id="6Ycd3uRH1BLk5T9xR0IhIP">
+      <div class="sheet-title" data-page-node-id="lCvU3ps0LUiuDSIQt05vLP">答题卡</div>
+      <button class="sheet-close" onclick="closeSheet()" aria-label="关闭" data-page-node-id="qGfLeUFTt7xxihhlgnTL03">×</button>
     </div>
-    <div class="sheet-legend" id="sheetLegend">
-      <span class="lg lg-current"><i></i>当前题</span>
-      <span class="lg lg-done"><i></i><span id="lgRightLb">已答</span> <b id="lgRight">0</b></span>
-      <span class="lg lg-todo"><i></i>未答 <b id="lgTodo">0</b></span>
-      <span class="lg lg-mark"><i></i>已标记 <b id="lgMark">0</b></span>
-      <span class="lg lg-half lg-verdict-only"><i></i>答对一半 <b id="lgHalf">0</b></span>
-      <span class="lg lg-wrong lg-verdict-only"><i></i>答错 <b id="lgWrong">0</b></span>
+    <div class="sheet-legend" id="sheetLegend" data-page-node-id="BDPsB1PmdHKay1XZsz1ogT">
+      <span class="lg lg-current" data-page-node-id="M8U7A5slhsvbQrAU9bvfVJ"><i data-page-node-id="sE9sOOYxlMCJJljA4TIytX"></i>当前题</span>
+      <span class="lg lg-done" data-page-node-id="TQFOyrGwpjPeZQWxndvwFI"><i data-page-node-id="HOYOWcavsE9oYwAFC8I1V1"></i><span id="lgRightLb" data-page-node-id="bq9xWVhLDqFjhtTD4VdlDi">已答</span> <b id="lgRight" data-page-node-id="slKBbCxQQopOW7mBd7QPgJ">0</b></span>
+      <span class="lg lg-todo" data-page-node-id="S7Bq3yoDqdm7tM4WOZj1Yq"><i data-page-node-id="BlRuxGcCngC9S29SeiGSUf"></i>未答 <b id="lgTodo" data-page-node-id="ZKlZeq3ZGeibGrUbkrJBwC">0</b></span>
+      <span class="lg lg-mark" data-page-node-id="phrs1apnvxbKUeyYrkwQ43"><i data-page-node-id="moOGkqI9qjGvCVxWGqUte8"></i>已标记 <b id="lgMark" data-page-node-id="s8vR71QgSJJpCDd5Sqx15q">0</b></span>
+      <span class="lg lg-half lg-verdict-only" data-page-node-id="gTDsD5F1NMKhjhMKLa5frk"><i data-page-node-id="p8jHAAnSloQavqYNRR6EBC"></i>答对一半 <b id="lgHalf" data-page-node-id="9oTC9XAQuFpvAOXlsk5b8b">0</b></span>
+      <span class="lg lg-wrong lg-verdict-only" data-page-node-id="afA6X4kY40KXQASlQEbAE0"><i data-page-node-id="8vgJnlLaz9SNX5TNDAj6se"></i>答错 <b id="lgWrong" data-page-node-id="jvtEZvKpgwyPYeORUYpfcO">0</b></span>
     </div>
-    <div class="sheet-grid" id="sheetGrid"></div>
-    <div class="sheet-submit">
-      <button class="sheet-submit-btn" id="sheetSubmitBtn" onclick="submitFromSheet()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>确认交卷</span>
+    <div class="sheet-grid" id="sheetGrid" data-page-node-id="sVwFvvtcHD1M1DIXTstMMs"></div>
+    <div class="sheet-submit" data-page-node-id="tyvrynSlTALVeLrTwYMOaG">
+      <button class="sheet-submit-btn" id="sheetSubmitBtn" onclick="submitFromSheet()" data-page-node-id="AIgoOl7usf1nxzd1p6yny9">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="avvP0IM2ALTsQUCxJTDz8p"><path d="M20 6 9 17l-5-5" data-page-node-id="IUBCoqJbBLXN5ltxnfVeFc"/></svg>
+        <span data-page-node-id="vL2qpyzC2HpnNqi7XyE1EI">确认交卷</span>
       </button>
-      <div class="sheet-submit-tip" id="sheetSubmitTip"></div>
+      <div class="sheet-submit-tip" id="sheetSubmitTip" data-page-node-id="dr5prHi2x1zLaJARWxdStL"></div>
     </div>
   </div>
 </div>
 
 <!-- 反馈浮窗：题目反馈（bottom sheet，上滑；错误类型仅题目组，提交带 feedbackType=题目） -->
-<div class="fb-mask" id="fbModalQuestion" onclick="if(event.target===this) closeFeedback()">
-  <div class="fb-panel">
-    <div class="fb-grab"></div>
-    <div class="fb-head">
-      <div class="fb-title">题目反馈</div>
-      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭">×</button>
+<div class="fb-mask" id="fbModalQuestion" onclick="if(event.target===this) closeFeedback()" data-page-node-id="F3oGliuMBsFPRuJiur7EEj">
+  <div class="fb-panel" data-page-node-id="EsKECrcJusfCG8X7qZnLVS">
+    <div class="fb-grab" data-page-node-id="Xvtz7rJEUR7fxnTg41aU61"></div>
+    <div class="fb-head" data-page-node-id="MRE86bDUsjSmlDWxK6wBxh">
+      <div class="fb-title" data-page-node-id="5cRw3UpGzDNpDWzqRWMmXN">题目反馈</div>
+      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭" data-page-node-id="CwwwrfalxnAB1dqMnUEN0l">×</button>
     </div>
-    <div class="fb-body">
-      <div class="feedback-sec">
-        <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
-        <div class="feedback-opts" id="fbOptsQ">
-          <span class="fb-chip" data-k="题干错误" onclick="toggleFb(this)">题干错误</span>
-          <span class="fb-chip" data-k="选项错误" onclick="toggleFb(this)">选项错误</span>
-          <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)">答案错误</span>
-          <span class="fb-chip" data-k="题型错误" onclick="toggleFb(this)">题型错误</span>
+    <div class="fb-body" data-page-node-id="UrCxJdcCLn7gJbjlMOkYPL">
+      <div class="feedback-sec" data-page-node-id="cuPZz0BEETt0jdNREOIBBI">
+        <div class="feedback-sec-t" data-page-node-id="DYevIUBAniatqr2A47suGb">错误类型<span class="req" data-page-node-id="haq2zsXqZerbrgamG0xJkk">*</span>（可多选）</div>
+        <div class="feedback-opts" id="fbOptsQ" data-page-node-id="Zbss3Byszd2FRAmFwdoq66">
+          <span class="fb-chip" data-k="题干错误" onclick="toggleFb(this)" data-page-node-id="csKvQjW0LS0AUWZVA1cGE7">题干错误</span>
+          <span class="fb-chip" data-k="选项错误" onclick="toggleFb(this)" data-page-node-id="3rXpgBmXYhEvUvNwd2AjNn">选项错误</span>
+          <span class="fb-chip" data-k="答案错误" onclick="toggleFb(this)" data-page-node-id="NfkkVv3Wu2LX1neIEc2krJ">答案错误</span>
+          <span class="fb-chip" data-k="题型错误" onclick="toggleFb(this)" data-page-node-id="Qxerf7P3lPVNppMwNMAuWN">题型错误</span>
         </div>
       </div>
-      <div class="feedback-sec">
-        <div class="feedback-sec-t">补充说明（选填）</div>
+      <div class="feedback-sec" data-page-node-id="SlFAXl3bzsOddTQj8spzZy">
+        <div class="feedback-sec-t" data-page-node-id="xSroFgZD1dLnlORGK6u1P3">补充说明（选填）</div>
         <textarea class="feedback-ta" id="fbTextQ" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
       </div>
     </div>
-    <div class="fb-actions">
-      <button class="fb-btn cancel" onclick="closeFeedback()">取消</button>
-      <button class="fb-btn ok" onclick="submitFeedback()">提交</button>
+    <div class="fb-actions" data-page-node-id="OgDJLcexO9AV1wk3b4mKpT">
+      <button class="fb-btn cancel" onclick="closeFeedback()" data-page-node-id="TiFy314coOEcCCGyP1Mjf4">取消</button>
+      <button class="fb-btn ok" onclick="submitFeedback()" data-page-node-id="eGoxWSnrCIy7jBoYA4qYvu">提交</button>
     </div>
   </div>
 </div>
 
 <!-- 反馈浮窗：解析反馈（bottom sheet，上滑；错误类型仅解析组，提交带 feedbackType=解析） -->
-<div class="fb-mask" id="fbModalAnalysis" onclick="if(event.target===this) closeFeedback()">
-  <div class="fb-panel">
-    <div class="fb-grab"></div>
-    <div class="fb-head">
-      <div class="fb-title">解析反馈</div>
-      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭">×</button>
+<div class="fb-mask" id="fbModalAnalysis" onclick="if(event.target===this) closeFeedback()" data-page-node-id="Ez8jbg9TWECIolmWyGsmIr">
+  <div class="fb-panel" data-page-node-id="sO0P5R7UgzPAm40gyqeA4b">
+    <div class="fb-grab" data-page-node-id="4Z72GsXH1fbrOoD2SVW7hs"></div>
+    <div class="fb-head" data-page-node-id="ZTwaX8eMYoJLlizxXcXQCG">
+      <div class="fb-title" data-page-node-id="EaRr9cB0RhNXV7eIQO9mfy">解析反馈</div>
+      <button class="fb-close" onclick="closeFeedback()" aria-label="关闭" data-page-node-id="G6QBzqu3e2jWvsNG6IsjMP">×</button>
     </div>
-    <div class="fb-body">
-      <div class="feedback-sec">
-        <div class="feedback-sec-t">错误类型<span class="req">*</span>（可多选）</div>
-        <div class="feedback-opts" id="fbOptsA">
-          <span class="fb-chip" data-k="答案解析错误" onclick="toggleFb(this)">答案解析错误</span>
-          <span class="fb-chip" data-k="文字解析错误" onclick="toggleFb(this)">文字解析错误</span>
-          <span class="fb-chip" data-k="图片解析错误" onclick="toggleFb(this)">图片解析错误</span>
+    <div class="fb-body" data-page-node-id="7AXz9WzaGX5mIMmudbZ8mG">
+      <div class="feedback-sec" data-page-node-id="IJ25FA6M5p9KBGseza79UM">
+        <div class="feedback-sec-t" data-page-node-id="XHd0lfkyyL9efDpDPQQewX">错误类型<span class="req" data-page-node-id="OWJPV4OnIOzSRTY02KmuCN">*</span>（可多选）</div>
+        <div class="feedback-opts" id="fbOptsA" data-page-node-id="P5iBMVtnQuHWHwjjDoPidA">
+          <span class="fb-chip" data-k="答案解析错误" onclick="toggleFb(this)" data-page-node-id="hlZcFmLm7nq1ROhsAFvur1">答案解析错误</span>
+          <span class="fb-chip" data-k="文字解析错误" onclick="toggleFb(this)" data-page-node-id="Bf0JBfSRibZ61vf8idGyrw">文字解析错误</span>
+          <span class="fb-chip" data-k="图片解析错误" onclick="toggleFb(this)" data-page-node-id="0xaOIPalGrBpW9chuttAU8">图片解析错误</span>
         </div>
       </div>
-      <div class="feedback-sec">
-        <div class="feedback-sec-t">补充说明（选填）</div>
+      <div class="feedback-sec" data-page-node-id="uvDH9B8u5pbjuLpTf1Nxur">
+        <div class="feedback-sec-t" data-page-node-id="X0twaaT9d6TAnw8Hz6vNBJ">补充说明（选填）</div>
         <textarea class="feedback-ta" id="fbTextA" maxlength="200" placeholder="简单描述一下问题，方便我们定位（200 字内）"></textarea>
       </div>
     </div>
-    <div class="fb-actions">
-      <button class="fb-btn cancel" onclick="closeFeedback()">取消</button>
-      <button class="fb-btn ok" onclick="submitFeedback()">提交</button>
+    <div class="fb-actions" data-page-node-id="HREifPcsesD8dy0T6d3KGe">
+      <button class="fb-btn cancel" onclick="closeFeedback()" data-page-node-id="qAh012llH5CRZPm1RGEFWZ">取消</button>
+      <button class="fb-btn ok" onclick="submitFeedback()" data-page-node-id="1LsLUkgqCkt5tGb4elIXwJ">提交</button>
     </div>
   </div>
 </div>
 
 <!-- 页面轻提示（收藏/标记/分享反馈） -->
-<div class="practice-toast" id="practiceToast"></div>
+<div class="practice-toast" id="practiceToast" data-page-node-id="EK29215O7MmXvydO28syPk"></div>
 
 <!-- 分享弹窗（自动生成分享卡片，分享至朋友圈） -->
-<div class="share-mask" id="shareMask" onclick="closeShare()">
-  <div class="share-panel" onclick="event.stopPropagation()">
-    <div class="share-card" id="shareCard"></div>
-    <div class="share-desc">自动生成分享卡片，长按保存后分享至朋友圈</div>
-    <button class="share-btn" onclick="doShare()">分享至朋友圈</button>
-    <button class="share-cancel" onclick="closeShare()">取消</button>
+<div class="share-mask" id="shareMask" onclick="closeShare()" data-page-node-id="efVBp0CzBPYjP80MrCN3yc">
+  <div class="share-panel" onclick="event.stopPropagation()" data-page-node-id="vlisnAqjdXVmoui7fsHjAK">
+    <div class="share-card" id="shareCard" data-page-node-id="ro0JwsUyJoXinHNz6fnnlS"></div>
+    <div class="share-desc" data-page-node-id="kCVdJDjO6CNCAinZaBqtyn">自动生成分享卡片，长按保存后分享至朋友圈</div>
+    <button class="share-btn" onclick="doShare()" data-page-node-id="HmW9ecZaJnis3979ozoLrc">分享至朋友圈</button>
+    <button class="share-cancel" onclick="closeShare()" data-page-node-id="c2kxyDnypkRr5zudbGAqvs">取消</button>
   </div>
 </div>
 
@@ -1476,6 +1465,9 @@ function renderRulePage(bigNo) {
   /* 规则页不显示题目反馈入口（PM 2026-09-02：规则页无题目，反馈入口无意义） */
   var fbEntry = document.querySelector('.feedback-entry');
   if (fbEntry) fbEntry.style.display = 'none';
+  /* 题型规范页：不显示顶部进度条与底部操作按钮（PM 2026-09-05；仅考试卷=模拟考场/历年真题，进题后 renderQuestion 恢复） */
+  var pwR = document.getElementById('progressWrap'); if (pwR) pwR.style.display = 'none';
+  var bbR = document.getElementById('bottomBar'); if (bbR) bbR.style.display = 'none';
   document.getElementById('qNum').textContent = meta.typeName;
   document.getElementById('navProgress').textContent = '1/' + meta.count;
   document.getElementById('progressFill').style.width = (1/meta.count*100) + '%';
@@ -1494,6 +1486,9 @@ function renderRulePage(bigNo) {
 }
 function renderQuestion() {
   if (!total) return;
+  /* 常规题面：恢复顶部进度条与底部操作按钮（题型规范页由 renderRulePage 隐藏，PM 2026-09-05） */
+  var pwQ = document.getElementById('progressWrap'); if (pwQ) pwQ.style.display = '';
+  var bbQ = document.getElementById('bottomBar'); if (bbQ) bbQ.style.display = '';
   /* 考试卷规则页拦截：pendingRule 命中 → 渲染规则页后直接返回（PM 2026-09-02） */
   if (IS_EXAM_PAPER && !submitted && pendingRule) {
     if (renderRulePage(pendingRule)) { updateBottomBar(); return; }
@@ -1503,8 +1498,11 @@ function renderQuestion() {
   if (fbEntry) fbEntry.style.display = '';
   var q = QUESTIONS[idx];
   /* 背题模式下填空/简答：解析需点「轻提交」确认后才显示（打字即弹已改，PM 2026-09-02）；
+     多选（2026-09-05）：作答即显示解析，未作答也可点「查看解析」主动展开（reviewed 记录）；
      其它题型保持已答即显示解析 */
-  var studyReveal = (q.type === 'fill' || q.type === 'essay') ? !!reviewed[idx] : getAnswered(q, answers[idx]);
+  var studyReveal = (q.type === 'fill' || q.type === 'essay') ? !!reviewed[idx]
+    : (q.type === 'multi') ? (getAnswered(q, answers[idx]) || !!reviewed[idx])
+    : getAnswered(q, answers[idx]);
   var reveal = submitted || (MODE === 'study' && studyReveal);
 
   /* 标签（2026-09-02 PM：顽固仅考点级——考点顽固标注在考点标签上，考题不再单独标顽固） */
@@ -1553,7 +1551,13 @@ function renderQuestion() {
 }
 
 function renderBody(q, ans, reveal) {
-  if (q.type === 'single' || q.type === 'judge' || q.type === 'multi') return renderOptions(q, ans, reveal);
+  if (q.type === 'single' || q.type === 'judge') return renderOptions(q, ans, reveal);
+  if (q.type === 'multi') {
+    /* 多选题轻按钮（PM 2026-09-05 对齐填空轻提交）：选项下方右对齐常驻（解析前）。
+       做题模式=「下一题」（作答后跳下一题）；背题模式=「查看解析」（未作答可主动展开解析） */
+    var multiBtn = reveal ? '' : '<div class="multi-bar"><button class="multi-submit" id="multiSubmit" onclick="submitMultiAnswer()"><span>' + ((MODE === 'study') ? '查看解析' : '下一题') + '</span> &#8250;</button></div>';
+    return renderOptions(q, ans, reveal) + multiBtn;
+  }
   if (q.type === 'fill') {
     var cls = reveal ? (checkAnswer(q, ans) ? ' correct' : (ans ? ' wrong' : '')) : (committed[idx] ? ' committed' : '');
     var dis = reveal ? ' disabled' : '';
@@ -1620,17 +1624,13 @@ function renderOperation(q, ans, reveal) {
   var divider = '<div class="op-divider" onpointerdown="opDividerPointerDown(event)" onpointermove="opDividerPointerMove(event)" onpointerup="opDividerPointerUp()" onpointercancel="opDividerPointerUp()">'
     + '<div class="op-grip"></div>'
     + '</div>';
-  /* ③ 子题作答区：横向小题导航（完成标✓）+ 当前子题（切换只用 tab） */
+  /* 子题 tab：只做选中态（PM 2026-09-05：不做对错/完成变色，不加 ✓/✗/— 标志）；
+     子题号用带圈数字 ①②③…（PM 2026-09-05） */
+  var CIRC = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
   var tabs = '<div class="op-tabs">';
   for (var t = 0; t < q.sub.length; t++) {
-    var done = getAnswered(q.sub[t], ans ? ans[t] : undefined);
     var tabCls = 'op-tab' + (t === opSubIdx ? ' active' : '');
-    if (reveal) {
-      /* 解析态：tab 标答对(✓)/答错(✗)/未答(—)，替代作答态的"已答✓" */
-      var ok = checkAnswer(q.sub[t], ans ? ans[t] : undefined);
-      tabCls += (ok === true ? ' right' : (ok === false ? ' wrong' : ' todo'));
-    } else if (done) tabCls += ' done';
-    tabs += '<div class="' + tabCls + '" onclick="opJumpSub(' + t + ')">第 ' + (t+1) + ' 题</div>';
+    tabs += '<div class="' + tabCls + '" onclick="opJumpSub(' + t + ')">第 ' + (CIRC[t] || (t+1)) + ' 题</div>';
   }
   tabs += '</div>';
   var sub = q.sub[opSubIdx];
@@ -1642,8 +1642,7 @@ function renderOperation(q, ans, reveal) {
   /* 子题切换只用横向 tab（2026-09-02 PM：不要底部上一题/下一题按钮） */
   var answerPane = '<div class="op-answer-pane">' + tabs
     + '<div class="op-answer-scroll">'
-    + '<div class="op-sub-label">第 ' + (opSubIdx+1) + ' 题 / 共 ' + q.sub.length + ' 题</div>'
-    + '<div class="op-sub-stem"><span class="sub-no">' + (opSubIdx+1) + '.</span>' + sub.stem + '</div>'
+    + '<div class="op-sub-stem">' + sub.stem + '</div>'
     + content
     + '</div>'
     + '</div>';
@@ -1949,10 +1948,13 @@ function renderTiming(q) {
 function canEdit() {
   if (submitted) return false;
   var q = QUESTIONS[idx];
-  /* 填空/简答：背题下看了解析才锁定，未看可编辑（回车确认后仍需可改文字/换行） */
+  /* 填空/简答/多选：背题下看了解析（reviewed）或已作答即锁定，未看可编辑
+     （填空/简答回车确认后仍可改文字；多选未作答可点「查看解析」主动展开） */
   if (MODE === 'study') {
-    if (q && (q.type === 'fill' || q.type === 'essay')) return !reviewed[idx];
-    if (getAnswered(q, answers[idx])) return false;
+    if (!q) return true;
+    if (q.type === 'fill' || q.type === 'essay') return !reviewed[idx];
+    if (q.type === 'multi') return !reviewed[idx] && !getAnswered(q, answers[idx]);
+    return !getAnswered(q, answers[idx]);
   }
   return true;
 }
@@ -2011,6 +2013,24 @@ function submitTextAnswer() {
     renderQuestion();
   } else {
     /* 做题：轻提交 = 下一道题（最后一题则留在本题） */
+    if (idx < total - 1) { idx++; resetOp(true); renderQuestion(); }
+    else if (!submitted) showToast('已是最后一题，可交卷');
+  }
+}
+/* 多选：轻按钮（PM 2026-09-05 对齐填空轻提交）。
+   背题→点「查看解析」主动展开解析（reviewed）；做题→作答后点「下一题」跳下一题，未作答拦截提示 */
+function submitMultiAnswer() {
+  if (!canEdit()) return;
+  var q = QUESTIONS[idx];
+  if (!q || q.type !== 'multi') return;
+  if (MODE === 'study') {
+    /* 背题：展开解析（已作答会自动展开；此处覆盖未作答主动查看） */
+    reviewed[idx] = true;
+    renderQuestion();
+  } else {
+    /* 做题：轻提交 = 下一道题（未作答拦截，仿填空「请先填写答案」） */
+    var arr = answers[idx];
+    if (!Array.isArray(arr) || arr.length === 0) { showToast('请先选择答案'); return; }
     if (idx < total - 1) { idx++; resetOp(true); renderQuestion(); }
     else if (!submitted) showToast('已是最后一题，可交卷');
   }
@@ -2161,13 +2181,15 @@ function renderSheet() {
   var stat = { correct:0, half:0, wrong:0, none:0, mark:0 };
   var types = [];
   var html = '';
-  /* 图例双态切换：未交卷=作答态（当前/已答/未答/已标记），交卷后=判定态（当前/答对/答对一半/答错/未答/已标记） */
-  document.getElementById('sheetLegend').classList.toggle('verdict', !!submitted);
-  document.getElementById('lgRightLb').textContent = submitted ? '答对' : '已答';
+  /* 图例双态切换：作答态（当前/已答/未答/已标记）vs 判定态（当前/答对/答对一半/答错/未答/已标记）
+     判定态开启条件：做题模式交卷后 / 背题模式直接进入——每答一题立即在答题卡标记答对/答错/答对一半（PM 2026-09-05） */
+  var verdict = submitted || MODE === 'study';
+  document.getElementById('sheetLegend').classList.toggle('verdict', verdict);
+  document.getElementById('lgRightLb').textContent = verdict ? '答对' : '已答';
   /* 单格渲染：cls 类名 + 卷内绝对题号（点击跳题不变） */
   function cellHtml(i) {
     var isMark = !!marked[i];
-    if (submitted) {
+    if (verdict) {
       var c = classifyResult(QUESTIONS[i], answers[i]);
       stat[c]++;
       if (isMark) stat.mark++;
@@ -2411,7 +2433,8 @@ function opScrollTabs() {
   if (!t || !t.children[opSubIdx]) return;
   t.children[opSubIdx].scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
 }
-/* 分界线拖拽：题干区占比 25%~65% 钳制（pointer capture 保证移出分界条后仍跟随） */
+/* 分界线拖拽：题干区占比 25%~65% 钳制（pointer capture 保证移出分界条后仍跟随）
+   PM 2026-09-05 方向修正：手指上滑(dy<0)→题干变矮、分隔线随手上移、下方作答区增大（原实现反向） */
 var _opDrag = null;
 function opDividerPointerDown(e) {
   if (_opDrag) return;
@@ -2424,7 +2447,7 @@ function opDividerPointerMove(e) {
   if (!_opDrag) return;
   var qArea = document.getElementById('questionArea');
   var areaH = (qArea ? qArea.clientHeight : window.innerHeight) || 600;
-  var ratio = _opDrag.startRatio - (e.clientY - _opDrag.startY) / areaH;
+  var ratio = _opDrag.startRatio + (e.clientY - _opDrag.startY) / areaH;
   if (ratio < OP_RATIO_MIN) ratio = OP_RATIO_MIN;
   if (ratio > OP_RATIO_MAX) ratio = OP_RATIO_MAX;
   applyOpRatio(ratio);

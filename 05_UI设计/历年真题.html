@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<html lang="zh-CN" data-page-node-id="ebY2pWV6IVIkVWb88o8k3W">
+<head data-page-node-id="g6rR4mcqa6x4tHkkpVtPMW">
+<meta charset="UTF-8" data-page-node-id="iG7ugyRxpxYbhq2VBisfaU" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="McpYy62xH2uUMIAApzKjZ2" />
 <title>历年真题</title>
 <style>
 /* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-09-02） ====
@@ -87,17 +87,27 @@ body {
   margin: 0 0 9px;
 }
 .paper-status-line.wrong { color: var(--warning); }
-.paper-btn-row { display: flex; gap: 10px; }
+.paper-btn-row { display: flex; gap: 8px; }
+/* 轻量化按钮：把视觉重心让回试卷名称（PM 2026-09-05）
+   关键改动：高度 38→30，圆角 19→8，去渐变/去阴影，主按钮改用主色 12% 透明底 + 主色文字 */
 .paper-btn {
-  flex: 1; height: 38px;
+  flex: 1; height: 30px;
   display: flex; align-items: center; justify-content: center;
-  border: none; border-radius: 19px;
-  font-size: 13.5px; font-weight: 600; cursor: pointer;
-  transition: opacity .12s ease, transform .12s ease;
+  border: none; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: opacity .12s ease, transform .12s ease, background-color .12s ease;
 }
 .paper-btn:active { transform: scale(.97); }
-.paper-btn.primary { background: linear-gradient(100deg, #7169ED, #62CFA9); color: #fff; box-shadow: 0 2px 8px rgba(113,105,237,.28); }
-.paper-btn.ghost { background: #F5F6FA; color: var(--text-primary); border: 1px solid #E5E8F0; }
+.paper-btn.primary {
+  background: rgba(91,114,245,.12);
+  color: var(--primary-dark);
+}
+.paper-btn.primary:active { background: rgba(91,114,245,.18); }
+.paper-btn.ghost {
+  background: rgba(110,119,139,.08);
+  color: var(--text-secondary);
+}
+.paper-btn.ghost:active { background: rgba(110,119,139,.14); }
 .paper-btn.wide { width: 100%; }
 
 /* 试卷标题里的「真题」徽标 */
@@ -117,20 +127,20 @@ body {
 }
 </style>
 </head>
-<body>
+<body data-page-node-id="6j4yrEACevrEYaPYDe4xs5">
 
-<div class="scroll-area">
-  <div id="paperGroups"></div>
+<div class="scroll-area" data-page-node-id="iesMIVhY7GzKB0WRl0wDNE">
+  <div id="paperGroups" data-page-node-id="tOGEMQO1Q3UrzQPcdbvj9A"></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" data-page-node-id="moBGOWQXcXWiyp0D9BhFLl"></div>
 
 <script>
 /* ============================================================
    历年真题 mock 数据（演示期；v5.0 接真实真题卷编排）
-   PM 2026-09-02：不按年份分组，所有卷平铺一个列表；卡片只显卷名+按钮
    字段口径同模拟考场：total题数 / minutes限时 / fullScore满分 / done已做 / right/wrong / rate正确率
    ============================================================ */
+var YEARS = ['2025', '2024', '2023', '2022', '2021'];
 var PAPERS = [
   { id:'real2025', year:'2025', name:'山东省 2025 年计算机真题卷', total:80, minutes:100, fullScore:150, done:1, right:62, wrong:18, skip:0,   used:5400, score:116, rate:78 },
   { id:'real2024', year:'2024', name:'山东省 2024 年计算机真题卷', total:80, minutes:100, fullScore:150, done:0, right:0, wrong:0, skip:0,   used:0, score:0, rate:null },
@@ -148,17 +158,26 @@ function fmtMMSS(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
-/* 卡片：卷名 + 按钮（PM 2026-09-02：去 meta 行与已做统计、不按年份分组，平铺）
-   与模拟考场一致：已做卷保留「再次答题 / 薄弱点分析」；未做卷仅「开始答题」 */
+function metaHtml(p) {
+  return '<div class="paper-meta">'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + p.total + '题</span>'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + p.minutes + '分钟</span>'
+    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg>满分 ' + p.fullScore + '</span>'
+    + '</div>';
+}
+/* 卡片三层：名称行 / 题量行 / 操作区（与模拟考场一致） */
 function cardHtml(p) {
   var isDone = p.done > 0;
+  var score = scoreOf(p);
   var actions = '';
   if (!isDone) {
     actions = '<div class="paper-actions">'
       + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
       + '</div>';
   } else {
+    var low = p.rate !== null && p.rate < 60;
     actions = '<div class="paper-actions">'
+      + '<div class="paper-status-line' + (low ? ' wrong' : '') + '">已做 ' + p.right + '/' + p.total + ' · ' + score + ' 分</div>'
       + '<div class="paper-btn-row">'
       +   '<button class="paper-btn primary" onclick="startPaper(\'' + p.id + '\')">再次答题</button>'
       +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">薄弱点分析</button>'
@@ -170,18 +189,24 @@ function cardHtml(p) {
     +   '<div class="paper-icon real"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
     +   '<div class="paper-name"><span class="paper-title">' + p.year + ' · ' + p.name + '</span></div>'
     + '</div>'
+    + metaHtml(p)
     + actions
     + '</div>';
 }
 function render() {
   var box = document.getElementById('paperGroups');
-  /* 不按年份分组：所有卷平铺一个列表，未做在前、已做在后 */
-  var list = PAPERS.slice().sort(function(a, b) {
-    return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
+  var html = '';
+  YEARS.forEach(function(y) {
+    var list = PAPERS.filter(function(p) { return p.year === y; })
+      .sort(function(a, b) {
+        // 默认排序：未做(0) 在前，已做(done>0) 在后
+        return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
+      });
+    if (list.length === 0) return;
+    html += '<div class="paper-group"><div class="group-head">' + y + ' 年真题</div><div class="paper-list">';
+    list.forEach(function(p) { html += cardHtml(p); });
+    html += '</div></div>';
   });
-  var html = '<div class="paper-list">';
-  list.forEach(function(p) { html += cardHtml(p); });
-  html += '</div>';
   box.innerHTML = html;
 }
 

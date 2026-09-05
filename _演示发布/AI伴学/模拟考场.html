@@ -91,17 +91,27 @@ body {
   margin: 0 0 9px;
 }
 .paper-status-line.wrong { color: var(--warning); }
-.paper-btn-row { display: flex; gap: 10px; }
+.paper-btn-row { display: flex; gap: 8px; }
+/* 轻量化按钮：把视觉重心让回试卷名称（PM 2026-09-05）
+   关键改动：高度 38→30，圆角 19→8，去渐变/去阴影，主按钮改用主色 12% 透明底 + 主色文字 */
 .paper-btn {
-  flex: 1; height: 38px;
+  flex: 1; height: 30px;
   display: flex; align-items: center; justify-content: center;
-  border: none; border-radius: 19px;
-  font-size: 13.5px; font-weight: 600; cursor: pointer;
-  transition: opacity .12s ease, transform .12s ease;
+  border: none; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: opacity .12s ease, transform .12s ease, background-color .12s ease;
 }
 .paper-btn:active { transform: scale(.97); }
-.paper-btn.primary { background: linear-gradient(100deg, #7169ED, #62CFA9); color: #fff; box-shadow: 0 2px 8px rgba(113,105,237,.28); }
-.paper-btn.ghost { background: #F5F6FA; color: var(--text-primary); border: 1px solid #E5E8F0; }
+.paper-btn.primary {
+  background: rgba(91,114,245,.12);
+  color: var(--primary-dark);
+}
+.paper-btn.primary:active { background: rgba(91,114,245,.18); }
+.paper-btn.ghost {
+  background: rgba(110,119,139,.08);
+  color: var(--text-secondary);
+}
+.paper-btn.ghost:active { background: rgba(110,119,139,.14); }
 .paper-btn.wide { width: 100%; }
 
 /* 试卷标题里的「2026届」徽标 */

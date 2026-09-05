@@ -47,7 +47,7 @@ body {
   padding: 16px;
   box-shadow: 0 10px 24px rgba(91,114,245,.24);
 }
-/* 今日攻克卡（PM 2026-09-02）：学习行动卡，保持紫蓝渐变视觉语言 */
+/* 今日待攻克卡（PM 2026-09-05：从「今日攻克」改为「今日待攻克」；删除「重点推荐」红字标签）：学习行动卡，保持紫蓝渐变视觉语言 */
 .today-head { display: flex; align-items: center; justify-content: space-between; }
 .today-title { font-size: 15px; font-weight: 700; }
 .today-all { font-size: 11.5px; opacity: .78; cursor: pointer; padding: 4px 6px; margin: -4px -6px; }
@@ -414,9 +414,9 @@ body.has-appbar .result-body { padding-top: 12px; }
 </head>
 <body>
 <div class="overview" id="overview">
-  <!-- 今日攻克卡（PM 2026-09-02：从数据统计改为学习行动卡，只重构本卡，其余页面不变） -->
+  <!-- 今日待攻克卡（PM 2026-09-05：从「今日攻克」改为「今日待攻克」；删除「重点推荐」小红字，保留知识点名+理由） -->
   <div class="today-head">
-    <span class="today-title">今日攻克</span>
+    <span class="today-title">今日待攻克</span>
     <span class="today-all" onclick="goAllWeak()">查看全部 ›</span>
   </div>
   <div class="today-body" id="todayBody">
@@ -554,7 +554,7 @@ body.has-appbar .result-body { padding-top: 12px; }
    字段口径：
      qid        题目 id（与做题页 wrong 题集 qid 对齐，详情/再练定位用）
      module/chapter  模块→章节 分组路径
-     tag        错因标签（单值 5 类）：audit审题错误 / blind知识盲区 / confusion概念混淆 / memory记忆遗漏 / operation操作知识错误
+     tag        错因标签：stubborn顽固 / confusion概念混淆 / memory记忆遗漏 / operation操作错误
      wrongCount 累计答错次数
      status     待攻克 pending / 已攻克 solved（攻克后可归档）
    ============================================================ */
@@ -582,7 +582,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W02', path: '操作系统 → 文件管理 → 扩展名', type: 'judge',
               title: '文件的扩展名相同，其内容一定相同。',
-              tag: 'confusion', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
+              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
             { qid: 'W04', path: '操作系统 → 文件管理 → 回收站', type: 'single',
               title: '回收站中的文件被「还原」后，将恢复到（ ）。',
               tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false, addedAt: '2026-08-27 14:20' }
@@ -669,7 +669,7 @@ function allQuestions() {
   arr = arr.concat(WRONG_DATA.uploads);
   return arr;
 }
-/* ===== 渲染总览卡（今日攻克，PM 2026-09-02） =====
+/* ===== 渲染总览卡（今日待攻克卡，PM 2026-09-02 重构 / 2026-09-05 改名+去红字） =====
    只重构顶部卡：从数据统计改为学习行动卡（推荐最该练的知识点）。
    stats 仍算（供 chip 计数），但顶部不再显示 ring/数据格。 */
 function renderOverview() {
@@ -681,14 +681,14 @@ function renderOverview() {
     solved: qs.filter(function(q) { return q.status === 'solved'; }).length
   };
   WRONG_DATA.stats = s;
-  /* 推荐知识点：按 path 第2段（2级考点）聚合 wrongCount，取最高；无则走「状态不错」态 */
+  /* 推荐知识点：按 path 第3段（3级考点）聚合 wrongCount，取最高；无顽固则走「状态不错」态 */
   var map = {}, k;
   for (k = 0; k < qs.length; k++) {
     var q = qs[k];
     if (q.status === 'solved') continue;   /* 已攻克不计 */
     var segs = (q.path || '').split(' → ');
-    var module = segs.length >= 1 ? segs[0] : '';
-    var point = segs.length >= 2 ? segs[1] : (segs[segs.length-1] || '');
+    var point = segs.length >= 3 ? segs[2] : (segs[segs.length-1] || '');
+    var module = segs.length >= 2 ? segs[0] : '';
     var key = module + ' · ' + point;
     map[key] = (map[key] || 0) + (q.wrongCount || 1);
   }
@@ -696,8 +696,8 @@ function renderOverview() {
   for (var kk in map) { if (!top || map[kk] > top.cnt) top = { name: kk, cnt: map[kk] }; }
   var body = document.getElementById('todayBody');
   if (top && top.cnt >= 2) {
+    /* PM 2026-09-05：删除「重点推荐」红字标签，直接给知识点名 + 理由，减少噪音 */
     body.innerHTML = ''
-      + '<div class="today-weak-label">重点推荐</div>'
       + '<span class="today-weak-name">' + top.name + '</span>'
       + '<div class="today-reason">你在这个知识点连续错了 <b>' + top.cnt + '</b> 次</div>';
   } else {

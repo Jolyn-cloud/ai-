@@ -732,9 +732,10 @@ function saveUpload() {
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
 
   resetCamState();
+  /* PM 2026-09-05：识别提交后 toast 时长从 1.5s 改为 1s——简单状态确认，不必久挂 */
   showToast(CAM_MODE === 'search'
     ? '✓ 已提交，等待审核通过后计入章节刷题'
-    : '✓ 已提交，等待审核通过后计入错题本');
+    : '✓ 已提交，等待审核通过后计入错题本', 1000);
 }
 
 function closeResult() { resetCamState(); }
@@ -957,12 +958,13 @@ function saveNote() {
 
 /* ===== Toast ===== */
 var toastTimer = null;
-function showToast(msg) {
+/* dur 单位 ms；默认 1500，识别提交后改 1000（PM 2026-09-05） */
+function showToast(msg, dur) {
   var el = document.getElementById('toast');
   el.textContent = msg;
   el.style.opacity = 1;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { el.style.opacity = 0; }, 1500);
+  toastTimer = setTimeout(function() { el.style.opacity = 0; }, dur || 1500);
 }
 
 /* 处于总壳演示（本页嵌在 camLayer iframe，parent 非顶层窗口）→ 页内自绘页头交给 appbar 统一承担。
