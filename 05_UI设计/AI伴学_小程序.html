@@ -1090,6 +1090,22 @@ window.addEventListener('message', function(evt) {
     switchTab('study');
     return;
   }
+  if (d.type === 'OPEN_NOTE_CAM_FROM_PRACTICE') {
+    /* 解析页「我的笔记」→ 拍照上传：记录做题上下文 → 收起做题层 → 切题库 tab 打开拍照搜题（记笔记模式） */
+    NOTE_BACK_CTX = d.data || {};
+    closePractice();
+    switchTab('quiz');
+    var quizF = document.getElementById('frame-quiz');
+    if (quizF && quizF.contentWindow) {
+      quizF.contentWindow.postMessage({ type: 'OPEN_NOTE_CAM_FROM_PRACTICE', data: NOTE_BACK_CTX }, '*');
+    }
+    return;
+  }
+  if (d.type === 'NOTE_SAVED_BACK_PRACTICE') {
+    /* 拍照笔记已存图（关联本题）→ 重开做题层并定位到原题解析（复用 ENTER_REVIEW） */
+    reopenPracticeToNoteReview(NOTE_BACK_CTX || {});
+    return;
+  }
   if (d.type === 'REQ_PRACTICE') {
     /* 统一做题层：题库/错题本/章节练习/模拟考试/历年真题任一入口请求做题（entry 区分来源） */
     openPractice(d.data && d.data.entry, d.data || {});
@@ -1370,6 +1386,7 @@ var practiceFrame = document.getElementById('frame-practice');
 var reportLayer = document.getElementById('reportLayer');
 var reportFrame = document.getElementById('frame-report');
 var REPORT_DATA = null;        /* 报告数据（模拟考场/历年真题 REQ_REPORT 注入） */
+var NOTE_BACK_CTX = null;      /* 解析页「我的笔记」拍照上传：保存后回跳做题层的上下文（PM 2026-09-05） */
 var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
 
 /* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
@@ -1432,6 +1449,25 @@ function closePractice() {
   /* 退出做题层 → 隐藏答题页子 tab + 恢复当前 tab 对应的面板 */
   if (practiceSwitch) practiceSwitch.style.display = 'none';
   updateLogicForTab(currentTabName());
+}
+/* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析（PM 2026-09-05） */
+function reopenPracticeToNoteReview(ctx) {
+  var url = '做题页.html' + (ctx.url || ('?entry=' + (ctx.entry || 'today')));
+  try { practiceFrame.contentWindow.location.href = url; } catch(e) { practiceFrame.setAttribute('src', url); }
+  practiceLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+  if (practiceSwitch) { practiceSwitch.style.display = ''; setPracticeSub('answer'); }
+  var wait = 0;
+  var timer = setInterval(function() {
+    wait++;
+    try {
+      var w = practiceFrame.contentWindow;
+      w.postMessage({ type: 'ENTER_REVIEW', data: { q: typeof ctx.q === 'number' ? ctx.q : 0 } }, '*');
+      clearInterval(timer);
+    } catch(e) {}
+    if (wait > 25) clearInterval(timer);
+  }, 200);
 }
 
 /* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */

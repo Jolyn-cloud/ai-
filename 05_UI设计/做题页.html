@@ -350,6 +350,20 @@ body{
   font-size:12px; font-weight:600; padding:5px 14px; border-radius:8px; cursor:pointer;
 }
 .note-save-btn:active{ background:var(--primary); color:#fff; }
+/* 拍照上传手写笔记（PM 2026-09-05：解析页笔记块轻量入口，复用拍照搜题·记笔记，只拍照存图并关联本题） */
+.note-cam-row{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; margin-top:8px; }
+.note-cam-btn{
+  display:inline-flex; align-items:center; gap:4px; cursor:pointer;
+  border:none; background:none; padding:2px 0;
+  color:var(--primary); font-size:12px; font-weight:600; opacity:.85;
+}
+.note-cam-btn:active{ opacity:.55; }
+.note-photo-linked{
+  margin-top:8px; display:flex; align-items:center; justify-content:space-between;
+  font-size:11.5px; color:var(--text-secondary); background:#F7F8FF;
+  border:1px dashed #C9D1F5; border-radius:8px; padding:6px 10px;
+}
+.note-photo-link{ color:var(--primary); font-weight:600; cursor:pointer; }
 
 /* 视频解析：视频名称 + VIP 解锁占位符（16:9 占位，居中 VIP解锁观看） */
 .vitem{ margin-bottom:10px; }
@@ -1754,11 +1768,14 @@ function renderAnalysis(q, ans, reveal) {
     + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
     + resultLine + '</div>';
 
-  /* 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区展示） */
-  if (ENTRY === 'wrong') {
-    html += renderWrongDiag(q);
-    html += renderWrongStats(q);
-  }
+  /* 错因卡：答错即显，不限做题入口（PM 拍板）；操作题任一子题答错即显；错题本入口恒显（含答对后可确认已掌握） */
+  var diagAnswered = getAnswered(q, ans);
+  var diagShow = (diagAnswered && correct === false)
+    || (isOp && diagAnswered && q.sub && q.sub.some(function(s, si){ return checkAnswer(s, ans ? ans[si] : undefined) === false; }))
+    || ENTRY === 'wrong';
+  if (diagShow) html += renderWrongDiag(q);
+  /* 错题本入口额外：本题统计卡 */
+  if (ENTRY === 'wrong') html += renderWrongStats(q);
 
   /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31）
      · 部分解析带图片（流程图/截图），文字下方显示图片占位，接真实题源后替换为实际图
@@ -1881,7 +1898,36 @@ function renderNote(q) {
       + '<div class="note-save-row"><span class="note-hint">本地保存，仅你可见</span>'
       + '<button class="note-save-btn" onclick="saveNote()">保存笔记</button></div>';
   }
+  /* 拍照上传手写笔记：复用拍照搜题·记笔记，只拍照/相册存图并关联本题（PM 2026-09-05） */
+  html += '<div class="note-cam-row">'
+    + '<button class="note-cam-btn" onclick="openNoteCam()">📷 拍照上传手写笔记</button>'
+    + '<span class="note-hint">存图关联本题，可在「笔记本·拍照笔记」查看</span>'
+    + '</div>';
+  var pn = linkedNoteCount(id);
+  if (pn > 0) {
+    html += '<div class="note-photo-linked"><span>📷 已关联 ' + pn + ' 张拍照笔记（存于笔记本）</span>'
+      + '<span class="note-photo-link" onclick="noteCamHint()">查看 ›</span></div>';
+  }
   return html + '</div>';
+}
+/* 统计本题已关联的拍照笔记（拍照搜题记笔记写入 zsb_notes_v1，带 qkey=本题笔记 key） */
+function linkedNoteCount(id) {
+  try {
+    var arr = JSON.parse(localStorage.getItem('zsb_notes_v1') || '[]');
+    return arr.filter(function(n){ return n.qkey === id; }).length;
+  } catch(e) { return 0; }
+}
+function noteCamHint() {
+  showToast('拍照笔记已存入笔记本「拍照笔记」，可到笔记本页查看');
+}
+/* 解析页「我的笔记」拍照上传：带上当前题目上下文，通知总壳转拍照搜题·记笔记模式 */
+function openNoteCam() {
+  var q = QUESTIONS[idx] || {};
+  var ctx = { from:'practice', entry: ENTRY, url: location.search || '',
+    q: idx, qkey: getNoteId(q), qid: q.qid || '',
+    chapter: q.chapter || '', concept: q.concept || '', stem: String(q.stem || '').slice(0, 80) };
+  try { window.parent.postMessage({ type:'OPEN_NOTE_CAM_FROM_PRACTICE', data: ctx }, '*'); }
+  catch(e) { showToast('请从小程序总壳进入，使用拍照记笔记'); }
 }
 var _noteDraft = '';
 function onNoteInput(v) { _noteDraft = v; }

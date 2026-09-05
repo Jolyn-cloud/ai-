@@ -550,7 +550,8 @@ function takePhoto() {
 
 /* 记笔记：进入记笔记模式（不直接拍照，留在取景页等用户按快门/相册）
    PRD：用户选「记笔记」→ 进入拍照记笔记流程，复用相机页 */
-function takeNote() {
+function takeNote(ctx) {
+  NOTE_CTX = ctx || null;
   setCamMode('note');
 }
 
@@ -802,6 +803,9 @@ var KP_TREE = [
 
 /* 笔记预览页当前态 */
 var CUR_NOTE = { img:'', l1:'', l2:'', l3:'', l4:'' };
+/* 记笔记来源上下文（PM 2026-09-05：解析页「我的笔记」拍照上传 → 关联当前题并回做题页）
+   from='practice' 时保存带 qkey/quizRef，存图后回跳做题层原题 */
+var NOTE_CTX = null;
 /* 知识点选择当前层级：1=一级 2=二级 3=三级 4=四级 */
 var KP_LEVEL = 1;
 
@@ -929,9 +933,9 @@ function saveNote() {
   var createdAt = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
     + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
 
-  /* 派生 chapter/concept（笔记本卡片展示用） */
-  var chapter = CUR_NOTE.l1 || '';
-  var concept = CUR_NOTE.l2 || CUR_NOTE.l1 || '';
+  /* 派生 chapter/concept（笔记本卡片展示用）；来自解析页且未选知识点时，兜底用题目考点 */
+  var chapter = CUR_NOTE.l1 || (NOTE_CTX && NOTE_CTX.from === 'practice' ? (NOTE_CTX.chapter || '') : '');
+  var concept = CUR_NOTE.l2 || CUR_NOTE.l1 || (NOTE_CTX && NOTE_CTX.from === 'practice' ? (NOTE_CTX.concept || '') : '');
 
   var item = {
     nid: 'N' + pad(Date.now() % 1000000),
@@ -941,6 +945,19 @@ function saveNote() {
     chapter: chapter, concept: concept,
     createdAt: createdAt
   };
+  /* 解析页「我的笔记」拍照 → 关联当前题目（PM 2026-09-05） */
+  if (NOTE_CTX && NOTE_CTX.from === 'practice') {
+    item.source = 'practice';
+    item.qkey = NOTE_CTX.qkey || '';
+    item.quizRef = {
+      entry: NOTE_CTX.entry || '',
+      q: typeof NOTE_CTX.q === 'number' ? NOTE_CTX.q : 0,
+      chapter: NOTE_CTX.chapter || chapter,
+      concept: NOTE_CTX.concept || concept,
+      stem: NOTE_CTX.stem || ''
+    };
+    if (NOTE_CTX.qid) item.quizRef.qid = NOTE_CTX.qid;
+  }
 
   var KEY = 'zsb_notes_v1';
   var arr = [];
@@ -949,11 +966,17 @@ function saveNote() {
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
 
   closeNoteResult();
-  /* 关闭拍照搜题层 → 回题库 → 打开笔记本层 */
-  try {
-    window.parent.postMessage({ type:'NOTE_SAVED_OPEN_NOTEBK' }, '*');
-  } catch(e) {}
-  showToast('✓ 已存入笔记本');
+  if (NOTE_CTX && NOTE_CTX.from === 'practice') {
+    /* 解析页来源：关闭拍照层 → 回做题页原题（总壳重新打开并定位解析） */
+    try { window.parent.postMessage({ type:'NOTE_SAVED_BACK_PRACTICE' }, '*'); } catch(e) {}
+    showToast('✓ 已存图并关联本题');
+  } else {
+    /* 笔记本 FAB 来源：关闭拍照搜题层 → 回题库 → 打开笔记本层 */
+    try {
+      window.parent.postMessage({ type:'NOTE_SAVED_OPEN_NOTEBK' }, '*');
+    } catch(e) {}
+    showToast('✓ 已存入笔记本');
+  }
 }
 
 /* ===== Toast ===== */
@@ -981,7 +1004,7 @@ try {
 window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (d && d.type === 'CAM_BACK') { closeResult(); closeNoteResult(); }
-  if (d && d.type === 'TAKE_NOTE') { takeNote(); }
+  if (d && d.type === 'TAKE_NOTE') { takeNote(d.data || null); }
 });
 
 /* 初始：手电筒默认亮 */
