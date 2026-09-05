@@ -106,7 +106,6 @@ body{
 .question-area{ flex:1; overflow-y:auto; background:#fff; -webkit-overflow-scrolling:touch; }
 .stem-wrap{ padding:12px 16px 10px; }
 .stem{ font-size:15px; line-height:1.7; color:#333; }
-.stem .q-num{ color:var(--primary); font-weight:600; margin-right:4px; }
 .options{ padding:0 16px 12px; display:flex; flex-direction:column; gap:8px; }
 .option{
   display:flex; align-items:flex-start; gap:10px;
@@ -1539,8 +1538,8 @@ function renderQuestion() {
   document.getElementById('tagArea').innerHTML = tags;
 
   /* 题目主体：操作类题型题干由 renderOperation 的背景/浮窗统一管理（避免重复渲染）
-     考试卷题号由进度条「题型 第X题 X/Y」表达，题干前不再重复绝对题号（PM 2026-09-02） */
-  var qNumPrefix = IS_EXAM_PAPER ? '' : '<span class="q-num">' + (idx+1) + '.</span>';
+     题号由进度条「第X题 X/Y」表达，题干前不再重复绝对题号（PM 2026-09-06 全题型统一） */
+  var qNumPrefix = '';
   var html = (OP_TYPES.indexOf(q.type) < 0)
     ? '<div class="stem-wrap"><div class="stem">' + qNumPrefix + q.stem + '</div></div>'
     : '';

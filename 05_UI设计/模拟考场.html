@@ -7,8 +7,7 @@
 <style>
 /* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-09-02） ====
    模拟考场页：题库首页「模拟考试」入口下钻二级页
-   结构：试卷卡片列表（全真模拟 / 冲刺模拟 分组，默认未做在前；卡片三层：
-         名称行 / 题量信息 / 操作区，已做卷支持查看成绩报告弹层）
+   结构：试卷卡片列表（默认未做在前；卡片 = 名称行 + 操作区）
    数据：试卷进程（未做/已做+得分），mock 演示期 */
 :root{
   --primary: #5B72F5;
@@ -37,17 +36,6 @@ body {
 
 /* ===== 试卷列表（唯一滚动容器） ===== */
 .scroll-area { padding: 4px 16px 32px; }
-.paper-group { margin-top: 10px; }
-.group-head {
-  font-size: 12px; font-weight: 700; color: var(--text-secondary);
-  display: flex; align-items: center; gap: 6px;
-  margin: 14px 2px 10px;
-}
-.group-head::before {
-  content: ''; width: 3px; height: 12px; border-radius: 2px;
-  background: linear-gradient(180deg, var(--primary), var(--brand-teal));
-}
-.paper-group:first-of-type .group-head { margin-top: 0; }
 .paper-list { display: flex; flex-direction: column; gap: 10px; }
 
 /* 试卷卡片（纵向三层：名称行 / 题量信息 / 操作区） */
@@ -64,9 +52,8 @@ body {
   width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   color: #fff;
+  background: linear-gradient(135deg, #5B72F5, #4358D7);
 }
-.paper-icon.exam { background: linear-gradient(135deg, #5B72F5, #4358D7); }
-.paper-icon.sprint { background: linear-gradient(135deg, #722ED1, #9B6BD9); }
 .paper-icon svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; }
 .paper-name {
   flex: 1; min-width: 0;
@@ -75,22 +62,9 @@ body {
   white-space: nowrap; overflow: hidden;
 }
 .paper-name .paper-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.paper-meta {
-  margin-top: 8px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 11.5px; color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-.paper-meta .pm { display: inline-flex; align-items: center; gap: 3px; }
-.paper-meta .pm svg { width: 12px; height: 12px; }
 
-/* 三层：操作区 */
+/* 操作区 */
 .paper-actions { margin-top: 11px; }
-.paper-status-line {
-  font-size: 12px; font-weight: 600; color: var(--success);
-  margin: 0 0 9px;
-}
-.paper-status-line.wrong { color: var(--warning); }
 .paper-btn-row { display: flex; gap: 8px; }
 /* 轻量化按钮：把视觉重心让回试卷名称（PM 2026-09-05）
    关键改动：高度 38→30，圆角 19→8，去渐变/去阴影，主按钮改用主色 12% 透明底 + 主色文字 */
@@ -114,13 +88,7 @@ body {
 .paper-btn.ghost:active { background: rgba(110,119,139,.14); }
 .paper-btn.wide { width: 100%; }
 
-/* 试卷标题里的「2026届」徽标 */
-.paper-badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
-}
-.paper-badge.exam { background: var(--primary-light); color: var(--primary-dark); }
-.paper-badge.sprint { background: #F9F0FF; color: #722ED1; }
+
 
 /* ===== Toast ===== */
 .toast {
@@ -155,10 +123,6 @@ body {
      score   演示得分 = round(right/total × fullScore)（演示按已做一次简化）
      rate    正确率 = right/done 卷内百分比化（演示按已做一次简化）
    ============================================================ */
-var GROUPS = [
-  { key:'exam',   name:'全真模拟', iconClass:'exam' },
-  { key:'sprint', name:'冲刺模拟', iconClass:'sprint' }
-];
 var PAPERS = [
   { id:'exam1', group:'exam',   no:'卷 01', name:'2026 届全真模拟卷一',  total:80, minutes:100, fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
   { id:'exam2', group:'exam',   no:'卷 02', name:'2026 届全真模拟卷二',  total:80, minutes:100, fullScore:150, done:1,  right:56, wrong:24, skip:0,   used:5555, score:105, rate:70 },
@@ -177,55 +141,34 @@ function fmtMMSS(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
-function metaHtml(p) {
-  return '<div class="paper-meta">'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + p.total + '题</span>'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + p.minutes + '分钟</span>'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg>满分 ' + p.fullScore + '</span>'
-    + '</div>';
-}
-/* 卡片三层：名称行 / 题量行 / 操作区 */
-function cardHtml(p, g) {
+/* 卡片：名称行 + 操作区（PM 2026-09-06：删题量行/已做成绩行，只留名称与按钮） */
+function cardHtml(p) {
   var isDone = p.done > 0;
-  var score = scoreOf(p);
-  var actions = '';
-  if (!isDone) {
-    actions = '<div class="paper-actions">'
-      + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
-      + '</div>';
-  } else {
-    var low = p.rate !== null && p.rate < 60;
-    actions = '<div class="paper-actions">'
-      + '<div class="paper-status-line' + (low ? ' wrong' : '') + '">已做 ' + p.right + '/' + p.total + ' · ' + score + ' 分</div>'
-      + '<div class="paper-btn-row">'
+  var actions = isDone
+    ? '<div class="paper-actions"><div class="paper-btn-row">'
       +   '<button class="paper-btn primary" onclick="startPaper(\'' + p.id + '\')">再次答题</button>'
       +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">薄弱点分析</button>'
-      + '</div>'
+      + '</div></div>'
+    : '<div class="paper-actions">'
+      + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
       + '</div>';
-  }
   return '<div class="paper-card">'
     + '<div class="paper-head">'
-    +   '<div class="paper-icon ' + g.iconClass + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
+    +   '<div class="paper-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
     +   '<div class="paper-name"><span class="paper-title">' + p.no + ' · ' + p.name + '</span></div>'
     + '</div>'
-    + metaHtml(p)
     + actions
     + '</div>';
 }
 function render() {
   var box = document.getElementById('paperGroups');
-  var html = '';
-  GROUPS.forEach(function(g) {
-    var list = PAPERS.filter(function(p) { return g.key === p.group; })
-      .sort(function(a, b) {
-        // 默认排序：未做(0) 在前，已做(done>0) 在后
-        return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
-      });
-    if (list.length === 0) return;
-    html += '<div class="paper-group"><div class="group-head">' + g.name + '</div><div class="paper-list">';
-    list.forEach(function(p) { html += cardHtml(p, g); });
-    html += '</div></div>';
+  var list = PAPERS.slice().sort(function(a, b) {
+    // 默认排序：未做(0) 在前，已做(done>0) 在后
+    return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
   });
+  var html = '<div class="paper-list">';
+  list.forEach(function(p) { html += cardHtml(p); });
+  html += '</div>';
   box.innerHTML = html;
 }
 

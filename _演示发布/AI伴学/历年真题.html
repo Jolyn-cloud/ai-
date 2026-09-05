@@ -7,7 +7,7 @@
 <style>
 /* ==== Product Theme：蓝靛 #5B72F5（与题库首页统一，2026-09-02） ====
    历年真题页：题库首页「历年真题」入口下钻二级页
-   结构：真题卷列表（按年份，默认未做在前）
+   结构：真题卷列表（默认未做在前；卡片 = 名称行 + 操作区）
    数据：试卷状态（未做/已做+正确率），mock 演示期 */
 :root{
   --primary: #5B72F5;
@@ -36,17 +36,6 @@ body {
 
 /* ===== 真题卷列表 ===== */
 .scroll-area { padding: 4px 16px 32px; }
-.paper-group { margin-top: 10px; }
-.group-head {
-  font-size: 12px; font-weight: 700; color: var(--text-secondary);
-  display: flex; align-items: center; gap: 6px;
-  margin: 14px 2px 10px;
-}
-.group-head::before {
-  content: ''; width: 3px; height: 12px; border-radius: 2px;
-  background: linear-gradient(180deg, var(--primary), var(--brand-teal));
-}
-.paper-group:first-of-type .group-head { margin-top: 0; }
 .paper-list { display: flex; flex-direction: column; gap: 10px; }
 .paper-card {
   background: #fff;
@@ -71,22 +60,9 @@ body {
   white-space: nowrap; overflow: hidden;
 }
 .paper-name .paper-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.paper-meta {
-  margin-top: 8px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 11.5px; color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-.paper-meta .pm { display: inline-flex; align-items: center; gap: 3px; }
-.paper-meta .pm svg { width: 12px; height: 12px; }
 
-/* 三层：操作区 */
+/* 操作区 */
 .paper-actions { margin-top: 11px; }
-.paper-status-line {
-  font-size: 12px; font-weight: 600; color: var(--success);
-  margin: 0 0 9px;
-}
-.paper-status-line.wrong { color: var(--warning); }
 .paper-btn-row { display: flex; gap: 8px; }
 /* 轻量化按钮：把视觉重心让回试卷名称（PM 2026-09-05）
    关键改动：高度 38→30，圆角 19→8，去渐变/去阴影，主按钮改用主色 12% 透明底 + 主色文字 */
@@ -109,13 +85,6 @@ body {
 }
 .paper-btn.ghost:active { background: rgba(110,119,139,.14); }
 .paper-btn.wide { width: 100%; }
-
-/* 试卷标题里的「真题」徽标 */
-.paper-badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  padding: 1px 6px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
-  background: var(--primary-light); color: var(--primary-dark);
-}
 
 /* ===== Toast ===== */
 .toast {
@@ -140,7 +109,6 @@ body {
    历年真题 mock 数据（演示期；v5.0 接真实真题卷编排）
    字段口径同模拟考场：total题数 / minutes限时 / fullScore满分 / done已做 / right/wrong / rate正确率
    ============================================================ */
-var YEARS = ['2025', '2024', '2023', '2022', '2021'];
 var PAPERS = [
   { id:'real2025', year:'2025', name:'山东省 2025 年计算机真题卷', total:80, minutes:100, fullScore:150, done:1, right:62, wrong:18, skip:0,   used:5400, score:116, rate:78 },
   { id:'real2024', year:'2024', name:'山东省 2024 年计算机真题卷', total:80, minutes:100, fullScore:150, done:0, right:0, wrong:0, skip:0,   used:0, score:0, rate:null },
@@ -158,55 +126,34 @@ function fmtMMSS(sec) {
   var m = Math.floor(sec / 60), s = sec % 60;
   return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
-function metaHtml(p) {
-  return '<div class="paper-meta">'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' + p.total + '题</span>'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>' + p.minutes + '分钟</span>'
-    + '<span class="pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg>满分 ' + p.fullScore + '</span>'
-    + '</div>';
-}
-/* 卡片三层：名称行 / 题量行 / 操作区（与模拟考场一致） */
+/* 卡片：名称行 + 操作区（PM 2026-09-06：删题量行/已做成绩行/年份分组，只留名称与按钮） */
 function cardHtml(p) {
   var isDone = p.done > 0;
-  var score = scoreOf(p);
-  var actions = '';
-  if (!isDone) {
-    actions = '<div class="paper-actions">'
-      + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
-      + '</div>';
-  } else {
-    var low = p.rate !== null && p.rate < 60;
-    actions = '<div class="paper-actions">'
-      + '<div class="paper-status-line' + (low ? ' wrong' : '') + '">已做 ' + p.right + '/' + p.total + ' · ' + score + ' 分</div>'
-      + '<div class="paper-btn-row">'
+  var actions = isDone
+    ? '<div class="paper-actions"><div class="paper-btn-row">'
       +   '<button class="paper-btn primary" onclick="startPaper(\'' + p.id + '\')">再次答题</button>'
       +   '<button class="paper-btn ghost" onclick="requestReport(\'' + p.id + '\')">薄弱点分析</button>'
-      + '</div>'
+      + '</div></div>'
+    : '<div class="paper-actions">'
+      + '<button class="paper-btn primary wide" onclick="startPaper(\'' + p.id + '\')">开始答题</button>'
       + '</div>';
-  }
   return '<div class="paper-card">'
     + '<div class="paper-head">'
     +   '<div class="paper-icon real"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
     +   '<div class="paper-name"><span class="paper-title">' + p.year + ' · ' + p.name + '</span></div>'
     + '</div>'
-    + metaHtml(p)
     + actions
     + '</div>';
 }
 function render() {
   var box = document.getElementById('paperGroups');
-  var html = '';
-  YEARS.forEach(function(y) {
-    var list = PAPERS.filter(function(p) { return p.year === y; })
-      .sort(function(a, b) {
-        // 默认排序：未做(0) 在前，已做(done>0) 在后
-        return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
-      });
-    if (list.length === 0) return;
-    html += '<div class="paper-group"><div class="group-head">' + y + ' 年真题</div><div class="paper-list">';
-    list.forEach(function(p) { html += cardHtml(p); });
-    html += '</div></div>';
+  var list = PAPERS.slice().sort(function(a, b) {
+    // 默认排序：未做(0) 在前，已做(done>0) 在后
+    return (a.done > 0 ? 1 : 0) - (b.done > 0 ? 1 : 0);
   });
+  var html = '<div class="paper-list">';
+  list.forEach(function(p) { html += cardHtml(p); });
+  html += '</div>';
   box.innerHTML = html;
 }
 
