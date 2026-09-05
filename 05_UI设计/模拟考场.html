@@ -148,11 +148,11 @@ body {
      rate    正确率 = right/done 卷内百分比化（演示按已做一次简化）
    ============================================================ */
 var PAPERS = [
-  { id:'exam1', group:'exam',   no:'卷 01', name:'2026 届全真模拟卷一',  total:80, minutes:100, fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
-  { id:'exam2', group:'exam',   no:'卷 02', name:'2026 届全真模拟卷二',  total:80, minutes:100, fullScore:150, done:1,  right:56, wrong:24, skip:0,   used:5555, score:105, rate:70 },
-  { id:'exam3', group:'exam',   no:'卷 03', name:'2026 届全真模拟卷三',  total:80, minutes:100, fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
-  { id:'sprint1', group:'sprint', no:'卷 01', name:'冲刺模拟卷一', total:40, minutes:45,  fullScore:150, done:1,  right:30, wrong:10, skip:0,   used:2300, score:113, rate:75 },
-  { id:'sprint2', group:'sprint', no:'卷 02', name:'冲刺模拟卷二', total:40, minutes:45,  fullScore:150, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null }
+  { id:'exam1',   no:'卷 01', name:'2026 届全真模拟卷一',  total:80, minutes:120, fullScore:100, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
+  { id:'exam2',   no:'卷 02', name:'2026 届全真模拟卷二',  total:80, minutes:120, fullScore:100, done:1,  right:56, wrong:24, skip:0,   used:5555, score:70,  rate:70 },
+  { id:'exam3',   no:'卷 03', name:'2026 届全真模拟卷三',  total:80, minutes:120, fullScore:100, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null },
+  { id:'sprint1', no:'卷 04', name:'2026 届全真模拟卷四',  total:80, minutes:120, fullScore:100, done:1,  right:60, wrong:20, skip:0,   used:2300, score:75,  rate:75 },
+  { id:'sprint2', no:'卷 05', name:'2026 届全真模拟卷五',  total:80, minutes:120, fullScore:100, done:0,  right:0,  wrong:0,  skip:0,   used:0,    score:0,  rate:null }
 ];
 
 /* ===== 渲染 ===== */
@@ -184,7 +184,7 @@ function cardHtml(p) {
   }
   return '<div class="paper-card">'
     + '<div class="paper-head">'
-    +   '<div class="paper-icon ' + p.group + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
+    +   '<div class="paper-icon exam"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>'
     +   '<div class="paper-name"><span class="paper-title">' + p.no + ' · ' + p.name + '</span></div>'
     + '</div>'
     + actions
