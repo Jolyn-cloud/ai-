@@ -244,7 +244,7 @@ body{
 .ico-8{ background:linear-gradient(135deg,#5B72F5,#3FA98B); color:#fff; }      /* 视频解析 蓝绿 */
 .ico-9{ background:linear-gradient(135deg,#8A90A8,#B0B6CA); color:#fff; }     /* 答题时间 灰 */
 
-/* ===== 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区） ===== */
+/* ===== 错题本专用：错因卡（entry=wrong 解析区；单值 5 类） ===== */
 .diag-card{
   background:linear-gradient(135deg,#E8F3FF 0%,#D6E9FF 100%);
   border-radius:12px; padding:13px 14px; margin-bottom:10px;
@@ -259,21 +259,6 @@ body{
 }
 .diag-btn:active{ transform:scale(.96); }
 .diag-btn.active{ background:#2F6FED; color:#fff; border-color:#2F6FED; }
-.diag-btn.ok{ border-color:#9BD8B4; color:#1F7A4D; }
-.diag-btn.ok.active{ background:#20A866; color:#fff; border-color:#20A866; }
-
-/* 错题统计卡 */
-.wrong-stats-card{ background:#fff; border-radius:12px; padding:13px 14px; margin-bottom:10px; }
-.wrong-stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.wrong-stats-grid .ws-item{ display:flex; flex-direction:column; gap:2px; }
-.ws-label{ font-size:11px; color:var(--text-tertiary); }
-.ws-value{ font-size:14px; font-weight:700; color:var(--text-primary); }
-.ws-value.green{ color:var(--success); }
-.ws-value.red{ color:var(--danger); }
-.ws-value.blue{ color:var(--primary); }
-.wrong-count-row{ margin-top:9px; padding-top:9px; border-top:1px dashed #EDEFF3; display:flex; gap:12px; font-size:12px; color:#666; }
-.wrong-count-row .ok{ color:var(--success); font-weight:700; }
-.wrong-count-row .fail{ color:var(--danger); font-weight:700; }
 
 /* 错题本结果：逐题明细 */
 .result-panel-lg{ max-height:86vh; overflow-y:auto; }
@@ -1114,7 +1099,7 @@ var QUESTIONS = (function buildQuestions(){
       steps:['① 操作系统 = 资源管理 + 用户接口','② 编译器负责编译源程序，与操作系统无关']
     },
     {
-      qid:'W02', path:'操作系统 → 文件管理 → 扩展名', tag:'stubborn', wrongCount:3, stubborn:true,
+      qid:'W02', path:'操作系统 → 文件管理 → 扩展名', tag:'confusion', wrongCount:3, stubborn:true,
       type:'judge', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
       stats:{ avgSec:46, avgRate:55, okCount:1, failCount:3 },
       stem:'文件的扩展名相同，其内容一定相同。',
@@ -1667,25 +1652,39 @@ function renderSubOptions(sub, subAns, reveal, subIdx) {
   });
   return html + '</div>';
 }
-/* ---------- 错题本：诊断卡 + 统计卡（entry=wrong 专用；PM 2026-09 拍板） ---------- */
+/* ---------- 错因卡（PM 2026-09 拍板：答错即显，AI 读解析建议错因 + 手动确认，标记存本地 v5.0 同步错题本） ---------- */
 var DIAG_KEY = 'zsb_wrong_diag_v1';
 function loadDiag() { try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch(e) { return {}; } }
+/* AI 读解析文本建议错因（比读题干准：解析本身讲本题难点与常见错因）。
+   返回 5 类之一；都不命中默认概念混淆。关键词后续可调。 */
+function suggestDiagFromAnalysis(q) {
+  var t = String(q.analysis || '') + ' ' + (q.steps ? q.steps.join(' ') : '');
+  if (/混淆|易混|区别|辨析|概念|原理|定义|特征/.test(t)) return 'confusion';
+  if (/记错|记混|遗漏|漏选|遗忘|背诵|顺序|口诀/.test(t)) return 'memory';
+  if (/审题|看错|漏选|误读|没看清|粗心/.test(t)) return 'audit';
+  if (/操作|快捷键|步骤|命令|工具栏|实践/.test(t)) return 'operation';
+  if (/不会|没学|没见|超纲|陌生|盲区/.test(t)) return 'blind';
+  return 'confusion';
+}
 function renderWrongDiag(q) {
   var id = q.qid || (ENTRY + '-' + idx);
-  var cur = loadDiag()[id] || '';
+  var saved = loadDiag()[id] || '';
+  /* 已手动标记用标记值；未标记用 AI 建议（解析文本识别）；都没有用题目预设 tag */
+  var cur = saved || suggestDiagFromAnalysis(q) || q.tag || 'confusion';
   var opts = [
-    { k:'ok', label:'✓ 已掌握', ok:true },
-    { k:'confusion', label:'✗ 概念混淆' },
-    { k:'memory', label:'✗ 记忆遗漏' },
-    { k:'operation', label:'✗ 操作失误' }
+    { k:'audit',     label:'审题错误' },
+    { k:'blind',     label:'知识盲区' },
+    { k:'confusion', label:'概念混淆' },
+    { k:'memory',    label:'记忆遗漏' },
+    { k:'operation', label:'操作知识错误' }
   ];
   var btns = '';
   opts.forEach(function(o) {
-    btns += '<button class="diag-btn' + (o.ok ? ' ok' : '') + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
+    btns += '<button class="diag-btn' + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
   });
   return '<div class="diag-card">'
     + '<div class="diag-title">💡 这次为什么错了？</div>'
-    + '<div class="diag-desc">如实标记错因，错题本将按错因帮你强化同类考点（v5.0 同步后台）。</div>'
+    + '<div class="diag-desc">AI 已按解析建议错因，可手动修改；标记后同步错题本按错因强化（v5.0）。</div>'
     + '<div class="diag-actions">' + btns + '</div>'
     + '</div>';
 }
@@ -1702,24 +1701,7 @@ function setDiag(btn) {
   for (var i = 0; i < btns.length; i++) {
     btns[i].classList.toggle('active', btns[i].getAttribute('data-k') === cur);
   }
-  showToast(k === 'ok' ? '已标记：已掌握' : '已标记错因，同类题重点巩固');
-}
-function renderWrongStats(q) {
-  var st = q.stats || { avgSec: 50, avgRate: 50, okCount: 1, failCount: 1 };
-  var diff = q.difficulty || '中';
-  var diffStar = (diff === '高') ? '★★★' : ((diff === '低') ? '★' : '★★');
-  return '<div class="wrong-stats-card">'
-    + '<div class="sec-head"><span class="ico ico-9">⏱</span><span class="name">本题统计</span></div>'
-    + '<div class="wrong-stats-grid">'
-    +   '<div class="ws-item"><span class="ws-label">我的答题时间</span><span class="ws-value blue">' + fmtMMSS(finalSec || 0) + '</span></div>'
-    +   '<div class="ws-item"><span class="ws-label">全站平均耗时</span><span class="ws-value">' + st.avgSec + '秒</span></div>'
-    +   '<div class="ws-item"><span class="ws-label">全站正确率</span><span class="ws-value ' + (st.avgRate >= 60 ? 'green' : 'red') + '">' + st.avgRate + '%</span></div>'
-    +   '<div class="ws-item"><span class="ws-label">本题难度</span><span class="ws-value">' + diffStar + ' ' + diff + '</span></div>'
-    + '</div>'
-    + '<div class="wrong-count-row">'
-    +   '<span>本题你作答：</span><span class="ok">✅ 对 ' + st.okCount + ' 次</span><span class="fail">❌ 错 ' + st.failCount + ' 次</span>'
-    + '</div>'
-    + '</div>';
+  showToast('已标记错因，同类题重点巩固');
 }
 function stripHtml(s) {
   return String(s || '').replace(/<[^>]+>/g, '').replace(/_{2,}/g, '____');
@@ -1754,10 +1736,13 @@ function renderAnalysis(q, ans, reveal) {
     + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
     + resultLine + '</div>';
 
-  /* 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区展示） */
-  if (ENTRY === 'wrong') {
+  /* 错因卡：答错即显（不限错题本入口）；操作题任一子题答错即显 */
+  var answered = getAnswered(q, ans);
+  if (answered && correct === false) {
     html += renderWrongDiag(q);
-    html += renderWrongStats(q);
+  } else if (isOp && answered) {
+    var anySubWrong = q.sub && q.sub.some(function(s, si){ return checkAnswer(s, ans ? ans[si] : undefined) === false; });
+    if (anySubWrong) html += renderWrongDiag(q);
   }
 
   /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31）

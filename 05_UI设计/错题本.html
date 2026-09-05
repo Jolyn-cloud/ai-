@@ -554,7 +554,7 @@ body.has-appbar .result-body { padding-top: 12px; }
    字段口径：
      qid        题目 id（与做题页 wrong 题集 qid 对齐，详情/再练定位用）
      module/chapter  模块→章节 分组路径
-     tag        错因标签：stubborn顽固 / confusion概念混淆 / memory记忆遗漏 / operation操作错误
+     tag        错因标签（单值 5 类）：audit审题错误 / blind知识盲区 / confusion概念混淆 / memory记忆遗漏 / operation操作知识错误
      wrongCount 累计答错次数
      status     待攻克 pending / 已攻克 solved（攻克后可归档）
    ============================================================ */
@@ -582,7 +582,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W02', path: '操作系统 → 文件管理 → 扩展名', type: 'judge',
               title: '文件的扩展名相同，其内容一定相同。',
-              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
+              tag: 'confusion', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
             { qid: 'W04', path: '操作系统 → 文件管理 → 回收站', type: 'single',
               title: '回收站中的文件被「还原」后，将恢复到（ ）。',
               tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false, addedAt: '2026-08-27 14:20' }
