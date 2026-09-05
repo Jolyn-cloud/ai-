@@ -1323,6 +1323,7 @@ var practiceFrame = document.getElementById('frame-practice');
 var reportLayer = document.getElementById('reportLayer');
 var reportFrame = document.getElementById('frame-report');
 var REPORT_DATA = null;        /* 报告数据（模拟考场/历年真题 REQ_REPORT 注入） */
+var NOTE_BACK_CTX = null;      /* 解析页「我的笔记」拍照上传：保存后回跳做题层的上下文（PM 2026-09-05） */
 var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
 
 /* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
@@ -1370,6 +1371,25 @@ function closePractice() {
   practiceLayer.classList.remove('show');
   updateTabBar();
   updateAppbarUI();
+}
+/* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析（PM 2026-09-05） */
+function reopenPracticeToNoteReview(ctx) {
+  var url = '做题页.html' + (ctx.url || ('?entry=' + (ctx.entry || 'today')));
+  try { practiceFrame.contentWindow.location.href = url; } catch(e) { practiceFrame.setAttribute('src', url); }
+  practiceLayer.classList.add('show');
+  updateTabBar();
+  updateAppbarUI();
+  if (typeof practiceSwitch !== 'undefined' && practiceSwitch) { practiceSwitch.style.display = ''; if (typeof setPracticeSub === 'function') setPracticeSub('answer'); }
+  var wait = 0;
+  var timer = setInterval(function() {
+    wait++;
+    try {
+      var w = practiceFrame.contentWindow;
+      w.postMessage({ type: 'ENTER_REVIEW', data: { q: typeof ctx.q === 'number' ? ctx.q : 0 } }, '*');
+      clearInterval(timer);
+    } catch(e) {}
+    if (wait > 25) clearInterval(timer);
+  }, 200);
 }
 
 /* ---------- 成绩报告层（模拟考场/历年真题报告页） ---------- */

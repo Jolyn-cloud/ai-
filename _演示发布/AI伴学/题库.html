@@ -683,19 +683,27 @@ window.addEventListener('message', function(evt) {
     }
     return;
   }
-  if (d.type === 'OPEN_NOTE_CAM') {
-    /* 笔记本 FAB → 打开拍照搜题子层，进入记笔记模式 */
+  if (d.type === 'OPEN_NOTE_CAM' || d.type === 'OPEN_NOTE_CAM_FROM_PRACTICE') {
+    /* 打开拍照搜题子层并进入「记笔记」模式。
+       来源两种：笔记本 FAB（OPEN_NOTE_CAM，无上下文）；解析页「我的笔记」拍照上传（OPEN_NOTE_CAM_FROM_PRACTICE，带题目上下文，PM 2026-09-05） */
     if (activeSub && activeSub !== 'cam') {
       SUB_LAYERS[activeSub].classList.remove('show');
     }
     activeSub = 'cam';
     SUB_LAYERS.cam.classList.add('show');
     notifyShellChapter(true, 'cam');
-    /* 转发 TAKE_NOTE 给拍照搜题 iframe，触发记笔记模式 */
+    /* 转发 TAKE_NOTE 给拍照搜题 iframe（带上下文则一并透传），触发记笔记模式 */
     try {
       var camInner = SUB_LAYERS.cam.querySelector('iframe').contentWindow;
-      if (camInner) camInner.postMessage({ type: 'TAKE_NOTE' }, '*');
+      if (camInner) camInner.postMessage({ type: 'TAKE_NOTE', data: (d.type === 'OPEN_NOTE_CAM_FROM_PRACTICE' ? (d.data || null) : null) }, '*');
     } catch(e) {}
+    return;
+  }
+  if (d.type === 'NOTE_SAVED_BACK_PRACTICE') {
+    /* 解析页拍照笔记保存成功 → 收起拍照子层 → 透传总壳重新打开做题层回原题（PM 2026-09-05） */
+    if (activeSub === 'cam') SUB_LAYERS.cam.classList.remove('show');
+    closeSubLayer();
+    try { window.parent.postMessage({ type: 'NOTE_SAVED_BACK_PRACTICE' }, '*'); } catch(e) {}
     return;
   }
   if (d.type === 'NOTE_SAVED_OPEN_NOTEBK') {
