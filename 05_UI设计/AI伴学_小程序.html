@@ -1170,7 +1170,8 @@ window.addEventListener('message', function(evt) {
         chapter: { panel:'view-chapter', title:CHAPTER_LOGIC_TITLE },
         exam:    { panel:'view-exam',    title:EXAM_LOGIC_TITLE },
         real:    { panel:'view-real',    title:REAL_LOGIC_TITLE },
-        wrong:   { panel:'view-wrong',   title:WRONG_LOGIC_TITLE }
+        wrong:   { panel:'view-wrong',   title:WRONG_LOGIC_TITLE },
+        fav:     { panel:'view-fav',     title:FAV_LOGIC_TITLE }
       };
       var cfg = subMap[chapterLayerSub];
       if (cfg) {
@@ -2318,6 +2319,68 @@ var PANELS = {
         ] }
     ]
   },
+  'view-fav': {
+    desc: '收藏本首页（题库 tab 二级层）。章节索引页，定位收藏题用——首页不展示题干/选项，只按章节树聚合题数；点各级章节进对应范围的收藏题做题页。',
+    sections: [
+      { num:'1', title:'页面定位与默认',
+        paras: [
+          '定位：收藏题目的章节索引，不做做题、不展示题目本身；帮助用户按章节快速定位收藏题。',
+          '默认进页：来源 Tab=「全部」，题型筛选=「全部题型」，二级展开态清空（三级考点全部收起）。'
+        ],
+        labels: [
+          {k:'数据来源', v:'mock 演示期；真实接入后读收藏表（按 qid 关联题目），章节字段随题库章节体系联动'},
+          {k:'刷新重置', v:'内存态，刷新恢复全量 mock；收藏/取消收藏的实际增删在做题页/闪卡页操作，本页只读展示题数'}
+        ] },
+      { num:'2', title:'来源 Tab',
+        paras: [
+          '五项：全部 / 章节刷题 / 模拟考试 / 历年真题 / 闪卡，单选，默认「全部」。',
+          '切换来源 → 列表按该来源过滤后重新聚合三级树，各级题数联动重算。'
+        ],
+        labels: [
+          {k:'来源含义', v:'题目被收藏时的做题入口（章节刷题=练习类卷 / 模拟考试=模拟卷 / 历年真题=真题卷 / 闪卡=闪卡背题）'},
+          {k:'全部', v:'不按来源过滤，聚合所有收藏题'}
+        ] },
+      { num:'3', title:'筛选栏',
+        paras: [
+          '左：全部题型 ▾（下拉单选：全部题型 / 单选 / 多选 / 判断 / 填空），选中后该题型过滤生效，各级题数重算。',
+          '右：全部练习 →（按钮）→ 当前来源+题型筛选范围内的全部收藏题进做题页。'
+        ],
+        labels: [
+          {k:'题型下拉', v:'点外部自动收起；选中项打 ✓ 标记'},
+          {k:'全部练习范围', v:'来源 Tab × 题型筛选的交集，非全站全部收藏题'}
+        ] },
+      { num:'4', title:'章节三级树',
+        paras: [
+          '结构：一级章节 → 二级章节 → 三级考点；1/2/3 级均只显示题数，不显示题型/来源标签。',
+          '默认：展示一级 + 二级，三级考点收起。',
+          '一级章节行：显示「章节名 + N道收藏 ›」，整行可点 → 进该一级全部收藏题做题页。',
+          '二级章节行：显示「章节名 + N道收藏 + ∧/∨」，双热区——',
+          '　· 点 ∧/∨ 展开按钮：展开/收起三级考点（同级多开，不互斥）。',
+          '　· 点章节名：进该二级全部收藏题做题页。',
+          '三级考点行：展开后显示「考点名 + N道 ›」，点击 → 进该考点全部收藏题做题页。'
+        ],
+        tableHead:['层级','展示信息','点击行为'],
+        table: [
+          ['一级','章节名 + N道收藏','进该一级全部收藏题做题页'],
+          ['二级','章节名 + N道收藏 + ∧/∨','点∧/∨展开/收起三级；点章节名进该二级做题页'],
+          ['三级','考点名 + N道','进该考点全部收藏题做题页']
+        ],
+        labels: [
+          {k:'题数口径', v:'该层级下所有收藏题按当前来源×题型筛选后的条数（与筛选联动）'},
+          {k:'展开态保持', v:'切来源/题型时已展开的二级保持展开；切来源导致某一级/二级题数为 0 时该级不显示'},
+          {k:'空态', v:'当前筛选下无收藏题 → 列表区隐藏，显空状态「还没有收藏题目」+ 去章节刷题入口'}
+        ] },
+      { num:'5', title:'进入做题页',
+        paras: [
+          '复用统一做题协议：entry=fav，scope 区分范围（chap/sub/point/all），题目清单写本地临时 key 供做题页读取。',
+          '一级 → scope=chap（该一级全部收藏题）；二级 → scope=sub（该二级全部）；三级 → scope=point（该考点全部）；全部练习 → scope=all。'
+        ],
+        labels: [
+          {k:'清单传递', v:'点击时把该范围收藏题（qid/source/章节/题型）写入临时 key，做题页 entry=fav 读取出题'},
+          {k:'范围互斥', v:'每次只传当前点击层级的范围，不叠加父级'}
+        ] }
+    ]
+  },
   'view-mine-placeholder': {
     desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §四，权益规则见 §四（五）。',
     sections: [
@@ -2376,6 +2439,7 @@ var CHAPTER_LOGIC_TITLE = '📋 逻辑说明 · 章节练习';
 var EXAM_LOGIC_TITLE = '📋 逻辑说明 · 模拟考场';
 var REAL_LOGIC_TITLE = '📋 逻辑说明 · 历年真题';
 var WRONG_LOGIC_TITLE = '📋 逻辑说明 · 错题本';
+var FAV_LOGIC_TITLE = '📋 逻辑说明 · 收藏本';
 var studySwitch = document.getElementById('studySwitch');
 
 /* 学习页子 tab 数据：登录 / 答题 / 解析页 */
