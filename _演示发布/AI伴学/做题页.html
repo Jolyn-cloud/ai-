@@ -261,8 +261,6 @@ body{
 }
 .diag-btn:active{ transform:scale(.96); }
 .diag-btn.active{ background:#2F6FED; color:#fff; border-color:#2F6FED; }
-.diag-btn.ok{ border-color:#9BD8B4; color:#1F7A4D; }
-.diag-btn.ok.active{ background:#20A866; color:#fff; border-color:#20A866; }
 
 /* 错题统计卡 */
 .wrong-stats-card{ background:#fff; border-radius:12px; padding:13px 14px; margin-bottom:10px; }
@@ -350,6 +348,33 @@ body{
   font-size:12px; font-weight:600; padding:5px 14px; border-radius:8px; cursor:pointer;
 }
 .note-save-btn:active{ background:var(--primary); color:#fff; }
+/* 拍照入口：并入保存行左侧（轻文字钮） */
+.note-cam-link{
+  display:inline-flex; align-items:center; gap:3px; cursor:pointer;
+  border:none; background:none; padding:2px 0;
+  color:var(--primary); font-size:12px; font-weight:600; opacity:.85;
+}
+.note-cam-link:active{ opacity:.55; }
+/* 已关联拍照笔记：图片占位格反显（最多1张） */
+.note-photo-thumb{
+  margin-top:8px; display:flex; align-items:center; gap:8px;
+  font-size:11.5px; color:var(--text-secondary); background:#F7F8FF;
+  border:1px dashed #C9D1F5; border-radius:8px; padding:8px 10px;
+}
+.note-photo-thumb-img{
+  width:40px; height:40px; border-radius:6px; flex-shrink:0;
+  background:linear-gradient(135deg,#E8F3FF,#F0FAF5);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; color:var(--primary);
+}
+.note-photo-link{ color:var(--primary); font-weight:600; cursor:pointer; margin-left:auto; }
+/* 拍照回跳后高亮笔记卡 */
+@keyframes noteFlash {
+  0%{ box-shadow:0 0 0 0 rgba(91,114,245,.5); border-color:var(--primary); }
+  60%{ box-shadow:0 0 0 6px rgba(91,114,245,0); border-color:var(--primary); }
+  100%{ box-shadow:0 0 0 0 rgba(91,114,245,0); border-color:#E5E8F0; }
+}
+.note-flash{ animation:noteFlash 1.6s ease-out 1; }
 
 /* 视频解析：视频名称 + VIP 解锁占位符（16:9 占位，居中 VIP解锁观看） */
 .vitem{ margin-bottom:10px; }
@@ -1674,18 +1699,19 @@ function renderWrongDiag(q) {
   var id = q.qid || (ENTRY + '-' + idx);
   var cur = loadDiag()[id] || '';
   var opts = [
-    { k:'ok', label:'✓ 已掌握', ok:true },
-    { k:'confusion', label:'✗ 概念混淆' },
-    { k:'memory', label:'✗ 记忆遗漏' },
-    { k:'operation', label:'✗ 操作失误' }
+    { k:'misread', label:'审题错误' },
+    { k:'blind', label:'知识盲区' },
+    { k:'confusion', label:'概念混淆' },
+    { k:'memory', label:'记忆遗漏' },
+    { k:'operation', label:'操作失误' }
   ];
   var btns = '';
   opts.forEach(function(o) {
-    btns += '<button class="diag-btn' + (o.ok ? ' ok' : '') + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
+    btns += '<button class="diag-btn' + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
   });
   return '<div class="diag-card">'
     + '<div class="diag-title">💡 这次为什么错了？</div>'
-    + '<div class="diag-desc">如实标记错因，错题本将按错因帮你强化同类考点（v5.0 同步后台）。</div>'
+    + '<div class="diag-desc">如实标记错因，错题本将按错因帮你强化同类考点。</div>'
     + '<div class="diag-actions">' + btns + '</div>'
     + '</div>';
 }
@@ -1702,7 +1728,7 @@ function setDiag(btn) {
   for (var i = 0; i < btns.length; i++) {
     btns[i].classList.toggle('active', btns[i].getAttribute('data-k') === cur);
   }
-  showToast(k === 'ok' ? '已标记：已掌握' : '已标记错因，同类题重点巩固');
+  showToast('已标记错因，同类题重点巩固');
 }
 function renderWrongStats(q) {
   var st = q.stats || { avgSec: 50, avgRate: 50, okCount: 1, failCount: 1 };
@@ -1754,11 +1780,14 @@ function renderAnalysis(q, ans, reveal) {
     + '<div class="sec-head"><span class="ico ico-1">✓</span><span class="name">答题结果</span></div>'
     + resultLine + '</div>';
 
-  /* 错题本专用：诊断卡 + 统计卡（entry=wrong 解析区展示） */
-  if (ENTRY === 'wrong') {
-    html += renderWrongDiag(q);
-    html += renderWrongStats(q);
-  }
+  /* 错因卡：答错即显，不限做题入口（PM 拍板）；操作题任一子题答错即显；错题本入口恒显（含答对后可确认已掌握） */
+  var diagAnswered = getAnswered(q, ans);
+  var diagShow = (diagAnswered && correct === false)
+    || (isOp && diagAnswered && q.sub && q.sub.some(function(s, si){ return checkAnswer(s, ans ? ans[si] : undefined) === false; }))
+    || ENTRY === 'wrong';
+  if (diagShow) html += renderWrongDiag(q);
+  /* 错题本入口额外：本题统计卡 */
+  if (ENTRY === 'wrong') html += renderWrongStats(q);
 
   /* ② 解析（答案解析 + 解题步骤，原③；系统判断节已删 PM 2026-08-31）
      · 部分解析带图片（流程图/截图），文字下方显示图片占位，接真实题源后替换为实际图
@@ -1873,15 +1902,42 @@ function renderNote(q) {
     + '<div class="sec-head"><span class="ico ico-6">✎</span><span class="name">我的笔记</span></div>';
   if (has) {
     html += '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)">' + notes[id] + '</textarea>'
-      + '<div class="note-save-row"><span class="note-hint">已保存于本地</span>'
+      + '<div class="note-save-row"><button class="note-cam-link" onclick="openNoteCam()">📷 拍照上传</button>'
       + '<button class="note-save-btn" onclick="saveNote()">更新</button></div>';
   } else {
     html += '<div class="note-empty">还没有笔记，记下你的理解、易错点或记忆口诀吧</div>'
       + '<textarea class="note-ta" id="noteTa" placeholder="记下你的理解、易错点、记忆口诀…" oninput="onNoteInput(this.value)"></textarea>'
-      + '<div class="note-save-row"><span class="note-hint">本地保存，仅你可见</span>'
+      + '<div class="note-save-row"><button class="note-cam-link" onclick="openNoteCam()">📷 拍照上传</button>'
       + '<button class="note-save-btn" onclick="saveNote()">保存笔记</button></div>';
   }
+  /* 已关联拍照笔记：图片占位格反显（最多1张，取自 zsb_notes_v1 同 qkey 项） */
+  var pn = linkedNoteCount(id);
+  if (pn > 0) {
+    html += '<div class="note-photo-thumb"><span class="note-photo-thumb-img">📷</span>'
+      + '<span>已关联 ' + pn + ' 张拍照笔记</span>'
+      + '<span class="note-photo-link" onclick="noteCamHint()">查看 ›</span></div>';
+  }
   return html + '</div>';
+}
+/* 统计本题已关联的拍照笔记（拍照搜题记笔记写入 zsb_notes_v1，带 qkey=本题笔记 key） */
+function linkedNoteCount(id) {
+  try {
+    var arr = JSON.parse(localStorage.getItem('zsb_notes_v1') || '[]');
+    return arr.filter(function(n){ return n.qkey === id; }).length;
+  } catch(e) { return 0; }
+}
+function noteCamHint() {
+  showToast('拍照笔记已存入笔记本「拍照笔记」，可到笔记本页查看');
+}
+/* 解析页「我的笔记」拍照上传：带上当前题目上下文，通知总壳转拍照搜题·记笔记模式 */
+function openNoteCam() {
+  var q = QUESTIONS[idx] || {};
+  var ctx = { from:'practice', entry: ENTRY, url: location.search || '',
+    q: idx, qkey: getNoteId(q), qid: q.qid || '',
+    chapter: q.chapter || '', concept: q.concept || '', stem: String(q.stem || '').slice(0, 80),
+    focusNote: 1 };
+  try { window.parent.postMessage({ type:'OPEN_NOTE_CAM_FROM_PRACTICE', data: ctx }, '*'); }
+  catch(e) { showToast('请从小程序总壳进入，使用拍照记笔记'); }
 }
 var _noteDraft = '';
 function onNoteInput(v) { _noteDraft = v; }
@@ -2568,6 +2624,17 @@ window.addEventListener('message', function(evt) {
     var q = (d.data && typeof d.data.q === 'number') ? d.data.q : 0;
     if (q < 0 || q >= total) q = 0;
     jumpTo(q);
+    /* 拍照笔记回跳：定位到「我的笔记」卡片并加短暂高亮（PM 2026-09-05） */
+    if (d.data && d.data.focusNote) {
+      setTimeout(function() {
+        var sec = document.getElementById('noteSec');
+        if (sec) {
+          sec.scrollIntoView({ behavior:'smooth', block:'center' });
+          sec.classList.add('note-flash');
+          setTimeout(function() { sec.classList.remove('note-flash'); }, 1700);
+        }
+      }, 350);
+    }
   }
 });
 

@@ -495,11 +495,15 @@ function setCamMode(mode) {
   closeResult();
   closeNoteResult();
 }
-/* 相册导入：note 模式 → 笔记预览页；其他 → 提示（演示） */
+/* 相册导入：note 模式 → 笔记预览页（practice 来源直存回跳）；其他 → 提示（演示） */
 function importAlbum() {
   if (CAM_MODE === 'note') {
     CUR_NOTE.img = 'album_' + Date.now();
-    showNoteResult();
+    if (NOTE_CTX && NOTE_CTX.from === 'practice') {
+      saveNote();
+    } else {
+      showNoteResult();
+    }
   } else {
     camAlert('从相册导入（演示）');
   }
@@ -523,18 +527,22 @@ function resetCamState() {
 
 /* 拍照 → OCR 1s → 出结果（演示：奇数次成功 / 偶数次未识别）
    每次拍照生成图片标识 camshot_时间戳，供笔记/错题/章节关联原图
-   note 模式：跳过 OCR/AI，直接进笔记预览页 */
+   note 模式：跳过 OCR/AI，直接进笔记预览页
+   PM 2026-09-05：来自解析页（NOTE_CTX.from==='practice'）时，快门后直接存图关联本题并回跳，不开预览页 */
 function takePhoto() {
   CAM_SHOTS++;
   var imgId = 'camshot_' + Date.now();
   if (CAM_MODE === 'note') {
     CUR_NOTE.img = imgId;
-    /* 快门反馈 */
     var ocr = document.getElementById('camOcr');
     ocr.classList.add('on');
     setTimeout(function() {
       ocr.classList.remove('on');
-      showNoteResult();
+      if (NOTE_CTX && NOTE_CTX.from === 'practice') {
+        saveNote();
+      } else {
+        showNoteResult();
+      }
     }, 500);
     return;
   }

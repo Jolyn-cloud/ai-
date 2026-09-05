@@ -1450,7 +1450,7 @@ function closePractice() {
   if (practiceSwitch) practiceSwitch.style.display = 'none';
   updateLogicForTab(currentTabName());
 }
-/* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析（PM 2026-09-05） */
+/* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析并高亮笔记卡（PM 2026-09-05） */
 function reopenPracticeToNoteReview(ctx) {
   var url = '做题页.html' + (ctx.url || ('?entry=' + (ctx.entry || 'today')));
   try { practiceFrame.contentWindow.location.href = url; } catch(e) { practiceFrame.setAttribute('src', url); }
@@ -1463,7 +1463,7 @@ function reopenPracticeToNoteReview(ctx) {
     wait++;
     try {
       var w = practiceFrame.contentWindow;
-      w.postMessage({ type: 'ENTER_REVIEW', data: { q: typeof ctx.q === 'number' ? ctx.q : 0 } }, '*');
+      w.postMessage({ type: 'ENTER_REVIEW', data: { q: typeof ctx.q === 'number' ? ctx.q : 0, focusNote: ctx.focusNote || 0 } }, '*');
       clearInterval(timer);
     } catch(e) {}
     if (wait > 25) clearInterval(timer);
