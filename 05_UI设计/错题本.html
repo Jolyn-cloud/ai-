@@ -681,14 +681,14 @@ function renderOverview() {
     solved: qs.filter(function(q) { return q.status === 'solved'; }).length
   };
   WRONG_DATA.stats = s;
-  /* 推荐知识点：按 path 第3段（3级考点）聚合 wrongCount，取最高；无顽固则走「状态不错」态 */
+  /* 推荐知识点：按 path 第2段（2级考点）聚合 wrongCount，取最高；无则走「状态不错」态 */
   var map = {}, k;
   for (k = 0; k < qs.length; k++) {
     var q = qs[k];
     if (q.status === 'solved') continue;   /* 已攻克不计 */
     var segs = (q.path || '').split(' → ');
-    var point = segs.length >= 3 ? segs[2] : (segs[segs.length-1] || '');
-    var module = segs.length >= 2 ? segs[0] : '';
+    var module = segs.length >= 1 ? segs[0] : '';
+    var point = segs.length >= 2 ? segs[1] : (segs[segs.length-1] || '');
     var key = module + ' · ' + point;
     map[key] = (map[key] || 0) + (q.wrongCount || 1);
   }
