@@ -410,6 +410,28 @@ body.has-appbar .result-body { padding-top: 12px; }
 .kp-item .kp-next { color: var(--text-tertiary); font-size: 15px; }
 .kp-picker-done { flex-shrink: 0; width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
 
+/* ===== 左滑删除（PM 2026-09-06：移植自笔记本，错题卡片通用） ===== */
+.swipe-cell {
+  position: relative;
+  overflow: hidden;
+  margin: 8px 0 9px;
+  border-radius: 13px 11px 15px 10px;
+}
+.swipe-content {
+  position: relative; z-index: 2;
+  transition: transform .22s cubic-bezier(.32,.72,.32,1);
+  will-change: transform;
+}
+.swipe-del {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 72px; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--danger);
+  color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.q-card { margin: 0; }  /* 卡片间距交由 swipe-cell 承接 */
+
 </style>
 </head>
 <body>
@@ -764,6 +786,104 @@ function renderList() {
   });
 }
 
+/* ===== 左滑删除包裹层（PM 2026-09-06：移植自笔记本，错题卡片通用） ===== */
+function swipeWrap(qid, innerHtml) {
+  return '<div class="swipe-cell" data-qid="' + qid + '">'
+    +   '<div class="swipe-content">' + innerHtml + '</div>'
+    +   '<div class="swipe-del" onclick="deleteWrong(\'' + qid + '\')">删除</div>'
+    + '</div>';
+}
+
+/* 删除错题：上传题同步删 localStorage；章节题删内存（mock 不持久化）。
+   只删章节下的错题条目，章节壳保留。 */
+function deleteWrong(qid) {
+  var isUpload = (qid || '').indexOf('U') === 0;
+  var removed = false;
+  if (isUpload) {
+    WRONG_DATA.uploads = WRONG_DATA.uploads.filter(function(q) {
+      if (q.qid === qid) { removed = true; return false; }
+      return true;
+    });
+    if (removed) {
+      try { localStorage.setItem('zsb_wrong_uploads_v1', JSON.stringify(WRONG_DATA.uploads)); } catch(e) {}
+    }
+  } else {
+    WRONG_DATA.modules.forEach(function(m) {
+      m.chapters.forEach(function(c) {
+        var before = c.questions.length;
+        c.questions = c.questions.filter(function(q) { return q.qid !== qid; });
+        if (c.questions.length < before) removed = true;
+      });
+    });
+  }
+  if (removed) {
+    closeAllSwipe();
+    renderList();
+    updateChipCounts();
+    showToast('已删除该错题');
+  }
+}
+
+/* ===== 左滑手势（事件委托，列表容器统一监听；移植自笔记本） ===== */
+var SWIPE_OPEN = 72;
+var SWIPE_THRESHOLD = 10;
+var swipeState = { cell: null, startX: 0, startY: 0, dx: 0, moved: false, opened: false };
+function closeAllSwipe(except) {
+  document.querySelectorAll('.swipe-content').forEach(function(c) {
+    if (c !== except) { c.style.transform = ''; c._opened = false; }
+  });
+}
+(function initSwipe() {
+  var wrap = document.getElementById('list');
+  if (!wrap) return;
+  wrap.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    var cell = e.target.closest('.swipe-cell');
+    if (!cell) return;
+    var content = cell.querySelector('.swipe-content');
+    closeAllSwipe(content);
+    swipeState.cell = cell;
+    swipeState.startX = e.touches[0].clientX;
+    swipeState.startY = e.touches[0].clientY;
+    swipeState.dx = 0;
+    swipeState.moved = false;
+    swipeState.opened = !!content._opened;
+    content.style.transition = 'none';
+  }, { passive: true });
+  wrap.addEventListener('touchmove', function(e) {
+    if (!swipeState.cell) return;
+    var dx = e.touches[0].clientX - swipeState.startX;
+    var dy = e.touches[0].clientY - swipeState.startY;
+    if (Math.abs(dy) > Math.abs(dx) && !swipeState.moved) return;
+    if (Math.abs(dx) > 4) swipeState.moved = true;
+    if (!swipeState.moved) return;
+    var content = swipeState.cell.querySelector('.swipe-content');
+    var base = swipeState.opened ? -SWIPE_OPEN : 0;
+    var x = base + dx;
+    if (x > 0) x = 0;
+    if (x < -SWIPE_OPEN) x = -SWIPE_OPEN;
+    content.style.transform = 'translateX(' + x + 'px)';
+    swipeState.dx = x;
+  }, { passive: true });
+  wrap.addEventListener('touchend', function(e) {
+    if (!swipeState.cell) return;
+    var cell = swipeState.cell;
+    var content = cell.querySelector('.swipe-content');
+    content.style.transition = '';
+    var dx = swipeState.dx;
+    if (swipeState.moved) {
+      if (dx < -SWIPE_THRESHOLD) {
+        content.style.transform = 'translateX(-' + SWIPE_OPEN + 'px)';
+        content._opened = true;
+      } else {
+        content.style.transform = '';
+        content._opened = false;
+      }
+    }
+    swipeState.cell = null;
+  }, { passive: true });
+})();
+
 function qCard(q) {
   var tagCls = ['stubborn','confusion','memory','operation'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
   var action = q.stubborn ? '集中攻克' : '再练';
@@ -780,7 +900,8 @@ function qCard(q) {
     ? '<div class="q-img-thumb" onclick="camAlert(\'查看原图（演示）\')"><span>📷</span>OCR 未识别 <em>点击查看原图</em></div>'
     : '<div class="q-title">' + (q.title || q.ocr) + '</div>'
       + (q.img ? '<div class="q-orig-link" onclick="camAlert(\'查看原图（演示）\')">📷 查看原图</div>' : '');
-  return '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '" data-qid="' + (q.qid || '') + '">'
+  return swipeWrap(q.qid, ''
+    + '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '">'
     + '<div class="q-head">'
     +   '<span class="q-head-title">' + headTitle + '</span>'
     +   '<span class="q-head-tags">' + headTags + '</span>'
@@ -790,7 +911,7 @@ function qCard(q) {
     +   '<button class="q-btn primary" onclick="startPractice(\'' + (q.stubborn ? 'stubborn' : 'qid') + '\',\'' + q.qid + '\')">' + action + '</button>'
     +   '<button class="q-btn detail" onclick="goDetail(\'' + q.qid + '\')">详情</button>'
     + '</div>'
-    + '</div>';
+    + '</div>');
 }
 
 function passFilter(q) {
