@@ -144,14 +144,8 @@ body {
 }
 .chap-name { font-size: 15px; font-weight: 800; color: var(--text-primary); }
 .chap-count { font-size: 11px; color: var(--text-tertiary); font-weight: 500; font-variant-numeric: tabular-nums; }
-.chap-sub {
-  font-size: 12px; font-weight: 700; color: var(--text-secondary);
-  padding: 10px 6px 0 10px;
-}
-.chap-leaf {
-  font-size: 11px; font-weight: 600; color: var(--text-tertiary);
-  padding: 6px 6px 0 18px;
-}
+
+/* 注释：2/3 级不再单独打组头（卡片外仅一级考点），层级由卡片内轻量标题承担 */
 
 /* ===== 左滑删除（iOS 风格） ===== */
 .swipe-cell {
@@ -208,11 +202,15 @@ body {
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
-/* 卡片内层级标题（章节分组视图：一级考点在外=组头；卡片内 =（轻量）二级 - 三级主标题，PM 2026-09-05） */
-.c-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.c-l2 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
-.c-sep { font-size: 12px; color: var(--text-tertiary); }
-.c-l3 { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+/* 卡片内层级标题（章节分组视图：一级考点在外=组头；卡片内 = 轻量「二级 - 三级」，PM 2026-09-05） */
+.c-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.c-l2 { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+.c-sep { font-size: 11px; color: var(--text-tertiary); }
+.c-l3 { font-size: 13px; font-weight: 400; color: var(--text-secondary); line-height: 1.5; }
+/* 分组卡片标题行：轻量 2/3 级标题在左、日期右侧同一行（不另起 meta 行） */
+.n-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.n-head .n-time { flex-shrink: 0; }
+.p-head .c-line { flex: 1; min-width: 0; }
 
 /* ===== 拍照笔记卡片 ===== */
 .p-card {
@@ -589,8 +587,9 @@ function timeGroupHtml(list) {
   return html;
 }
 
-/* ===== 按章节分组渲染（默认）：同一 1 级考点一组，组内按同一 2 级、3 级逐层归类；
-   未选择考点（无 l1）的条目归入「未分类」组；组内每层叶子仍按时间倒序（PM 2026-09-05） ===== */
+/* ===== 按章节分组渲染（默认）：同一 1 级考点一组（卡片外只打一级组头）；
+   组内按 2 级 → 3 级顺序铺卡，层级由卡片内轻量「二级 - 三级」标题承担（不再打 2/3 级组头）；
+   未选择考点（无 l1）的条目归入「未分类」组；组内卡片仍按时间倒序（PM 2026-09-05） ===== */
 function chapterGroupHtml(list) {
   var l1order = [], l1map = {}, uncat = [];
   list.forEach(function(it) {
@@ -615,10 +614,9 @@ function chapterGroupHtml(list) {
       +   '<div class="chap-head"><span class="chap-name">' + l1 + '</span><span class="chap-count">' + n + ' 条</span></div>';
     grp.l2order.forEach(function(l2) {
       var sub = grp.l2map[l2];
-      if (l2) html += '<div class="chap-sub">' + l2 + '</div>';
+      /* 2/3 级不再单独打组头（职责交给卡片内轻量「二级 - 三级」标题），保持顺序直接铺卡 */
       sub.l3order.forEach(function(l3) {
         var arr = sub.l3map[l3];
-        if (l3) html += '<div class="chap-leaf">' + l3 + '</div>';
         arr.forEach(function(it){ html += cardOf(it); });
       });
     });
@@ -646,18 +644,23 @@ function quizCard(it, inGroup) {
   var l1l2 = (it.l1 && it.l2) ? (it.l1 + ' · ' + it.l2) : (it.l1 || it.chapter || '');
   var timeStr = (it.createdAt || '').slice(5, 10);  /* MM-DD */
   var t2 = it.l2 || '', t3 = it.concept || '';
-  /* 章节分组视图：组头已展示一级，卡片 meta 仅保留时间；标题=（轻量）二级 - 三级 */
-  var metaHtml = inGroup
-    ? '<div class="n-meta"><span></span><span class="n-time">' + timeStr + '</span></div>'
-    : '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>';
-  var titleHtml = inGroup
-    ? '<div class="c-line">' + (t2 ? '<span class="c-l2">' + t2 + '</span><span class="c-sep">-</span>' : '') + '<span class="c-l3">' + t3 + '</span></div>'
-    : '<div class="n-title">' + t3 + '</div>';
-  var inner = '<div class="q-card">'
-    + metaHtml
-    + titleHtml
-    +   '<div class="n-content">' + (it.content || '') + '</div>'
-    + '</div>';
+  var inner;
+  if (inGroup) {
+    /* 章节分组视图：一级在组头；卡片首行 = 轻量「二级-三级」标题，日期同右侧一行 */
+    inner = '<div class="q-card">'
+      +   '<div class="n-head">'
+      +     '<div class="c-line">' + (t2 ? '<span class="c-l2">' + t2 + '</span><span class="c-sep">-</span>' : '') + '<span class="c-l3">' + t3 + '</span></div>'
+      +     '<span class="n-time">' + timeStr + '</span>'
+      +   '</div>'
+      +   '<div class="n-content">' + (it.content || '') + '</div>'
+      + '</div>';
+  } else {
+    inner = '<div class="q-card">'
+      +   '<div class="n-meta"><span>' + l1l2 + '</span><span class="n-time">' + timeStr + '</span></div>'
+      +   '<div class="n-title">' + t3 + '</div>'
+      +   '<div class="n-content">' + (it.content || '') + '</div>'
+      + '</div>';
+  }
   return swipeWrap(it.nid, inner, 'goQuiz');
 }
 
@@ -675,9 +678,9 @@ function photoCard(it, inGroup) {
   if (!l1) {
     titleHtml = '<span class="p-title">拍照笔记</span>';
   } else if (inGroup) {
-    /* 章节分组视图：一级考点在卡片外（组头）；标题按（轻量）二级 - 三级显示 */
-    if (!l2) titleHtml = '<span class="p-title">' + l1 + '</span>';
-    else if (!l3) titleHtml = '<span class="p-title">' + l2 + '</span>';
+    /* 章节分组视图：一级考点在卡片外（组头）；卡片内标题一律轻量（c-line，不另用加粗 p-title） */
+    if (!l2) titleHtml = '<div class="c-line"><span class="c-l3">' + l1 + '</span></div>';
+    else if (!l3) titleHtml = '<div class="c-line"><span class="c-l3">' + l2 + '</span></div>';
     else titleHtml = '<div class="c-line"><span class="c-l2">' + l2 + '</span><span class="c-sep">-</span><span class="c-l3">' + l3 + '</span></div>';
   } else if (!l2) {
     titleHtml = '<span class="p-title">' + l1 + '</span>';
