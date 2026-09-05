@@ -197,19 +197,19 @@ body {
 }
 /* 第三行：笔记内容（辅助，1 行省略） */
 .n-content {
-  font-size: 13px; color: var(--text-secondary);
+  font-size: 12px; font-weight: 400; color: var(--text-secondary);
   line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 /* 卡片内层级标题（章节分组视图：一级考点在外=组头；卡片内 = 轻量「二级 - 三级」，PM 2026-09-05） */
 .c-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
-.c-l2 { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+.c-l2 { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .c-sep { font-size: 11px; color: var(--text-tertiary); }
-.c-l3 { font-size: 13px; font-weight: 400; color: var(--text-secondary); line-height: 1.5; }
+.c-l3 { font-size: 13px; font-weight: 600; color: var(--text-secondary); line-height: 1.5; }
 /* 分组卡片标题行：轻量 2/3 级标题在左、日期右侧同一行（不另起 meta 行） */
 .n-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-.n-head .n-time { flex-shrink: 0; }
+.n-head .n-time { flex-shrink: 0; font-size: 11px; font-weight: 400; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .p-head .c-line { flex: 1; min-width: 0; }
 
 /* ===== 拍照笔记卡片 ===== */
@@ -232,7 +232,7 @@ body {
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 .p-time {
-  font-size: 11.5px; color: var(--text-tertiary); font-weight: 500;
+  font-size: 11px; color: var(--text-tertiary); font-weight: 400;
   font-variant-numeric: tabular-nums; flex-shrink: 0;
 }
 .p-thumb {
