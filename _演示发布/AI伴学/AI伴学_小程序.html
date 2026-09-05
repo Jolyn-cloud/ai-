@@ -1171,7 +1171,8 @@ window.addEventListener('message', function(evt) {
         exam:    { panel:'view-exam',    title:EXAM_LOGIC_TITLE },
         real:    { panel:'view-real',    title:REAL_LOGIC_TITLE },
         wrong:   { panel:'view-wrong',   title:WRONG_LOGIC_TITLE },
-        fav:     { panel:'view-fav',     title:FAV_LOGIC_TITLE }
+        fav:     { panel:'view-fav',     title:FAV_LOGIC_TITLE },
+        note:    { panel:'view-note',   title:NOTE_LOGIC_TITLE }
       };
       var cfg = subMap[chapterLayerSub];
       if (cfg) {
@@ -2378,6 +2379,58 @@ var PANELS = {
         ] }
     ]
   },
+  'view-note': {
+    desc: '笔记本（题库 tab 二级层）。保存和回顾「我自己记录的学习内容」，非错题本/收藏本；来源=题目笔记（做题解析页保存）+ 拍照笔记（拍照搜题记笔记）；入口=题库首页「笔记本」下钻。字段定义见笔记本页数据层注释（nid/type/chapter/l1/l2/concept/qid/img/createdAt）。',
+    sections: [
+      { num:'1', title:'笔记类型与来源',
+        paras: [
+          '两类：题目笔记（type=quiz，做题解析页保存而来，带 qid 关联原题）、拍照笔记（type=photo，拍照搜题「记笔记」而来，带 img 图片标识）。'
+        ],
+        labels: [
+          {k:'数据兜底', v:'演示期 mock 题目笔记固定；真实拍照笔记读 localStorage（zsb_notes_v1），有则覆盖 mock 拍照笔记，无则回退 mock 保证有数据'}
+        ] },
+      { num:'2', title:'筛选与排序',
+        paras: [
+          '类型 Tab：全部 / 题目笔记 / 拍照笔记，单选，默认全部。',
+          '章节下拉：从笔记数据派生（有笔记的章节才出现），默认全部章节。',
+          '排序切换：按章节（默认）/ 按时间。'
+        ],
+        labels: [
+          {k:'章节派生', v:'仅列出有笔记的章节，保持插入顺序去重'},
+          {k:'切类型重置', v:'切类型 Tab 时章节筛选重置回「全部章节」'},
+          {k:'筛选联动', v:'类型×章节交集过滤，题数随筛选实时变'}
+        ] },
+      { num:'3', title:'列表分组规则',
+        tableHead:['排序','分组','组内顺序'],
+        table: [
+          ['按章节（默认）','同一级考点一组（组头=章节名+条数），层级由卡片内轻量「二级-三级」标题承担','组内按 2级→3级 顺序铺卡；无一级的归「未分类」组；组内按时间倒序'],
+          ['按时间','今天 / 昨天 / MM-DD 分组','组内按时间倒序']
+        ],
+        labels: [
+          {k:'章节组头职责', v:'只打一级组头（聚合归类），2/3级不再单独打组头，交卡片内标题承担'},
+          {k:'空态', v:'当前筛选下无笔记 → 列表区隐藏，显空状态「还没有学习笔记」+ 拍照 FAB 入口'}
+        ] },
+      { num:'4', title:'卡片层级与点击',
+        tableHead:['卡片类型','标题层级口径','点击行为'],
+        table: [
+          ['题目笔记','二级-三级 标题 + 日期 + 笔记内容1行省略','→ 做题页(entry=note) 看原题（传 qid 定位）'],
+          ['拍照笔记','按知识点层级：无选择→「拍照笔记」/ 到一级→一级 / 到二级→一级·二级 / 到三级→一级·二级弱化+三级标题','→ 图片查看层']
+        ],
+        labels: [
+          {k:'主次链', v:'2/3级标题(13·600·secondary) > 内容(12·400·secondary) > 日期(11·400·tertiary)'},
+          {k:'分组视图差异', v:'章节分组下卡片内一级在组头，标题从二级起；非分组/时间分组下标题从一级起'}
+        ] },
+      { num:'5', title:'删除与入口',
+        paras: [
+          '左滑卡片显删除按钮（阈值位移 >10px 触发，开宽 72px）；删除真实拍照笔记同步删 localStorage。',
+          '右下拍照 FAB 常驻 → postMessage 通知题库页打开拍照搜题「记笔记」流程。',
+          '图片查看层：顶栏「删除」直接删该图。'
+        ],
+        labels: [
+          {k:'左滑互斥', v:'打开一个左滑时自动关闭其他已打开的左滑'}
+        ] }
+    ]
+  },
   'view-mine-placeholder': {
     desc: '我的 tab（当前为占位说明，逻辑面板待补全）：个人中心登录/画像/VIP 状态见 [03_PRD](03_PRD.md) §四，权益规则见 §四（五）。',
     sections: [
@@ -2437,6 +2490,7 @@ var EXAM_LOGIC_TITLE = '📋 逻辑说明 · 模拟考场';
 var REAL_LOGIC_TITLE = '📋 逻辑说明 · 历年真题';
 var WRONG_LOGIC_TITLE = '📋 逻辑说明 · 错题本';
 var FAV_LOGIC_TITLE = '📋 逻辑说明 · 收藏本';
+var NOTE_LOGIC_TITLE = '📋 逻辑说明 · 笔记本';
 var studySwitch = document.getElementById('studySwitch');
 
 /* 学习页子 tab 数据：登录 / 答题 / 解析页 */
