@@ -217,7 +217,7 @@ try {
     var meta=card.querySelector('.q-meta');
     var path=card.querySelector('.q-path');
     return JSON.stringify({
-      title: t?t.textContent:'',
+      hasTitle: !!t,
       hasErrTag: !!(tags&&tags.querySelector('.q-tag')),
       hasWrongCount: !!(tags&&/错\\s*\\d+\\s*次/.test(tags.textContent)),
       hasStatus: !!(meta&&/待攻克|已攻克|顽固/.test(meta.textContent)),
@@ -225,7 +225,7 @@ try {
     });
   })()`);
   const w1 = JSON.parse(w1Head);
-  check('章节题三级标题=末段(作用)', w1.title === '作用', `得到: ${w1.title}`);
+  check('章节题卡片无考点标题(已删)', w1.hasTitle === false, w1Head);
   check('章节题右侧有错误类型标签', w1.hasErrTag === true);
   check('章节题右侧有错N次', w1.hasWrongCount === true);
   check('章节题无待攻克/已攻克状态', w1.hasStatus === false, w1Head);
@@ -235,7 +235,7 @@ try {
   const l2Meta = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
-    var l2 = f.contentWindow.document.querySelector('.wt-l2-head');
+    var l2 = f.contentWindow.document.querySelector('.wt-l2');
     if(!l2) return 'no-l2';
     var m = l2.querySelector('.wt-meta').textContent.trim();
     /* 形如「1 道」「2 道 顽固 1 个」均合法 */
@@ -245,7 +245,7 @@ try {
   const l2r = JSON.parse(l2Meta);
   check('二级标题带 n道 顽固n个', l2r.ok, `得到: ${l2r.m}`);
 
-  // 我的上传题 U01：concept='中断系统' → 标题=中断系统；无拍照/原图/单选标签
+  // 我的上传题 U01：卡片不显示考点标题（PM 2026-09-07 修正）；无拍照/原图/单选标签
   const u1Head = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
@@ -254,17 +254,39 @@ try {
     var t=card.querySelector('.q-head-title');
     var tags=card.querySelector('.q-head-tags');
     return JSON.stringify({
-      title: t?t.textContent:'',
+      hasTitle: !!t,
       hasPhotoTag: !!(tags&&tags.querySelector('.q-tag.upload')),
       hasTypeTag: !!(tags&&tags.querySelector('.q-tag.type-tag')),
       hasImgTag: !!(tags&&tags.querySelector('.q-tag.img-tag'))
     });
   })()`);
   const u1 = JSON.parse(u1Head);
-  check('上传题标题=concept(中断系统)', u1.title === '中断系统', `得到: ${u1.title}`);
+  check('上传题卡片无考点标题(已删)', u1.hasTitle === false, u1Head);
   check('上传题无📷拍照标签', u1.hasPhotoTag === false, u1Head);
   check('上传题无单选type标签', u1.hasTypeTag === false, u1Head);
   check('上传题无📷原图标签', u1.hasImgTag === false, u1Head);
+
+  // 3级顽固标签只写"顽固"不写n个；3级meta只写"n道"（PM 2026-09-07 修正）
+  const l3Stub = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    var l3s=[...f.contentWindow.document.querySelectorAll('.wt-l3')];
+    if(!l3s.length) return 'no-l3';
+    var stubs=l3s.filter(x=>x.classList.contains('stubborn'));
+    if(!stubs.length) return 'no-stub';
+    var s=stubs[0];
+    var stub=s.querySelector('.wt-l3-stub');
+    var meta=s.querySelector('.wt-meta');
+    return JSON.stringify({
+      stubText: stub?stub.textContent:'',
+      metaText: meta?meta.textContent:'',
+      nextIsCardList: s.nextElementSibling?.className==='wt-card-list'
+    });
+  })()`);
+  const l3s = JSON.parse(l3Stub);
+  check('3级顽固标签只写"顽固"(无n个)', l3s.stubText === '顽固', `得到: ${l3s.stubText}`);
+  check('3级meta只写n道(无顽固n个)', /^\d+\s*道$/.test(l3s.metaText), `得到: ${l3s.metaText}`);
+  check('3级下卡片是兄弟(非竖线包裹)', l3s.nextIsCardList === true, l3Stub);
 
   console.log('\n== 5. 独立调试兜底：无 appbar 时 result-head 保留 ==');
   // 直接导航到拍照搜题.html（非总壳）→ 无 appbar → result-head 不隐藏

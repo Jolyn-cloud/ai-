@@ -125,44 +125,68 @@ body {
 .q-list { display: none; }
 .chapter.open .q-list { display: block; }
 
-/* ===== 1/2/3 级树（收藏本范式，PM 2026-09-07）=====
-   1级：模块行（默认第1个展开）；2级：章节行（点 toggle 展开 3级）；3级：考点行（点进练习，下挂卡片）
-   各级右侧 meta：n道 顽固 n个（顽固数=其下顽固3级个数；3级=该3级下stubborn题道数） */
-.wt-l1 { margin-top: 10px; }
+/* ===== 1/2/3 级树（对齐收藏本样式，PM 2026-09-07）=====
+   1级：模块标题行（16px/800）；2级：白卡行（圆角阴影，14px/600）；3级：考点行（缩进左边线，13px/500）
+   meta：1/2级「n道 顽固n个」(=其下顽固3级个数)；3级「n道 顽固」(布尔，仅红色标签) */
+.wt-l1 { margin-bottom: 2px; }
 .wt-l2-list { display: none; }
 .wt-l1.open > .wt-l2-list { display: block; }
-.wt-l1-head, .wt-l2-head {
-  display: flex; align-items: center; gap: 7px;
-  padding: 11px 2px;
+.wt-l1-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 4px 6px;
   cursor: pointer;
 }
-.wt-l1-head:active, .wt-l2-head:active { opacity: .7; }
-.wt-l1-head .wt-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.wt-l2-head .wt-name { font-size: 13px; font-weight: 600; color: var(--primary-dark); }
-.wt-caret {
-  flex-shrink: 0; width: 16px; text-align: center;
-  font-size: 12px; color: var(--text-tertiary);
-  transition: transform .18s ease;
+.wt-l1-head:active { opacity: .6; }
+.wt-l1-head .wt-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.wt-l1-arrow { font-size: 17px; color: var(--text-tertiary); line-height: 1; margin-left: auto; transition: transform .18s ease; }
+.wt-l1.open .wt-l1-arrow { transform: rotate(90deg); }
+/* 2级：白卡圆角阴影行（与收藏本 l2-row/l2-group 一致） */
+.wt-l2-grp { margin: 6px 0; }
+.wt-l2 {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 2px 6px rgba(91,114,245,.05);
 }
-.wt-meta {
-  margin-left: auto; font-size: 11px; color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+.wt-l2:active { transform: scale(.995); }
+.wt-l2 .wt-name { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; cursor: pointer; }
+.wt-l2-toggle {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--primary);
+  border-radius: 6px; cursor: pointer; flex-shrink: 0;
+  transition: background .12s ease;
 }
-.wt-l2 { margin-left: 4px; padding-left: 11px; border-left: 2px solid #E5E8F0; }
-.wt-l3-list { display: none; }
-.wt-l2.open > .wt-l3-list { display: block; }
-.wt-l3 { margin: 0 0 0 3px; padding-left: 9px; border-left: 2px solid #F0F1F7; }
-.wt-l3.stubborn { border-left-color: #FECACA; }
-.wt-l3-head {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 2px; cursor: pointer;
+.wt-l2-toggle:active { background: var(--primary-light); }
+.wt-l2-toggle .caret { transition: transform .2s ease; display: inline-block; }
+.wt-l2-grp.open .wt-l2-toggle .caret { transform: rotate(90deg); }
+.wt-l3-list { display: none; padding: 2px 0 6px 18px; }
+.wt-l2-grp.open .wt-l3-list { display: block; }
+/* 3级：缩进左边线，无竖线带卡片；顽固仅标签红 */
+.wt-l3 {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px 10px 8px;
+  cursor: pointer;
+  border-left: 2px solid #EEF0F6;
+  margin-left: 4px;
+  transition: background .12s ease;
 }
-.wt-l3-head:active { opacity: .7; }
-.wt-l3-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-quaternary); flex-shrink: 0; }
+.wt-l3:active { background: #F5F6FA; }
+.wt-l3-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
 .wt-l3.stubborn .wt-l3-dot { background: var(--danger); }
-.wt-l3-name { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.wt-l3-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); flex: 1; }
 .wt-l3.stubborn .wt-l3-name { color: var(--danger); }
-.wt-card-list { padding: 2px 0 6px; display: flex; flex-direction: column; gap: 8px; }
+/* 顽固标签（3级布尔，红色小标签） */
+.wt-l3-stub {
+  color: var(--danger); font-weight: 700; font-size: 10px;
+  background: #FFF1F0; padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+}
+/* meta：各级通用（n道 顽固n个 / n道 顽固） */
+.wt-meta {
+  font-size: 11px; color: var(--text-tertiary); font-weight: 500;
+  font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;
+}
+.wt-card-list { padding: 2px 0 6px 18px; display: flex; flex-direction: column; gap: 8px; }
 
 
 /* 题目卡 */
@@ -176,15 +200,11 @@ body {
 .q-card.stubborn { box-shadow: 0 0 0 1px #FECACA, 0 5px 14px rgba(91,114,245,.06); }
 /* 标题行：左=三级标题（章节名）/ 右=错误类型+错次 */
 .q-head {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  display: flex; justify-content: flex-start; align-items: center; gap: 8px;
   margin-bottom: 6px;
 }
-.q-head .q-head-title {
-  font-size: 12.5px; font-weight: 700; color: var(--primary);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
-}
 .q-head .q-head-tags {
-  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 5px;
   font-size: 10.5px; color: var(--text-tertiary);
 }
 .q-path { font-size: 10.5px; color: var(--primary); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -790,24 +810,29 @@ function renderList() {
   /* 我的上传区（source=upload）：独立平铺顶部，不参与 1/2/3 级树（path 仅两段，无 3 级考点） */
   var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); }).sort(byAddedDesc);
   if (ups.length > 0) {
-    html += '<div class="wt-l1 open">'
-      + '<div class="wt-l1-head"><span class="wt-name">我的上传</span>'
-      + '<span class="wt-meta">' + ups.length + ' 道 · 拍照录入</span></div>'
-      + '<div class="wt-l2-list">';
+    var upOpen = OPEN_MAP['upload'] !== false;   /* 默认展开 */
+    html += '<div class="wt-l1' + (upOpen ? ' open' : '') + '">'
+      + '<div class="wt-l1-head" onclick="toggleNode(\'upload\')">'
+      +   '<span class="wt-name">我的上传</span>'
+      +   '<span class="wt-meta">' + ups.length + ' 道 · 拍照录入</span>'
+      +   '<span class="wt-l1-arrow">›</span>'
+      + '</div>'
+      + '<div class="wt-l2-list wt-card-list">';
     ups.forEach(function(q) { html += qCard(q); });
     html += '</div></div>';
   }
-  /* 章节错题：按 path 三段聚成 1级→2级→3级→卡片 树（收藏本范式，默认展开到 2 级） */
+  /* 章节错题：按 path 三段聚成 1级→2级→3级 树，3级下挂卡片（收藏本范式） */
   var tree = buildWrongTree();
   tree.forEach(function(l1, i) {
     var l1Stubborn = 0;   /* 1级顽固数 = 其下所有顽固 3 级个数 */
     l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) l1Stubborn++; }); });
     var l1Key = 'l1_' + i;
-    html += '<div class="wt-l1' + (OPEN_MAP[l1Key] ? ' open' : '') + '">'
+    var l1Open = !!OPEN_MAP[l1Key];
+    html += '<div class="wt-l1' + (l1Open ? ' open' : '') + '">'
       + '<div class="wt-l1-head" onclick="toggleNode(\'' + l1Key + '\')">'
-      +   '<span class="wt-caret">' + (OPEN_MAP[l1Key] ? '⌄' : '›') + '</span>'
       +   '<span class="wt-name">' + l1.name + '</span>'
       +   '<span class="wt-meta">' + l1.count + ' 道' + (l1Stubborn ? ' 顽固 ' + l1Stubborn + ' 个' : '') + '</span>'
+      +   '<span class="wt-l1-arrow">›</span>'
       + '</div>'
       + '<div class="wt-l2-list">';
     l1.l2s.forEach(function(l2, j) {
@@ -815,26 +840,26 @@ function renderList() {
       l2.l3s.forEach(function(l3) { if (l3.stubborn) l2Stubborn++; });
       var l2Key = l1Key + '_l2_' + j;
       var l2Open = !!OPEN_MAP[l2Key];
-      html += '<div class="wt-l2' + (l2Open ? ' open' : '') + '">'
-        + '<div class="wt-l2-head">'
-        +   '<span class="wt-caret" onclick="toggleNode(\'' + l2Key + '\')">' + (l2Open ? '⌄' : '›') + '</span>'
-        +   '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
-        +   '<span class="wt-meta">' + l2.count + ' 道' + (l2Stubborn ? ' 顽固 ' + l2Stubborn + ' 个' : '') + '</span>'
-        + '</div>'
-        + '<div class="wt-l3-list">';
+      html += '<div class="wt-l2-grp' + (l2Open ? ' open' : '') + '">'
+        +   '<div class="wt-l2">'
+        +     '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
+        +     '<span class="wt-meta">' + l2.count + ' 道' + (l2Stubborn ? ' 顽固 ' + l2Stubborn + ' 个' : '') + '</span>'
+        +     '<span class="wt-l2-toggle" onclick="toggleNode(\'' + l2Key + '\')"><span class="caret">›</span></span>'
+        +   '</div>'
+        +   '<div class="wt-l3-list">';
       l2.l3s.forEach(function(l3, k) {
-        var l3Stubborn = l3.qs.filter(function(q) { return q.stubborn; }).length;   /* 3级顽固数 = 该 3 级下 stubborn 题道数 */
-        html += '<div class="wt-l3' + (l3.stubborn ? ' stubborn' : '') + '">'
-          + '<div class="wt-l3-head" onclick="startPractice(\'point\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\',\'' + escapeQuote(l3.name) + '\')">'
+        html += '<div class="wt-l3' + (l3.stubborn ? ' stubborn' : '') + '" onclick="startPractice(\'point\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\',\'' + escapeQuote(l3.name) + '\')">'
           +   '<span class="wt-l3-dot"></span>'
           +   '<span class="wt-l3-name">' + l3.name + '</span>'
-          +   '<span class="wt-meta">' + l3.count + ' 道' + (l3Stubborn ? ' 顽固 ' + l3Stubborn + ' 个' : '') + '</span>'
+          + (l3.stubborn ? '<span class="wt-l3-stub">顽固</span>' : '')
+          +   '<span class="wt-meta">' + l3.count + ' 道</span>'
           + '</div>'
-          + '<div class="wt-card-list">';
+          +   '<div class="wt-card-list">';
         l3.qs.forEach(function(q) { html += qCard(q); });
-        html += '</div></div>';
+        html += '</div>';
       });
-      html += '</div></div>';   /* wt-l3-list / wt-l2 */
+      html +=   '</div>'   /* wt-l3-list */
+        + '</div>';   /* wt-l2-grp */
     });
     html += '</div></div>';   /* wt-l2-list / wt-l1 */
   });
@@ -976,12 +1001,7 @@ function closeAllSwipe(except) {
 function qCard(q) {
   var tagCls = ['confusion','memory','operation','misread','blind'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
   var action = q.stubborn ? '集中攻克' : '再练';
-  var isUpload = q.source === 'upload';
-  /* 三级标题：章节题取 path 末段（如「进程概念」）；上传题取 AI 识别考点 concept（兜底「待归类」） */
-  var headTitle = isUpload
-    ? (q.concept || '待归类')
-    : (q.path ? q.path.split(' → ').pop() : '');
-  /* 标题行右侧：错误类型 + 错次（统一） */
+  /* 标签行：错因 + 错次（不再显示考点标题，因卡片已挂在 3 级考点下） */
   var headTags = '<span class="q-tag ' + tagCls + '">' + (TAG_NAME[q.tag] || '错题') + '</span>'
     + '<span>错 ' + q.wrongCount + ' 次</span>';
   /* 图片题：OCR 未识别的图片占位；文字题有原图则附查看入口 */
@@ -992,7 +1012,6 @@ function qCard(q) {
   return swipeWrap(q.qid, ''
     + '<div class="q-card' + (q.stubborn ? ' stubborn' : '') + '">'
     + '<div class="q-head">'
-    +   '<span class="q-head-title">' + headTitle + '</span>'
     +   '<span class="q-head-tags">' + headTags + '</span>'
     + '</div>'
     + body
