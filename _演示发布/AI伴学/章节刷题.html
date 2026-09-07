@@ -9,7 +9,7 @@
    章节刷题页：题库首页「章节刷题」入口下钻二级页
    结构：左侧一级章导航（16-18%宽，短名，独立滚动） + 右侧当前章四级内容
    交互：二级/三级手风琴单开（同级只允许一个展开）；二级展开同时显示三四级；切一级自动重置
-   数据：刷题指标（已做/正确率/错题/未做），与闪卡章节页（记忆度）口径分离
+   数据：刷题指标（考点数/答对/答错/答题进度），与闪卡章节页（记忆度）口径分离
    图标：10 章各一色渐变（题库首页 entry-icon 调子另出一套，不复用闪卡） */
 :root{
   --primary: #5B72F5;
@@ -141,8 +141,13 @@ body {
   font-size: 11.5px; color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
-/* 考题标签数字统一主题蓝（PM 2026-09-05）：已做/正确率/错 的数值用主色，前缀说明文字保持弱灰 */
-.ch-metrics .m-done strong, .ch-metrics .m-rate b, .ch-metrics .m-wrong strong { color: var(--primary); font-weight: 800; }
+/* 行右侧标签统一口径（PM 2026-09-07）：考点 n 数字主题蓝；✔ 绿 / ✖ 红；未做灰 */
+.ch-metrics .m-done strong, .ch-metrics .m-rate b, .ch-metrics .m-wrong strong { color: var(--primary); font-weight: 800; }   /* 「我的上传」共 N 道复用 */
+.ch-metrics .pt, .sub-rate .pt, .lv3-meta .pt { color: var(--text-tertiary); }
+.ch-metrics .pt b, .sub-rate .pt b, .lv3-meta .pt b { color: var(--primary); font-weight: 800; }
+.ch-metrics .m-ok, .sub-rate .m-ok, .lv3-meta .m-ok, .lv4-meta .m-ok { color: var(--success); font-weight: 800; }
+.ch-metrics .m-no, .sub-rate .m-no, .lv3-meta .m-no, .lv4-meta .m-no { color: var(--danger); font-weight: 800; }
+.sub-rate .void, .lv3-meta .void, .lv4-meta .m-void { color: var(--text-tertiary); font-weight: 600; font-size: 10px; }
 .ch-metrics .fresh-tag {
   font-size: 10.5px; color: var(--primary); font-weight: 700;
   background: var(--primary-light); padding: 2px 8px; border-radius: 6px;
@@ -176,8 +181,7 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;   /* 点标题 → 进二级刷题 */
 }
-.sub-rate { font-size: 11px; font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.sub-rate b { color: var(--primary); font-weight: 800; }   /* 正确率数值主题蓝 */
+.sub-rate { display: flex; align-items: baseline; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 /* 二级行首展开按钮（PM 2026-09-05：唯一展开入口，浅灰上下箭头，独立热区） */
 .sub-arrow {
   flex-shrink: 0;
@@ -230,8 +234,6 @@ body {
   cursor: pointer;   /* 点标题 → 进三级刷题 */
 }
 .lv3-meta { flex-shrink: 0; display: flex; align-items: baseline; gap: 5px; font-size: 10.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
-.lv3-meta .m-done { color: var(--primary); font-weight: 800; }   /* 已做 X/Y 数字主题蓝 */
-.lv3-meta .m-rate b { color: var(--primary); font-weight: 800; }   /* 正确率数值主题蓝 */
 .lv3-meta .m-stubborn {
   color: #CF1322; font-weight: 800; font-size: 10px;
   background: #FFF1F0; padding: 2px 6px; border-radius: 5px;
@@ -258,9 +260,6 @@ body {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .lv4-meta { flex-shrink: 0; display: flex; align-items: center; gap: 8px; font-size: 10.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
-.lv4-meta .m-total { color: var(--text-tertiary); }
-.lv4-meta .m-ok { color: var(--success); font-weight: 800; font-size: 11px; }
-.lv4-meta .m-no { color: var(--danger); font-weight: 800; font-size: 11px; }
 
 /* ===== 我的上传（搜题导入） ===== */
 .upload-section { border-top: 1px solid #F0F1F7; margin-top: 14px; padding-top: 12px; }
@@ -327,11 +326,11 @@ body {
    字段口径（刷题场景，与闪卡记忆度分离）：
      total   该级总题数
      done    已做题数
-     right   答对题数（算正确率 = right/done）
-     wrong   答错题数（done=right+wrong+空答，演示简化 wrong=done-right）
+     right   答对题数
+     wrong   答错题数（演示简化 wrong=done-right）
      todo    未做题数 = total - done
-     rate    正确率 = done? right/done : null
-   考题标签数字统一主题蓝（PM 2026-09-05），未做显示「未做」灰态
+   行标签口径（PM 2026-09-07）：考点 n（四级考点条目数）· ✔答对 · ✖答错；
+   未做分支显「未做 / 未练习」灰态不显 0 值
    ============================================================ */
 
 /* ===== 「我的上传」搜题数据（source=upload）
@@ -864,6 +863,21 @@ function aggregate(items){
   return {total:t, done:d, right:r, wrong:w};
 }
 
+/* ===== 四类行右侧标签统一口径（PM 2026-09-07）=====
+   考点 n = 该行下「四级考点」条目数（level4 最末级汇总）；
+   对/错一律用 ✔/✖ 图标 + 数字（right/wrong），不写文字，0 不渲染（与四级行风格一致） */
+function okNoHtml(right, wrong){
+  return (right>0 ? '<span class="m-ok">✔ '+right+'</span>' : '')
+       + (wrong>0 ? '<span class="m-no">✖ '+wrong+'</span>' : '');
+}
+function pointCount(node){
+  var n = 0;
+  if(node.level4) n += node.level4.length;
+  (node.level3 || []).forEach(function(x){ n += pointCount(x); });
+  (node.subs || []).forEach(function(x){ n += pointCount(x); });
+  return n;
+}
+
 /* ===== 渲染 ===== */
 var currentChapter = 0;              // 当前一级章节 index（初始第 1 章）
 var showUpload = false;              // 当前是否处于「我的上传」视图（左栏底部入口）
@@ -948,23 +962,21 @@ function renderContent(){
   var ch = CHAPTERS[currentChapter];
   if(!ch){ box.innerHTML = ''; return; }
 
-  var r = rateOf(ch.done, ch.right);
   var fresh = ch.fresh || ch.done===0;
   var html = '';
 
-  /* 章头部：全名 + 数据 + 展开/收起 + 进度条 */
+  /* 章头部：全名 + 考点n/✔✖ + 展开/收起 + 进度条（PM 2026-09-07） */
   html += '<div class="base-card ch-head">';
   html += '<div class="ch-title-row">'
     + '<span class="ch-name">'+ch.name+'</span>'
     + '<span class="ch-collapse" onclick="collapseAll()">'+(openSub===null?'展开':'收起')+'</span>'
     + '</div>';
   html += '<div class="ch-metrics">';
-  html += '<span class="m-done">已做 <strong>'+ch.done+'/'+ch.total+'</strong></span>';
+  html += '<span class="pt">考点 <b>'+pointCount(ch)+'</b></span>';
   if(fresh){
     html += '<span class="fresh-tag">未练习</span>';
   } else {
-    html += '<span class="m-rate">正确率 <b>'+r+'%</b></span>';
-    if(ch.wrong>0) html += '<span class="m-wrong">错 <strong>'+ch.wrong+'</strong></span>';
+    html += okNoHtml(ch.right, ch.wrong);
   }
   html += '</div>';
   if(!fresh){
@@ -980,23 +992,23 @@ function renderContent(){
   html += '<div class="base-card ch-body">';
   var openingIndex = (openSub!==null);   // 当前章是否有任一二级展开中（用来让未展开二级 flat 连排）
   ch.subs.forEach(function(sub, si){
-    var sr = rateOf(sub.done, sub.right);
     var sfresh = sub.done===0;
     var isOpen = (openSub===si);
     /* 二级行：标题点击 → 进二级练习；行首上下箭头（唯一展开入口）→ 展开三级+四级（PM 2026-09-05） */
     html += '<div class="sub-row' + (isOpen?' open':'') + (openingIndex?' flat':'') + '">'
       + '<span class="sub-arrow" onclick="toggleSub('+si+')">'+(isOpen?'⌃':'⌄')+'</span>'
       + '<span class="sub-title" onclick="goQuiz(\'l2\','+ch.id+',\''+escapeName(sub.name)+'\')">'+sub.name+'</span>'
-      + (sfresh ? '<span class="sub-rate void">未做</span>'
-                : '<span class="sub-rate">正确率 <b>'+sr+'%</b></span>')
+      + '<span class="sub-rate"><span class="pt">考点 <b>'+pointCount(sub)+'</b></span>'
+      + (sfresh ? '<span class="void">未做</span>' : okNoHtml(sub.right, sub.wrong))
+      + '</span>'
       + '</div>';
 
     /* 展开态卡片：三级列表 + 四级考点（同时出现） */
     html += '<div class="lv3-root">';
     html += '<div class="lv3-list">';
     sub.level3.forEach(function(l3, li){
-      var l3r = rateOf(l3.done, l3.right);
       var l3fresh = l3.done===0;
+      /* 顽固维持旧逻辑（PM 2026-09-07）：3级行整体 wrong÷total≥50% 达标即标「顽固」，布尔非计数；四级不判不标 */
       var l3Stubborn = !l3fresh && l3.total>0 && (l3.wrong/l3.total>=0.5);
       var isL3Open = (openL3===li);
       /* 三级行：标题点击 → 进三级练习；左侧展开箭头 → 展开/收起四级（单开） */
@@ -1004,9 +1016,8 @@ function renderContent(){
         + '<span class="pick" onclick="toggleL3('+si+','+li+')">'+(isL3Open?'⌃':'▸')+'</span>'
         + '<span class="lv3-title" onclick="goQuiz(\'l3\','+ch.id+',\''+escapeName(l3.name)+'\')">'+l3.name+'</span>'
         + '<span class="lv3-meta">'
-        + (l3fresh ? '<span>未做</span>'
-                   : '<span class="m-done">'+l3.done+'/'+l3.total+'</span>'
-                      + '<span class="m-rate">正确率 <b>'+l3r+'%</b></span>')
+        + '<span class="pt">考点 <b>'+pointCount(l3)+'</b></span>'
+        + (l3fresh ? '<span class="void">未做</span>' : okNoHtml(l3.right, l3.wrong))
         + (l3Stubborn ? '<span class="m-stubborn">顽固</span>' : '')
         + '</span>'
         + '</div>';
@@ -1018,9 +1029,7 @@ function renderContent(){
         html += '<div class="lv4-row" onclick="goQuiz(\'l4\','+ch.id+',\''+escapeName(l4.name)+'\')">'
           + '<span class="lv4-title">'+l4.name+'</span>'
           + '<span class="lv4-meta">'
-          + (l4fresh ? '<span class="m-total">'+l4.total+'题·未做</span>'
-                     : (l4.right>0 ? '<span class="m-ok">✔ '+l4.right+'</span>' : '')
-                        + (l4.wrong>0 ? '<span class="m-no">✖ '+l4.wrong+'</span>' : ''))
+          + (l4fresh ? '<span class="m-void">未做</span>' : okNoHtml(l4.right, l4.wrong))
           + '</span>'
           + '</div>';
       });
