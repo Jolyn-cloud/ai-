@@ -6,15 +6,15 @@
 <title>收藏本</title>
 <style>
 /* ==== Product Theme：蓝靛 #5B72F5（与题库首页/错题本统一） ====
-   收藏本首页（v2.0 三级树重构 2026-09-05）
-   结构：来源 Tab → 筛选栏（全部题型▾ + 全部练习→）→ 一级章节 → 二级章节（可展开三级）→ 三级考点
+   收藏本首页（v2.1 删题型筛选+按试卷分组 2026-09-07）
+   结构：来源 Tab → 筛选栏（exam/real 显「按章节|按试卷」切换 + 全部练习→）→ 一级章节 → 二级章节（可展开三级）→ 三级考点
    定位：收藏题目的章节索引（非做题页、非题目本身），1/2/3 级均只显题数
    交互：
      - 点一级章节名 → 该一级全部收藏题做题页
      - 点二级展开按钮(∧/∨) → 展开/收起三级考点；点二级章节名 → 该二级全部收藏题做题页
      - 点三级考点 → 该考点全部收藏题做题页
-     - 来源 Tab / 题型筛选 → 联动重算各级题数
-   做题页对接：复用 REQ_PRACTICE 协议（entry=fav, scope=chap/sub/point/all） */
+     - 来源 Tab → 联动重算各级题数；exam/real 可切「按章节/按试卷」分组
+   做题页对接：复用 REQ_PRACTICE 协议（entry=fav, scope=chap/sub/point/all/paper/papersub/paperpoint） */
 :root{
   --primary: #5B72F5;
   --primary-dark: #4358D7;
@@ -73,20 +73,22 @@ body {
   padding: 12px 16px;
   flex-shrink: 0;
 }
-.fav-type {
-  display: inline-flex; align-items: center; gap: 4px;
-  height: 30px; padding: 0 12px;
-  border: 1px solid #E5E8F0; border-radius: 15px;
-  background: #fff;
+/* 分组切换 segment（仅 exam/real 来源显示）：按章节 | 按试卷 */
+.group-seg {
+  display: inline-flex; align-items: center;
+  height: 30px; border: 1px solid #E5E8F0; border-radius: 15px;
+  background: #fff; padding: 2px; overflow: hidden;
+}
+.seg-btn {
+  height: 26px; padding: 0 12px;
+  border: none; background: none; border-radius: 13px;
   font-size: 12.5px; font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: border-color .15s ease, color .15s ease;
+  transition: background .15s ease, color .15s ease;
 }
-.fav-type:active { transform: scale(.97); }
-.fav-type.open { border-color: var(--primary); color: var(--primary); }
-.fav-type .caret { font-size: 10px; color: var(--text-tertiary); transition: transform .15s ease; }
-.fav-type.open .caret { transform: rotate(180deg); color: var(--primary); }
+.seg-btn.active { background: var(--primary); color: #fff; }
+.seg-btn:active { opacity: .8; }
 
 .fav-practice {
   display: inline-flex; align-items: center; gap: 3px;
@@ -95,32 +97,10 @@ body {
   font-size: 13px; font-weight: 700;
   color: var(--primary);
   cursor: pointer;
+  margin-left: auto;   /* exam/real 无分组切换时靠右 */
   transition: opacity .15s ease;
 }
 .fav-practice:active { opacity: .6; }
-
-/* 题型下拉浮层 */
-.type-menu {
-  position: absolute; top: 44px; left: 16px;
-  min-width: 132px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(38,48,96,.14), 0 2px 6px rgba(38,48,96,.06);
-  padding: 6px 0;
-  display: none; z-index: 50;
-  overflow: hidden;
-}
-.type-menu.open { display: block; }
-.type-menu-item {
-  padding: 9px 16px;
-  font-size: 13px; font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background .12s ease;
-}
-.type-menu-item:active { background: #F5F6FA; }
-.type-menu-item.active { color: var(--primary); font-weight: 700; }
-.type-menu-item.active::after { content: ' ✓'; color: var(--primary); }
 
 /* ===== 列表区 ===== */
 .list-wrap {
@@ -236,14 +216,14 @@ body {
     <button class="src-tab" data-src="flash" onclick="setSrc('flash')">闪卡</button>
   </div>
 
-  <!-- 筛选栏 -->
+  <!-- 筛选栏：左侧分组切换（仅 exam/real 来源显示）+ 右侧全部练习 -->
   <div class="filter-bar">
-    <button class="fav-type" id="favType" onclick="toggleTypeMenu(event)">全部题型 <span class="caret">▾</span></button>
+    <div class="group-seg" id="groupSeg" style="display:none;">
+      <button class="seg-btn active" data-gm="chap" onclick="setGroup('chap')">按章节</button>
+      <button class="seg-btn" data-gm="paper" onclick="setGroup('paper')">按试卷</button>
+    </div>
     <button class="fav-practice" onclick="practiceAll()">全部练习 →</button>
   </div>
-
-  <!-- 题型下拉 -->
-  <div class="type-menu" id="typeMenu"></div>
 
   <!-- 列表区 -->
   <div class="list-wrap" id="listWrap"></div>
@@ -272,41 +252,40 @@ body {
      type       题型：single 单选 / multi 多选 / judge 判断 / fill 填空
    ============================================================ */
 var SRC_NAME = { chapter:'章节刷题', exam:'模拟考试', real:'历年真题', flash:'闪卡' };
-var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题' };
 
 var FAV_DATA = [
   /* —— 计算机基础 —— */
   { qid:'W01', source:'chapter', l1:'计算机基础', l2:'信息与计算机基础知识', l3:'信息技术概述',     type:'single', collectedAt:'09-03' },
-  { qid:'W02', source:'real',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'计算机的发展',     type:'fill',   collectedAt:'09-02' },
-  { qid:'W03', source:'exam',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'数制与编码',       type:'single', collectedAt:'08-30' },
+  { qid:'W02', source:'real',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'计算机的发展',     type:'fill',   collectedAt:'09-02', paper:'2023 山东专升本真题' },
+  { qid:'W03', source:'exam',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'数制与编码',       type:'single', collectedAt:'08-30', paper:'2026 山东专升本全真模拟（一）' },
   { qid:'W04', source:'flash',    l1:'计算机基础', l2:'信息与计算机基础知识', l3:'信息与数据的区别', type:'judge',  collectedAt:'08-28' },
   { qid:'W01', source:'chapter',  l1:'计算机基础', l2:'操作系统',             l3:'操作系统的基本功能', type:'single', collectedAt:'09-01' },
-  { qid:'W02', source:'real',     l1:'计算机基础', l2:'操作系统',             l3:'进程与线程的概念',   type:'fill',   collectedAt:'08-29' },
-  { qid:'W03', source:'exam',     l1:'计算机基础', l2:'操作系统',             l3:'文件系统与扩展名',   type:'judge',  collectedAt:'08-27' },
+  { qid:'W02', source:'real',     l1:'计算机基础', l2:'操作系统',             l3:'进程与线程的概念',   type:'fill',   collectedAt:'08-29', paper:'2023 山东专升本真题' },
+  { qid:'W03', source:'exam',     l1:'计算机基础', l2:'操作系统',             l3:'文件系统与扩展名',   type:'judge',  collectedAt:'08-27', paper:'2026 山东专升本全真模拟（一）' },
   { qid:'W04', source:'flash',    l1:'计算机基础', l2:'操作系统',             l3:'存储管理方式',       type:'multi',  collectedAt:'08-25' },
 
   /* —— 计算机网络 —— */
   { qid:'W05', source:'chapter',  l1:'计算机网络', l2:'网络协议', l3:'TCP/IP 协议体系',    type:'multi',  collectedAt:'09-03' },
-  { qid:'W06', source:'real',     l1:'计算机网络', l2:'网络协议', l3:'OSI 参考模型',       type:'single', collectedAt:'08-31' },
-  { qid:'W05', source:'exam',     l1:'计算机网络', l2:'IP 地址',  l3:'IP 地址与子网掩码',   type:'judge',  collectedAt:'08-24' },
+  { qid:'W06', source:'real',     l1:'计算机网络', l2:'网络协议', l3:'OSI 参考模型',       type:'single', collectedAt:'08-31', paper:'2022 山东专升本真题' },
+  { qid:'W05', source:'exam',     l1:'计算机网络', l2:'IP 地址',  l3:'IP 地址与子网掩码',   type:'judge',  collectedAt:'08-24', paper:'2026 山东专升本全真模拟（二）' },
   { qid:'W06', source:'flash',    l1:'计算机网络', l2:'IP 地址',  l3:'域名与 DNS',          type:'single', collectedAt:'08-20' },
 
   /* —— 数据库 —— */
   { qid:'W06', source:'chapter',  l1:'数据库', l2:'关系数据库', l3:'三级模式结构',    type:'single', collectedAt:'09-02' },
-  { qid:'W01', source:'real',     l1:'数据库', l2:'关系数据库', l3:'关系代数运算',    type:'fill',   collectedAt:'08-26' },
+  { qid:'W01', source:'real',     l1:'数据库', l2:'关系数据库', l3:'关系代数运算',    type:'fill',   collectedAt:'08-26', paper:'2023 山东专升本真题' },
   { qid:'W02', source:'flash',    l1:'数据库', l2:'SQL 语言',    l3:'SQL 语句分类',   type:'multi',  collectedAt:'08-22' },
 
   /* —— 数据结构 —— */
   { qid:'W03', source:'chapter',  l1:'数据结构', l2:'树与图',   l3:'二叉树的遍历方法', type:'single', collectedAt:'09-01' },
-  { qid:'W04', source:'exam',     l1:'数据结构', l2:'线性结构', l3:'栈与队列的特点',   type:'judge',  collectedAt:'08-23' }
+  { qid:'W04', source:'exam',     l1:'数据结构', l2:'线性结构', l3:'栈与队列的特点',   type:'judge',  collectedAt:'08-23', paper:'2026 山东专升本全真模拟（二）' }
 ];
 
 /* 运行态：mock 内存态（刷新恢复） */
 var items = FAV_DATA.map(function(x){ return Object.assign({}, x); });
 
 var SRC = 'all';        /* 来源筛选：all/chapter/exam/real/flash */
-var TYPE = 'all';       /* 题型筛选 */
-/* 展开态：key = l1 + '||' + l2，value = true */
+var GROUP_MODE = 'chap'; /* 分组模式：chap 按章节 / paper 按试卷（仅 exam/real 有效） */
+/* 展开态：key = l1 + '||' + l2（章节模式）或 paper + '||' + l2（试卷模式），value = true */
 var OPEN_MAP = {};
 
 /* ===== 来源筛选 ===== */
@@ -315,37 +294,25 @@ function setSrc(s) {
   document.querySelectorAll('.src-tab').forEach(function(t) {
     t.classList.toggle('active', t.dataset.src === s);
   });
+  /* 分组切换仅 exam/real 显示；切其他来源时复位为按章节 */
+  var showGroup = (s === 'exam' || s === 'real');
+  document.getElementById('groupSeg').style.display = showGroup ? '' : 'none';
+  if (!showGroup) GROUP_MODE = 'chap';
   renderList();
 }
 
-/* ===== 题型下拉 ===== */
-function toggleTypeMenu(e) {
-  if (e) e.stopPropagation();
-  var m = document.getElementById('typeMenu');
-  var b = document.getElementById('favType');
-  m.classList.toggle('open');
-  b.classList.toggle('open', m.classList.contains('open'));
-}
-function setType(t) {
-  TYPE = t;
-  document.getElementById('favType').firstChild.textContent = (t === 'all' ? '全部题型' : TYPE_NAME[t]) + ' ';
-  document.getElementById('typeMenu').classList.remove('open');
-  document.getElementById('favType').classList.remove('open');
+/* ===== 分组切换（PM 2026-09-07：exam/real 可切按章节/按试卷） ===== */
+function setGroup(gm) {
+  GROUP_MODE = gm;
+  document.querySelectorAll('.seg-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.gm === gm);
+  });
   renderList();
 }
-function buildTypeMenu() {
-  var types = ['all','single','multi','judge','fill'];
-  var html = types.map(function(t) {
-    return '<div class="type-menu-item' + (TYPE === t ? ' active' : '') + '" onclick="setType(\'' + t + '\')">'
-      + (t === 'all' ? '全部题型' : TYPE_NAME[t]) + '</div>';
-  }).join('');
-  document.getElementById('typeMenu').innerHTML = html;
-}
 
-/* ===== 过滤 ===== */
+/* ===== 过滤（题型筛选已移除，type 字段保留供做题/闪卡链路用） ===== */
 function passFilter(it) {
   if (SRC !== 'all' && it.source !== SRC) return false;
-  if (TYPE !== 'all' && it.type !== TYPE) return false;
   return true;
 }
 
@@ -366,6 +333,24 @@ function buildTree() {
   return { tree: tree, l1Order: l1Order };
 }
 
+/* ===== 按试卷聚合成树（PM 2026-09-07：exam/real 用，卷名 → l2 → l3，不显 l1） ===== */
+function buildPaperTree() {
+  var tree = {};   /* paper -> { _count, l2s: { l2 -> { _count, l3s: { l3 -> count } } } } */
+  var paperOrder = [];
+  items.filter(passFilter).forEach(function(it) {
+    var paper = it.paper || '未分组';
+    if (!tree[paper]) { tree[paper] = { _count: 0, l2s: {}, l2Order: [] }; paperOrder.push(paper); }
+    var p = tree[paper];
+    p._count++;
+    if (!p.l2s[it.l2]) { p.l2s[it.l2] = { _count: 0, l3s: {}, l3Order: [] }; p.l2Order.push(it.l2); }
+    var l2 = p.l2s[it.l2];
+    l2._count++;
+    if (!l2.l3s[it.l3]) { l2.l3s[it.l3] = 0; l2.l3Order.push(it.l3); }
+    l2.l3s[it.l3]++;
+  });
+  return { tree: tree, paperOrder: paperOrder };
+}
+
 /* ===== 渲染列表（三级树） ===== */
 function renderList() {
   var filtered = items.filter(passFilter);
@@ -380,40 +365,78 @@ function renderList() {
   wrap.style.display = 'block';
   empty.style.display = 'none';
 
-  var r = buildTree();
   var html = '';
-  r.l1Order.forEach(function(l1name) {
-    var l1 = r.tree[l1name];
-    html += '<div class="l1-group">'
-      +   '<div class="l1-row" onclick="goPractice(\'chap\',\'' + esc(l1name) + '\',\'\',\'\')">'
-      +     '<span class="l1-name">' + l1name + '</span>'
-      +     '<span class="l1-count">' + l1._count + ' 道收藏</span>'
-      +     '<span class="l1-arrow">›</span>'
-      +   '</div>';
-    l1.l2Order.forEach(function(l2name) {
-      var l2 = l1.l2s[l2name];
-      var key = l1name + '||' + l2name;
-      var isOpen = !!OPEN_MAP[key];
-      html += '<div class="l2-group' + (isOpen ? ' open' : '') + '">'
-        +   '<div class="l2-row">'
-        +     '<span class="l2-name" onclick="goPractice(\'sub\',\'' + esc(l1name) + '\',\'' + esc(l2name) + '\',\'\')">' + l2name + '</span>'
-        +     '<span class="l2-count">' + l2._count + ' 道收藏</span>'
-        +     '<span class="l2-toggle" onclick="toggleL2(\'' + esc(key) + '\')"><span class="caret">›</span></span>'
-        +   '</div>'
-        +   '<div class="l3-list">';
-      l2.l3Order.forEach(function(l3name) {
-        html += '<div class="l3-row" onclick="goPractice(\'point\',\'' + esc(l1name) + '\',\'' + esc(l2name) + '\',\'' + esc(l3name) + '\')">'
-          +   '<span class="l3-dot"></span>'
-          +   '<span class="l3-name">' + l3name + '</span>'
-          +   '<span class="l3-count">' + l2.l3s[l3name] + ' 道</span>'
-          +   '<span class="l3-arrow">›</span>'
-          + '</div>';
-      });
-      html +=   '</div>'
+  if (GROUP_MODE === 'paper' && (SRC === 'exam' || SRC === 'real')) {
+    /* —— 按试卷分组（PM 2026-09-07）：卷名 → l2 → l3，不显 l1 —— */
+    var r = buildPaperTree();
+    r.paperOrder.forEach(function(paper) {
+      var p = r.tree[paper];
+      html += '<div class="l1-group">'
+        +   '<div class="l1-row" onclick="goPractice(\'paper\',\'' + esc(paper) + '\',\'\',\'\')">'
+        +     '<span class="l1-name">' + paper + '</span>'
+        +     '<span class="l1-count">' + p._count + ' 道</span>'
+        +     '<span class="l1-arrow">›</span>'
         +   '</div>';
+      p.l2Order.forEach(function(l2name) {
+        var l2 = p.l2s[l2name];
+        var key = paper + '||' + l2name;
+        var isOpen = !!OPEN_MAP[key];
+        html += '<div class="l2-group' + (isOpen ? ' open' : '') + '">'
+          +   '<div class="l2-row">'
+          +     '<span class="l2-name" onclick="goPractice(\'papersub\',\'' + esc(paper) + '\',\'' + esc(l2name) + '\',\'\')">' + l2name + '</span>'
+          +     '<span class="l2-count">' + l2._count + ' 道</span>'
+          +     '<span class="l2-toggle" onclick="toggleL2(\'' + esc(key) + '\')"><span class="caret">›</span></span>'
+          +   '</div>'
+          +   '<div class="l3-list">';
+        l2.l3Order.forEach(function(l3name) {
+          html += '<div class="l3-row" onclick="goPractice(\'paperpoint\',\'' + esc(paper) + '\',\'' + esc(l2name) + '\',\'' + esc(l3name) + '\')">'
+            +   '<span class="l3-dot"></span>'
+            +   '<span class="l3-name">' + l3name + '</span>'
+            +   '<span class="l3-count">' + l2.l3s[l3name] + ' 道</span>'
+            +   '<span class="l3-arrow">›</span>'
+            + '</div>';
+        });
+        html +=   '</div>'
+          +   '</div>';
+      });
+      html += '</div>';
     });
-    html += '</div>';
-  });
+  } else {
+    /* —— 按章节分组：l1 → l2 → l3 —— */
+    var r = buildTree();
+    r.l1Order.forEach(function(l1name) {
+      var l1 = r.tree[l1name];
+      html += '<div class="l1-group">'
+        +   '<div class="l1-row" onclick="goPractice(\'chap\',\'' + esc(l1name) + '\',\'\',\'\')">'
+        +     '<span class="l1-name">' + l1name + '</span>'
+        +     '<span class="l1-count">' + l1._count + ' 道</span>'
+        +     '<span class="l1-arrow">›</span>'
+        +   '</div>';
+      l1.l2Order.forEach(function(l2name) {
+        var l2 = l1.l2s[l2name];
+        var key = l1name + '||' + l2name;
+        var isOpen = !!OPEN_MAP[key];
+        html += '<div class="l2-group' + (isOpen ? ' open' : '') + '">'
+          +   '<div class="l2-row">'
+          +     '<span class="l2-name" onclick="goPractice(\'sub\',\'' + esc(l1name) + '\',\'' + esc(l2name) + '\',\'\')">' + l2name + '</span>'
+          +     '<span class="l2-count">' + l2._count + ' 道</span>'
+          +     '<span class="l2-toggle" onclick="toggleL2(\'' + esc(key) + '\')"><span class="caret">›</span></span>'
+          +   '</div>'
+          +   '<div class="l3-list">';
+        l2.l3Order.forEach(function(l3name) {
+          html += '<div class="l3-row" onclick="goPractice(\'point\',\'' + esc(l1name) + '\',\'' + esc(l2name) + '\',\'' + esc(l3name) + '\')">'
+            +   '<span class="l3-dot"></span>'
+            +   '<span class="l3-name">' + l3name + '</span>'
+            +   '<span class="l3-count">' + l2.l3s[l3name] + ' 道</span>'
+            +   '<span class="l3-arrow">›</span>'
+            + '</div>';
+        });
+        html +=   '</div>'
+          +   '</div>';
+      });
+      html += '</div>';
+    });
+  }
   wrap.innerHTML = html;
 }
 
@@ -429,18 +452,27 @@ function toggleL2(key) {
   renderList();
 }
 
-/* ===== 进入做题页（复用 REQ_PRACTICE；entry=fav, scope=chap/sub/point/all） ===== */
+/* ===== 进入做题页（复用 REQ_PRACTICE；entry=fav, scope=chap/sub/point/all/paper/papersub/paperpoint） ===== */
 function goPractice(scope, l1, l2, l3) {
   var list = items.filter(function(it) {
     if (!passFilter(it)) return false;
-    if (scope === 'chap')  return it.l1 === l1;
-    if (scope === 'sub')   return it.l1 === l1 && it.l2 === l2;
-    if (scope === 'point') return it.l1 === l1 && it.l2 === l2 && it.l3 === l3;
+    if (scope === 'chap')       return it.l1 === l1;
+    if (scope === 'sub')        return it.l1 === l1 && it.l2 === l2;
+    if (scope === 'point')      return it.l1 === l1 && it.l2 === l2 && it.l3 === l3;
+    /* 按试卷模式：l1 参数为 paper 卷名 */
+    if (scope === 'paper')      return it.paper === l1;
+    if (scope === 'papersub')  return it.paper === l1 && it.l2 === l2;
+    if (scope === 'paperpoint')return it.paper === l1 && it.l2 === l2 && it.l3 === l3;
     return false;
   });
   if (!list.length) { showToast('该范围暂无收藏题'); return; }
   writeFavPractice(list, scope, l1, l2, l3);
-  var name = scope === 'chap' ? l1 : (scope === 'sub' ? l2 : l3);
+  var name = scope === 'chap' ? l1
+    : scope === 'sub' ? l2
+    : scope === 'point' ? l3
+    : scope === 'paper' ? l1
+    : scope === 'papersub' ? l2
+    : l3;
   try {
     window.parent.postMessage({ type:'REQ_PRACTICE', data:{
       entry:'fav', scope: scope, name: name + ' · 收藏题'
@@ -487,18 +519,7 @@ function showToast(msg) {
   t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
 }
 
-/* ===== 点外部收起题型下拉 ===== */
-document.addEventListener('click', function(e) {
-  var m = document.getElementById('typeMenu');
-  var b = document.getElementById('favType');
-  if (m.classList.contains('open') && !m.contains(e.target) && e.target !== b && !b.contains(e.target)) {
-    m.classList.remove('open');
-    b.classList.remove('open');
-  }
-});
-
 /* ===== 初始化 ===== */
-buildTypeMenu();
 renderList();
 </script>
 
