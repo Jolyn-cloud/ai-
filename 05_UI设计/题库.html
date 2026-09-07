@@ -664,9 +664,10 @@ window.addEventListener('message', function(evt) {
   var d = evt.data;
   if (!d) return;
   if (d.type === 'CLOSE_CHAPTER') { closeSubLayer(); return; }
-  if (d.type === 'REQ_PRACTICE' || d.type === 'REQ_REPORT') {
+  if (d.type === 'REQ_PRACTICE' || d.type === 'REQ_REPORT' || d.type === 'REQ_FLASH_FROM_FAV') {
     /* 透传给总壳（题库.html 在总壳 iframe 内，window.parent 即总壳）
-       REQ_REPORT：模拟考场/历年真题「薄弱点分析」→ 总壳存数据并打开报告层 */
+       REQ_REPORT：模拟考场/历年真题「薄弱点分析」→ 总壳存数据并打开报告层
+       REQ_FLASH_FROM_FAV：收藏本「继续练闪卡」→ 总壳切闪卡 tab 跳闪卡原型（PM 2026-09-07） */
     try { window.parent.postMessage(d, '*'); } catch(e) {}
     return;
   }
