@@ -10,7 +10,7 @@ var CONFIG_KEY = 'flashCardConfig_v1';
    学生个性化配置：每日卡片数量 + 各章节题型比例
    weights = { 章节名: 百分比 }，缺省章节 / 未配置 → 各章均分
    ------------------------------------------------------------ */
-var DEFAULT_CONFIG = { dailyCount: 350, weights: {} };
+var DEFAULT_CONFIG = { dailyCount: 30, weights: {} };
 
 function loadConfig() {
   try {
@@ -10761,7 +10761,7 @@ function markCard(state, key, result) {
 
 /* ------------------------------------------------------------
    统计（当日口径）
-   done/total/remaining 按配额（演示 = 卡池 12 张，真实环境 = 350）
+   done/total/remaining 按配额（演示 = 卡池 12 张，真实环境 = 30 张/日，PM 2026-09-07）
    stubborn = 累计未记住 ≥3 的卡（id 去重）
    ------------------------------------------------------------ */
 function calcStats(state) {
