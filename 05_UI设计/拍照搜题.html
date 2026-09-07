@@ -677,10 +677,19 @@ var TAG_OPTIONS = {
 var PICKER_FIELD = null;
 function openTagPicker(field) {
   PICKER_FIELD = field;
+  if (field === 'concept') {
+    /* 考点：逐级上滑 kp-picker（与记笔记一致，可选可跳过；PM 2026-09-07） */
+    KP_TMP = { l1:'', l2:'', l3:'', l4:'' };
+    KP_LEVEL = 1;
+    renderKpListConcept();
+    document.getElementById('tagPickerMask').classList.add('on');
+    return;
+  }
+  /* 题型/错因：单级网格平铺 */
   var opts = TAG_OPTIONS[field];
-  var titleMap = { type:'选择题型', concept:'选择考点', tag:'选择错因' };
-  var subMap = { type:'AI 已预选，可纠错', concept:'AI 已预选，可纠错', tag:'AI 已预选，可纠错' };
-  var curVal = field === 'type' ? CUR.type : (field === 'concept' ? CUR.concept : CUR.tag);
+  var titleMap = { type:'选择题型', tag:'选择错因' };
+  var subMap = { type:'AI 已预选，可纠错', tag:'AI 已预选，可纠错' };
+  var curVal = field === 'type' ? CUR.type : CUR.tag;
   var html = '<div class="tp-title">' + titleMap[field] + '</div>'
     + '<div class="tp-sub">' + subMap[field] + '</div><div class="tp-grid">';
   opts.forEach(function(o) {
@@ -702,6 +711,73 @@ function pickTag(val, lbl) {
 function closeTagPicker() {
   document.getElementById('tagPickerMask').classList.remove('on');
   PICKER_FIELD = null;
+}
+
+/* ===== 考点逐级选择（搜题结果页用，与记笔记一致：上滑弹窗逐级选、可选可跳过；PM 2026-09-07）=====
+   状态 KP_TMP（四级临时态），confirm 时取最深层级派生 CUR.concept。
+   复用 .kp-picker 系列 CSS，渲染到 #tagPicker 容器（与记笔记 #kpPicker 隔离）。
+   KP_LEVEL 与记笔记共用（打开时各自重置，不并发）。 */
+var KP_TMP = { l1:'', l2:'', l3:'', l4:'' };
+
+function renderKpListConcept() {
+  var levelNames = ['', '一级', '二级', '三级', '四级'];
+  var opts = [];
+  var curVal = '';
+  if (KP_LEVEL === 1) { opts = KP_TREE.map(function(n){ return n.name; }); curVal = KP_TMP.l1; }
+  else if (KP_LEVEL === 2) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    opts = l1Node ? l1Node.children.map(function(n){ return n.name; }) : [];
+    curVal = KP_TMP.l2;
+  } else if (KP_LEVEL === 3) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === KP_TMP.l2; })[0] : null;
+    opts = l2Node ? l2Node.children.map(function(n){ return n.name; }) : [];
+    curVal = KP_TMP.l3;
+  } else if (KP_LEVEL === 4) {
+    var l1Node = KP_TREE.filter(function(n){ return n.name === KP_TMP.l1; })[0];
+    var l2Node = l1Node ? l1Node.children.filter(function(n){ return n.name === KP_TMP.l2; })[0] : null;
+    var l3Node = l2Node ? l2Node.children.filter(function(n){ return n.name === KP_TMP.l3; })[0] : null;
+    opts = l3Node ? l3Node.children : [];
+    curVal = KP_TMP.l4;
+  }
+  var parts = [];
+  if (KP_TMP.l1) parts.push(KP_TMP.l1);
+  if (KP_TMP.l2) parts.push(KP_TMP.l2);
+  if (KP_TMP.l3) parts.push(KP_TMP.l3);
+  if (KP_TMP.l4) parts.push(KP_TMP.l4);
+  var pathHtml = parts.length
+    ? parts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
+    : '<span class="kp-empty">未选择（将标记为「待归类」）</span>';
+  var html = '<div class="kp-picker">'
+    +   '<div class="kp-picker-head"><span class="kp-picker-title">选择' + levelNames[KP_LEVEL] + '考点</span><span class="kp-picker-skip" onclick="skipKpConcept()">跳过本级</span></div>'
+    +   '<div class="kp-path-bar">' + pathHtml + '</div>'
+    +   '<div class="kp-list">';
+  opts.forEach(function(name) {
+    var on = (name === curVal) ? ' on' : '';
+    html += '<div class="kp-item' + on + '" onclick="pickKpConcept(' + KP_LEVEL + ',\'' + escapeQuote(name) + '\')">'
+      +   '<span>' + name + '</span>' + (on ? '<span class="kp-ck">✓</span>' : '<span class="kp-next">›</span>') + '</div>';
+  });
+  if (!opts.length) html += '<div style="padding:24px;text-align:center;color:var(--text-tertiary);font-size:13px;">无更多选项，点「跳过本级」或「完成」</div>';
+  html += '</div><button class="kp-picker-done" onclick="confirmKpConcept()">完成</button></div>';
+  document.getElementById('tagPicker').innerHTML = html;
+}
+
+function pickKpConcept(level, name) {
+  if (level === 1) { KP_TMP.l1 = name; KP_TMP.l2=''; KP_TMP.l3=''; KP_TMP.l4=''; KP_LEVEL = 2; }
+  else if (level === 2) { KP_TMP.l2 = name; KP_TMP.l3=''; KP_TMP.l4=''; KP_LEVEL = 3; }
+  else if (level === 3) { KP_TMP.l3 = name; KP_TMP.l4=''; KP_LEVEL = 4; }
+  else if (level === 4) { KP_TMP.l4 = name; KP_LEVEL = 5; }
+  if (KP_LEVEL > 4) { confirmKpConcept(); return; }
+  renderKpListConcept();
+}
+
+function skipKpConcept() { confirmKpConcept(); }
+
+function confirmKpConcept() {
+  var lbl = KP_TMP.l3 || KP_TMP.l2 || KP_TMP.l1 || '待归类';
+  CUR.concept = lbl;
+  setPill('pillConcept', lbl);
+  closeTagPicker();
 }
 
 /* 保存：按模式分流（均有 localStorage 单点数据源） */

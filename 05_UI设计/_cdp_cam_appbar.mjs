@@ -231,19 +231,24 @@ try {
   check('章节题无待攻克/已攻克状态', w1.hasStatus === false, w1Head);
   check('章节题无 q-path 路径行', w1.hasPath === false);
 
-  // 二级标题带 n道 顽固n个（PM 2026-09-07：错题本列表改 1/2/3 级树，2级带数量）
+  // 2级标题：meta 只写「n道」（PM 2026-09-07：顽固n 移到独立 wt-stub-tag 红标签，去掉「个」字）
   const l2Meta = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
     var l2 = f.contentWindow.document.querySelector('.wt-l2');
     if(!l2) return 'no-l2';
     var m = l2.querySelector('.wt-meta').textContent.trim();
-    /* 形如「1 道」「2 道 顽固 1 个」均合法 */
-    var ok = /^\\d+\\s*道(\\s*顽固\\s*\\d+\\s*个)?$/.test(m);
-    return JSON.stringify({ m: m, ok: ok });
+    var stub = l2.querySelector('.wt-stub-tag');
+    return JSON.stringify({
+      m: m,
+      metaOk: /^\\d+\\s*道$/.test(m),
+      stubText: stub ? stub.textContent.trim() : '',
+      stubOk: !stub || /^顽固\\s*\\d+$/.test(stub.textContent.trim())
+    });
   })()`);
   const l2r = JSON.parse(l2Meta);
-  check('二级标题带 n道 顽固n个', l2r.ok, `得到: ${l2r.m}`);
+  check('2级meta只写n道', l2r.metaOk, `得到: ${l2r.m}`);
+  check('2级顽固标签写"顽固n"(无个)', l2r.stubOk, `得到: ${l2r.stubText}`);
 
   // 我的上传题 U01：卡片不显示考点标题（PM 2026-09-07 修正）；无拍照/原图/单选标签
   const u1Head = await evalIn('quiz', `(function(){
@@ -287,6 +292,48 @@ try {
   check('3级顽固标签只写"顽固"(无n个)', l3s.stubText === '顽固', `得到: ${l3s.stubText}`);
   check('3级meta只写n道(无顽固n个)', /^\d+\s*道$/.test(l3s.metaText), `得到: ${l3s.metaText}`);
   check('3级下卡片是兄弟(非竖线包裹)', l3s.nextIsCardList === true, l3Stub);
+
+  // 1级：meta只写n道、顽固标签写「顽固n」；我的上传排在最后（PM 2026-09-07）
+  const l1Info = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    var l1s=[...f.contentWindow.document.querySelectorAll('.wt-l1')];
+    if(!l1s.length) return 'no-l1';
+    var last=l1s[l1s.length-1];
+    var lastIsUpload = !!last.querySelector('.wt-l1-head .wt-name') && last.querySelector('.wt-l1-head .wt-name').textContent==='我的上传';
+    /* 找带顽固标签的1级 */
+    var withStub=l1s.find(x=>x.querySelector('.wt-stub-tag'));
+    var stubOk=false, metaOk=false;
+    if(withStub){
+      var m=withStub.querySelector('.wt-l1-head .wt-meta').textContent.trim();
+      metaOk=/^\\d+\\s*道$/.test(m);
+      var st=withStub.querySelector('.wt-stub-tag').textContent.trim();
+      stubOk=/^顽固\\s*\\d+$/.test(st);
+    }
+    return JSON.stringify({lastIsUpload:lastIsUpload, withStub:!!withStub, metaOk:metaOk, stubOk:stubOk});
+  })()`);
+  const l1i = JSON.parse(l1Info);
+  check('我的上传排在最后', l1i.lastIsUpload === true, l1Info);
+  check('1级meta只写n道', l1i.metaOk === true, l1Info);
+  check('1级顽固标签写"顽固n"(无个)', l1i.stubOk === true, l1Info);
+
+  // 卡片头：错因左、错n次右（PM 2026-09-07：space-between 布局）
+  const cardLayout = await evalIn('quiz', `(function(){
+    var f=document.getElementById('wrongLayer').querySelector('iframe');
+    if(!f||!f.contentWindow) return 'no-iframe';
+    var card=f.contentWindow.document.querySelector('.swipe-cell[data-qid="W01"] .q-card');
+    if(!card) return 'no-card';
+    var head=card.querySelector('.q-head');
+    if(!head) return 'no-head';
+    var tag=head.querySelector('.q-tag');
+    var spans=[...head.querySelectorAll('span:not(.q-tag)')];
+    var wc=spans.find(s=>/错\\s*\\d+\\s*次/.test(s.textContent));
+    if(!tag||!wc) return JSON.stringify({hasTag:!!tag,hasWc:!!wc});
+    var tr=tag.getBoundingClientRect(), wr=wc.getBoundingClientRect();
+    return JSON.stringify({tagLeft:Math.round(tr.left), wcRight:Math.round(wr.right), tagLeftOfWc: tr.right<=wr.left});
+  })()`);
+  const cl = JSON.parse(cardLayout);
+  check('卡片错因左/错n次右', cl.tagLeftOfWc === true, cardLayout);
 
   console.log('\n== 5. 独立调试兜底：无 appbar 时 result-head 保留 ==');
   // 直接导航到拍照搜题.html（非总壳）→ 无 appbar → result-head 不隐藏
