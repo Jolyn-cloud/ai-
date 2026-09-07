@@ -137,8 +137,8 @@ body {
   cursor: pointer;
 }
 .wt-l1-head:active { opacity: .6; }
-.wt-l1-head .wt-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
-.wt-l1-arrow { font-size: 17px; color: var(--text-tertiary); line-height: 1; margin-left: auto; transition: transform .18s ease; }
+.wt-l1-head .wt-name { font-size: 16px; font-weight: 800; color: var(--text-primary); flex: 1; }
+.wt-l1-arrow { font-size: 17px; color: var(--text-tertiary); line-height: 1; transition: transform .18s ease; }
 .wt-l1.open .wt-l1-arrow { transform: rotate(90deg); }
 /* 2级：白卡圆角阴影行（与收藏本 l2-row/l2-group 一致） */
 .wt-l2-grp { margin: 6px 0; }
@@ -181,6 +181,11 @@ body {
   color: var(--danger); font-weight: 700; font-size: 10px;
   background: #FFF1F0; padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
 }
+/* 1/2级顽固标签（红底圆角，带数字「顽固 n」，n=其下顽固3级个数） */
+.wt-stub-tag {
+  color: var(--danger); font-weight: 700; font-size: 10px;
+  background: #FFF1F0; padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+}
 /* meta：各级通用（n道 顽固n个 / n道 顽固） */
 .wt-meta {
   font-size: 11px; color: var(--text-tertiary); font-weight: 500;
@@ -200,7 +205,7 @@ body {
 .q-card.stubborn { box-shadow: 0 0 0 1px #FECACA, 0 5px 14px rgba(91,114,245,.06); }
 /* 标题行：左=三级标题（章节名）/ 右=错误类型+错次 */
 .q-head {
-  display: flex; justify-content: flex-start; align-items: center; gap: 8px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
   margin-bottom: 6px;
 }
 .q-head .q-head-tags {
@@ -746,13 +751,23 @@ var FILTER = 'all';
 /* 1/2 级展开态：key 形如 l1_0 / l1_0_l2_1，值 true=展开。收藏本范式（PM 2026-09-07） */
 var OPEN_MAP = { 'l1_0': true };   /* 默认展开第 1 个 1 级，露出其下 2 级标题 */
 
-/* 便捷遍历：收集所有题目 */
+/* 已移出错题本的 qid 集合（做题页「移出」写 zsb_wrong_removed_v1，持久跨页，PM 2026-09-07） */
+function removedQids() {
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem('zsb_wrong_removed_v1') || '[]'); } catch(e) {}
+  return arr;
+}
+
+/* 便捷遍历：收集所有题目（已剔除「移出」的题目，供统计卡/筛选计数用） */
 function allQuestions() {
+  var removed = removedQids();
   var arr = [];
   WRONG_DATA.modules.forEach(function(m) {
-    m.chapters.forEach(function(c) { arr = arr.concat(c.questions); });
+    m.chapters.forEach(function(c) {
+      arr = arr.concat(c.questions.filter(function(q) { return removed.indexOf(q.qid) < 0; }));
+    });
   });
-  arr = arr.concat(WRONG_DATA.uploads);
+  arr = arr.concat(WRONG_DATA.uploads.filter(function(u) { return removed.indexOf(u.qid) < 0; }));
   return arr;
 }
 /* ===== 渲染总览卡（今日待攻克卡，PM 2026-09-02 重构 / 2026-09-05 改名+去红字） =====
@@ -807,7 +822,51 @@ function renderList() {
   syncUploads();
   var box = document.getElementById('list');
   var html = '';
-  /* 我的上传区（source=upload）：独立平铺顶部，不参与 1/2/3 级树（path 仅两段，无 3 级考点） */
+  /* 章节错题：按 path 三段聚成 1级→2级→3级 树，3级下挂卡片（收藏本范式） */
+  var tree = buildWrongTree();
+  tree.forEach(function(l1, i) {
+    var l1Stubborn = 0;   /* 1级顽固数 = 其下所有顽固 3 级个数 */
+    l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) l1Stubborn++; }); });
+    var l1Key = 'l1_' + i;
+    var l1Open = !!OPEN_MAP[l1Key];
+    html += '<div class="wt-l1' + (l1Open ? ' open' : '') + '">'
+      + '<div class="wt-l1-head" onclick="toggleNode(\'' + l1Key + '\')">'
+      +   '<span class="wt-name">' + l1.name + '</span>'
+      +   '<span class="wt-meta">' + l1.count + ' 道</span>'
+      +   (l1Stubborn ? '<span class="wt-stub-tag">顽固 ' + l1Stubborn + '</span>' : '')
+      +   '<span class="wt-l1-arrow">›</span>'
+      + '</div>'
+      + '<div class="wt-l2-list">';
+    l1.l2s.forEach(function(l2, j) {
+      var l2Stubborn = 0;   /* 2级顽固数 = 其下顽固 3 级个数 */
+      l2.l3s.forEach(function(l3) { if (l3.stubborn) l2Stubborn++; });
+      var l2Key = l1Key + '_l2_' + j;
+      var l2Open = !!OPEN_MAP[l2Key];
+      html += '<div class="wt-l2-grp' + (l2Open ? ' open' : '') + '">'
+        +   '<div class="wt-l2">'
+        +     '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
+        +     '<span class="wt-meta">' + l2.count + ' 道</span>'
+        +     (l2Stubborn ? '<span class="wt-stub-tag">顽固 ' + l2Stubborn + '</span>' : '')
+        +     '<span class="wt-l2-toggle" onclick="toggleNode(\'' + l2Key + '\')"><span class="caret">›</span></span>'
+        +   '</div>'
+        +   '<div class="wt-l3-list">';
+      l2.l3s.forEach(function(l3, k) {
+        html += '<div class="wt-l3' + (l3.stubborn ? ' stubborn' : '') + '" onclick="startPractice(\'point\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\',\'' + escapeQuote(l3.name) + '\')">'
+          +   '<span class="wt-l3-dot"></span>'
+          +   '<span class="wt-l3-name">' + l3.name + '</span>'
+          +   '<span class="wt-meta">' + l3.count + ' 道</span>'
+          + (l3.stubborn ? '<span class="wt-l3-stub">顽固</span>' : '')
+          + '</div>'
+          +   '<div class="wt-card-list">';
+        l3.qs.forEach(function(q) { html += qCard(q); });
+        html += '</div>';
+      });
+      html +=   '</div>'   /* wt-l3-list */
+        + '</div>';   /* wt-l2-grp */
+    });
+    html += '</div></div>';   /* wt-l2-list / wt-l1 */
+  });
+  /* 我的上传区（source=upload）：独立平铺末尾，不参与 1/2/3 级树（path 仅两段，无 3 级考点） */
   var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); }).sort(byAddedDesc);
   if (ups.length > 0) {
     var upOpen = OPEN_MAP['upload'] !== false;   /* 默认展开 */
@@ -821,48 +880,6 @@ function renderList() {
     ups.forEach(function(q) { html += qCard(q); });
     html += '</div></div>';
   }
-  /* 章节错题：按 path 三段聚成 1级→2级→3级 树，3级下挂卡片（收藏本范式） */
-  var tree = buildWrongTree();
-  tree.forEach(function(l1, i) {
-    var l1Stubborn = 0;   /* 1级顽固数 = 其下所有顽固 3 级个数 */
-    l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) l1Stubborn++; }); });
-    var l1Key = 'l1_' + i;
-    var l1Open = !!OPEN_MAP[l1Key];
-    html += '<div class="wt-l1' + (l1Open ? ' open' : '') + '">'
-      + '<div class="wt-l1-head" onclick="toggleNode(\'' + l1Key + '\')">'
-      +   '<span class="wt-name">' + l1.name + '</span>'
-      +   '<span class="wt-meta">' + l1.count + ' 道' + (l1Stubborn ? ' 顽固 ' + l1Stubborn + ' 个' : '') + '</span>'
-      +   '<span class="wt-l1-arrow">›</span>'
-      + '</div>'
-      + '<div class="wt-l2-list">';
-    l1.l2s.forEach(function(l2, j) {
-      var l2Stubborn = 0;   /* 2级顽固数 = 其下顽固 3 级个数 */
-      l2.l3s.forEach(function(l3) { if (l3.stubborn) l2Stubborn++; });
-      var l2Key = l1Key + '_l2_' + j;
-      var l2Open = !!OPEN_MAP[l2Key];
-      html += '<div class="wt-l2-grp' + (l2Open ? ' open' : '') + '">'
-        +   '<div class="wt-l2">'
-        +     '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
-        +     '<span class="wt-meta">' + l2.count + ' 道' + (l2Stubborn ? ' 顽固 ' + l2Stubborn + ' 个' : '') + '</span>'
-        +     '<span class="wt-l2-toggle" onclick="toggleNode(\'' + l2Key + '\')"><span class="caret">›</span></span>'
-        +   '</div>'
-        +   '<div class="wt-l3-list">';
-      l2.l3s.forEach(function(l3, k) {
-        html += '<div class="wt-l3' + (l3.stubborn ? ' stubborn' : '') + '" onclick="startPractice(\'point\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\',\'' + escapeQuote(l3.name) + '\')">'
-          +   '<span class="wt-l3-dot"></span>'
-          +   '<span class="wt-l3-name">' + l3.name + '</span>'
-          + (l3.stubborn ? '<span class="wt-l3-stub">顽固</span>' : '')
-          +   '<span class="wt-meta">' + l3.count + ' 道</span>'
-          + '</div>'
-          +   '<div class="wt-card-list">';
-        l3.qs.forEach(function(q) { html += qCard(q); });
-        html += '</div>';
-      });
-      html +=   '</div>'   /* wt-l3-list */
-        + '</div>';   /* wt-l2-grp */
-    });
-    html += '</div></div>';   /* wt-l2-list / wt-l1 */
-  });
   box.innerHTML = html || '<div class="empty">当前筛选下暂无错题</div>';
 }
 
@@ -1023,6 +1040,7 @@ function qCard(q) {
 }
 
 function passFilter(q) {
+  if (removedQids().indexOf(q.qid) >= 0) return false;   /* 移出的题全局剔除（PM 2026-09-07） */
   if (FILTER === 'upload') return q.source === 'upload';
   if (FILTER === 'pending') return q.status === 'pending';
   if (FILTER === 'stubborn') return q.stubborn;
@@ -1042,10 +1060,11 @@ function setFilter(f) {
 
 function updateChipCounts() {
   var qs = allQuestions();
+  var removed = removedQids();
   var pending = qs.filter(function(q) { return q.status === 'pending'; }).length;
   var stubborn = qs.filter(function(q) { return q.stubborn; }).length;
   var solved = qs.filter(function(q) { return q.status === 'solved'; }).length;
-  var uploads = (WRONG_DATA.uploads || []).length;
+  var uploads = (WRONG_DATA.uploads || []).filter(function(u) { return removed.indexOf(u.qid) < 0; }).length;
   document.getElementById('cntPending').textContent = pending ? '(' + pending + ')' : '';
   document.getElementById('cntStubborn').textContent = stubborn ? '(' + stubborn + ')' : '';
   document.getElementById('cntSolved').textContent = solved ? '(' + solved + ')' : '';
@@ -1547,6 +1566,14 @@ function showToast(msg) {
 
 renderOverview();
 renderList();
+
+/* 做题页「移出」后同源 storage 事件自动广播 → 本页即时刷新，被移出题立即消失、无需重进（PM 2026-09-07） */
+window.addEventListener('storage', function(e) {
+  if (e.key === 'zsb_wrong_removed_v1') {
+    renderOverview();
+    renderList();
+  }
+});
 
 /* 处于总壳演示（本页嵌在 camLayer iframe，parent 非顶层窗口）→ 页内自绘页头交给 appbar 统一承担。
    注意：不能读 top.document 探测 #appbar——file:// 下各 frame origin=null 会抛 SecurityError 被 catch 吞掉，

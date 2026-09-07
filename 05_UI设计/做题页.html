@@ -786,13 +786,16 @@ body{
   <div class="analysis-area" id="analysisArea" data-page-node-id="h1MnupBHHLjNA50GC4yFE1"></div>
 </div>
 
-<!-- 底部操作栏：收藏 / 标记 / 分享 + 交卷（上一题/下一题改手势滑动） -->
+<!-- 底部操作栏：收藏 / 标记 / 移出(仅错题本) / 分享 + 交卷（上一题/下一题改手势滑动） -->
 <div class="bottom-bar" id="bottomBar" data-page-node-id="43WO4bubzBquQqpGnBRC9b">
   <button class="tool-btn" id="btnFav" onclick="toggleFav()" data-page-node-id="FQGfCYfxGFoLYf1w6IDjiF">
     <span class="ico" id="favIco" data-page-node-id="mpQaIGIZ0v0B7tI7WHfaDP">☆</span><span class="lbl" data-page-node-id="Jn8Cp7gXHWWz3jNr2fSvFc">收藏</span>
   </button>
   <button class="tool-btn" id="btnMark" onclick="toggleMark()" data-page-node-id="goiHTqqANs6FBXTBQBAw9O">
     <span class="ico" data-page-node-id="gnGrVCoCrHzFwM9avFLTbf">🚩</span><span class="lbl" data-page-node-id="LSlutezBIQJu0EhT8YFTaq">标记</span>
+  </button>
+  <button class="tool-btn" id="btnRemove" onclick="moveOutFromWrong()" style="display:none" data-page-node-id="rmvBtntWgX3fQk2n0WqM8c">
+    <span class="ico" data-page-node-id="rmvIcoXzR4yN8p1qS5vT7u">➖</span><span class="lbl" data-page-node-id="rmvLblAjY9dL6m3rU8wE2x">移出</span>
   </button>
   <button class="tool-btn" id="btnShare" onclick="openShare()" data-page-node-id="dpHzBhxabrDUXfOSEmB1ox">
     <span class="ico" data-page-node-id="LOs2Qk4ELqmfIdYnVQYYTs">↗</span><span class="lbl" data-page-node-id="lWM8pAPyVhxZhGUTQk7fL6">分享</span>
@@ -1278,6 +1281,13 @@ if (ENTRY === 'wrong') {
     if (hitW.length) QUESTIONS = hitW;
   } else if (WRONG_SCOPE === 'stubborn') {
     QUESTIONS = QUESTIONS.filter(function(q) { return q.stubborn; });
+  }
+  /* 移出（PM 2026-09-07）：错题本入口加载时过滤已移出的 qid（localStorage 持久，仅错题本读该 key，
+     今日/章节/上传/收藏/笔记等其它入口不读、不受影响） */
+  var _removed = [];
+  try { _removed = JSON.parse(localStorage.getItem('zsb_wrong_removed_v1') || '[]'); } catch(e) {}
+  if (_removed.length) {
+    QUESTIONS = QUESTIONS.filter(function(q) { return _removed.indexOf(q.qid) < 0; });
   }
 }
 if (ENTRY === 'upload') {
@@ -2621,6 +2631,45 @@ function closeShare() {
   document.getElementById('shareMask').classList.remove('show');
 }
 
+/* ---------- 移出错题本（仅 entry=wrong 显示「移出」按钮） ----------
+   持久跨页：qid 写入 zsb_wrong_removed_v1（去重）→ 错题本页 storage 事件即时刷新；
+   本页队列移除该题 → 跳下一题（重置本会话作答态后重渲染）；队列空 → 空态。
+   题仍保留在题库/章节等其它入口（它们不读该 key）。 */
+function moveOutFromWrong() {
+  var q = QUESTIONS[idx];
+  if (!q || !q.qid) return;
+  clearAutoNext();
+  var KEY = 'zsb_wrong_removed_v1';
+  var removed = [];
+  try { removed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) {}
+  if (removed.indexOf(q.qid) < 0) removed.push(q.qid);
+  try { localStorage.setItem(KEY, JSON.stringify(removed)); } catch(e) {}
+  /* 从队列移除当前题（下一题自然顶到 idx）；重置本会话作答态 */
+  QUESTIONS.splice(idx, 1);
+  total = QUESTIONS.length;
+  answers = {}; fav = {}; marked = {}; committed = {}; reviewed = {};
+  if (total === 0) { renderEmptyState(); showToast('已移出错题本，题仍保留在题库'); return; }
+  if (idx >= total) idx = total - 1;
+  resetOp(true);
+  renderQuestion();
+  showToast('已移出错题本，题仍保留在题库');
+}
+/* 空态（错题本队列清空后） */
+function renderEmptyState() {
+  var pw = document.getElementById('progressWrap'); if (pw) pw.style.display = 'none';
+  var bb = document.getElementById('bottomBar'); if (bb) bb.style.display = 'none';
+  var fe = document.querySelector('.feedback-entry'); if (fe) fe.style.display = 'none';
+  document.getElementById('tagArea').innerHTML = '';
+  document.getElementById('analysisArea').innerHTML = '';
+  document.getElementById('analysisArea').classList.remove('show');
+  document.getElementById('qaBody').innerHTML = ''
+    + '<div style="padding:56px 24px;text-align:center;">'
+    +   '<div style="font-size:40px;line-height:1;margin-bottom:14px;">🎉</div>'
+    +   '<div style="font-size:15px;font-weight:600;color:#1E2130;margin-bottom:6px;">错题本已清空</div>'
+    +   '<div style="font-size:12px;color:#98A0B2;">所有错题已移出，题目仍保留在题库</div>'
+    + '</div>';
+}
+
 /* ---------- 页面轻提示 ---------- */
 var toastTimer2 = null;
 function showToast(msg) {
@@ -2667,6 +2716,9 @@ if (IS_EXAM_PAPER) {
 }
 startTimer();              /* 进入即起表（会话级计时；练习类在后台计时不显示 UI） */
 enterRuleIfNeeded();       /* 考试卷进卷首题型先停规则页（PM 2026-09-02） */
+/* 移出按钮：仅错题本入口显示（今日/章节/上传/收藏/笔记/考试卷隐藏，PM 2026-09-07） */
+var btnRemoveEl = document.getElementById('btnRemove');
+if (btnRemoveEl) btnRemoveEl.style.display = (ENTRY === 'wrong') ? '' : 'none';
 renderQuestion();
 </script>
 </body>

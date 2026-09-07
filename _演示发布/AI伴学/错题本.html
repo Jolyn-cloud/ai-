@@ -682,13 +682,23 @@ function syncUploads() {
 }
 var FILTER = 'all';
 
-/* 便捷遍历：收集所有题目 */
+/* 已移出错题本的 qid 集合（做题页「移出」写 zsb_wrong_removed_v1，持久跨页，PM 2026-09-07） */
+function removedQids() {
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem('zsb_wrong_removed_v1') || '[]'); } catch(e) {}
+  return arr;
+}
+
+/* 便捷遍历：收集所有题目（已剔除「移出」的题目，供统计卡/筛选计数用） */
 function allQuestions() {
+  var removed = removedQids();
   var arr = [];
   WRONG_DATA.modules.forEach(function(m) {
-    m.chapters.forEach(function(c) { arr = arr.concat(c.questions); });
+    m.chapters.forEach(function(c) {
+      arr = arr.concat(c.questions.filter(function(q) { return removed.indexOf(q.qid) < 0; }));
+    });
   });
-  arr = arr.concat(WRONG_DATA.uploads);
+  arr = arr.concat(WRONG_DATA.uploads.filter(function(u) { return removed.indexOf(u.qid) < 0; }));
   return arr;
 }
 /* ===== 渲染总览卡（今日待攻克卡，PM 2026-09-02 重构 / 2026-09-05 改名+去红字） =====
@@ -915,6 +925,7 @@ function qCard(q) {
 }
 
 function passFilter(q) {
+  if (removedQids().indexOf(q.qid) >= 0) return false;   /* 移出的题全局剔除（PM 2026-09-07） */
   if (FILTER === 'upload') return q.source === 'upload';
   if (FILTER === 'pending') return q.status === 'pending';
   if (FILTER === 'stubborn') return q.stubborn;
@@ -934,10 +945,11 @@ function setFilter(f) {
 
 function updateChipCounts() {
   var qs = allQuestions();
+  var removed = removedQids();
   var pending = qs.filter(function(q) { return q.status === 'pending'; }).length;
   var stubborn = qs.filter(function(q) { return q.stubborn; }).length;
   var solved = qs.filter(function(q) { return q.status === 'solved'; }).length;
-  var uploads = (WRONG_DATA.uploads || []).length;
+  var uploads = (WRONG_DATA.uploads || []).filter(function(u) { return removed.indexOf(u.qid) < 0; }).length;
   document.getElementById('cntPending').textContent = pending ? '(' + pending + ')' : '';
   document.getElementById('cntStubborn').textContent = stubborn ? '(' + stubborn + ')' : '';
   document.getElementById('cntSolved').textContent = solved ? '(' + solved + ')' : '';
@@ -1436,6 +1448,14 @@ function showToast(msg) {
 
 renderOverview();
 renderList();
+
+/* 做题页「移出」后同源 storage 事件自动广播 → 本页即时刷新，被移出题立即消失、无需重进（PM 2026-09-07） */
+window.addEventListener('storage', function(e) {
+  if (e.key === 'zsb_wrong_removed_v1') {
+    renderOverview();
+    renderList();
+  }
+});
 
 /* 处于总壳演示（本页嵌在 camLayer iframe，parent 非顶层窗口）→ 页内自绘页头交给 appbar 统一承担。
    注意：不能读 top.document 探测 #appbar——file:// 下各 frame origin=null 会抛 SecurityError 被 catch 吞掉，
