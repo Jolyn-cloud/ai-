@@ -137,8 +137,9 @@ body {
   cursor: pointer;
 }
 .wt-l1-head:active { opacity: .6; }
-.wt-l1-head .wt-name { font-size: 16px; font-weight: 800; color: var(--text-primary); flex: 1; }
-.wt-l1-arrow { font-size: 17px; color: var(--text-tertiary); line-height: 1; transition: transform .18s ease; }
+.wt-l1-head .wt-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.wt-l1-head .wt-stub-tag { margin-left: auto; }
+.wt-l1-arrow { font-size: 17px; color: var(--text-tertiary); line-height: 1; transition: transform .18s ease; flex-shrink: 0; }
 .wt-l1.open .wt-l1-arrow { transform: rotate(90deg); }
 /* 2级：白卡圆角阴影行（与收藏本 l2-row/l2-group 一致） */
 .wt-l2-grp { margin: 6px 0; }
@@ -149,7 +150,8 @@ body {
   box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 2px 6px rgba(91,114,245,.05);
 }
 .wt-l2:active { transform: scale(.995); }
-.wt-l2 .wt-name { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; cursor: pointer; }
+.wt-l2 .wt-name { font-size: 14px; font-weight: 600; color: var(--text-primary); cursor: pointer; }
+.wt-l2 .wt-stub-tag { margin-left: auto; }
 .wt-l2-toggle {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
@@ -174,8 +176,9 @@ body {
 .wt-l3:active { background: #F5F6FA; }
 .wt-l3-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
 .wt-l3.stubborn .wt-l3-dot { background: var(--danger); }
-.wt-l3-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); flex: 1; }
+.wt-l3-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
 .wt-l3.stubborn .wt-l3-name { color: var(--danger); }
+.wt-l3 .wt-l3-stub { margin-left: auto; }
 /* 顽固标签（3级布尔，红色小标签） */
 .wt-l3-stub {
   color: var(--danger); font-weight: 700; font-size: 10px;
@@ -749,7 +752,7 @@ function syncUploads() {
 }
 var FILTER = 'all';
 /* 1/2 级展开态：key 形如 l1_0 / l1_0_l2_1，值 true=展开。收藏本范式（PM 2026-09-07） */
-var OPEN_MAP = { 'l1_0': true };   /* 默认展开第 1 个 1 级，露出其下 2 级标题 */
+var OPEN_MAP = {};   /* 1级默认展开(!==false)，2级默认折叠(!!false)，我的上传默认收起(===true) */
 
 /* 已移出错题本的 qid 集合（做题页「移出」写 zsb_wrong_removed_v1，持久跨页，PM 2026-09-07） */
 function removedQids() {
@@ -828,7 +831,7 @@ function renderList() {
     var l1Stubborn = 0;   /* 1级顽固数 = 其下所有顽固 3 级个数 */
     l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) l1Stubborn++; }); });
     var l1Key = 'l1_' + i;
-    var l1Open = !!OPEN_MAP[l1Key];
+    var l1Open = OPEN_MAP[l1Key] !== false;   /* 默认展开（露出2级标题），可折叠 */
     html += '<div class="wt-l1' + (l1Open ? ' open' : '') + '">'
       + '<div class="wt-l1-head" onclick="toggleNode(\'' + l1Key + '\')">'
       +   '<span class="wt-name">' + l1.name + '</span>'
@@ -841,7 +844,7 @@ function renderList() {
       var l2Stubborn = 0;   /* 2级顽固数 = 其下顽固 3 级个数 */
       l2.l3s.forEach(function(l3) { if (l3.stubborn) l2Stubborn++; });
       var l2Key = l1Key + '_l2_' + j;
-      var l2Open = !!OPEN_MAP[l2Key];
+      var l2Open = !!OPEN_MAP[l2Key];   /* 2级默认折叠，点击展开显3级+卡片 */
       html += '<div class="wt-l2-grp' + (l2Open ? ' open' : '') + '">'
         +   '<div class="wt-l2">'
         +     '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
@@ -866,10 +869,10 @@ function renderList() {
     });
     html += '</div></div>';   /* wt-l2-list / wt-l1 */
   });
-  /* 我的上传区（source=upload）：独立平铺末尾，不参与 1/2/3 级树（path 仅两段，无 3 级考点） */
+  /* 我的上传区（source=upload）：独立平铺末尾，默认收起 */
   var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); }).sort(byAddedDesc);
   if (ups.length > 0) {
-    var upOpen = OPEN_MAP['upload'] !== false;   /* 默认展开 */
+    var upOpen = OPEN_MAP['upload'] === true;   /* 默认收起，点击展开 */
     html += '<div class="wt-l1' + (upOpen ? ' open' : '') + '">'
       + '<div class="wt-l1-head" onclick="toggleNode(\'upload\')">'
       +   '<span class="wt-name">我的上传</span>'

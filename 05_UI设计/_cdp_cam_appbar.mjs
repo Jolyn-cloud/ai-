@@ -310,10 +310,11 @@ try {
       var st=withStub.querySelector('.wt-stub-tag').textContent.trim();
       stubOk=/^顽固\\s*\\d+$/.test(st);
     }
-    return JSON.stringify({lastIsUpload:lastIsUpload, withStub:!!withStub, metaOk:metaOk, stubOk:stubOk});
+    return JSON.stringify({lastIsUpload:lastIsUpload, uploadClosed:!last.classList.contains('open'), withStub:!!withStub, metaOk:metaOk, stubOk:stubOk});
   })()`);
   const l1i = JSON.parse(l1Info);
   check('我的上传排在最后', l1i.lastIsUpload === true, l1Info);
+  check('我的上传默认收起', l1i.uploadClosed === true, l1Info);
   check('1级meta只写n道', l1i.metaOk === true, l1Info);
   check('1级顽固标签写"顽固n"(无个)', l1i.stubOk === true, l1Info);
 
