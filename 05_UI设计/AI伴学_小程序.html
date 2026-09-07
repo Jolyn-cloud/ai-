@@ -1195,6 +1195,11 @@ window.addEventListener('message', function(evt) {
     updateAppbarUI();
     return;
   }
+  if (d.type === 'WRONG_OVERLAY') {
+    /* 错题本子视图（+n个考点）开关 → appbar 退出优先收子视图回错题本首页（PM 2026-09-07） */
+    wrongOverlayOpen = !!(d.data && d.data.open);
+    return;
+  }
   if (d.type === 'LOGGED') {
     STATE.logged = true;
     if (d.data && d.data.user) STATE.user = d.data.user;
@@ -1250,6 +1255,7 @@ var practiceTitle = '';
 var chapterLayerOpen = false;   /* 题库 tab 内二级层是否展开（appbar 跟随） */
 var chapterLayerSub = '';       /* 当前打开的子层：chapter=章节刷题 / exam=模拟考场 / real=历年真题 / wrong=错题本 / cam=拍照搜题 */
 var camResultOpen = false;      /* 拍照子层内 AI 识别结果页是否打开（appbar 标题改「AI识别」+ 退出回取景） */
+var wrongOverlayOpen = false;  /* 错题本子视图（+n个考点）是否打开（appbar 退出优先收子视图回错题本首页，PM 2026-09-07） */
 function currentTabName() {
   var t = document.querySelector('.tab-item.active');
   return t ? t.getAttribute('data-frame') : '';
@@ -1302,6 +1308,15 @@ function handleAppbarExit() {
     return;
   }
   if (chapterLayerOpen) {
+    /* 错题本子视图（+n个考点）打开 → 退出优先收子视图回错题本首页（不关二级层） */
+    if (wrongOverlayOpen && chapterLayerSub === 'wrong') {
+      var quiz3 = document.getElementById('frame-quiz');
+      if (quiz3 && quiz3.contentWindow) {
+        quiz3.contentWindow.postMessage({ type: 'CLOSE_WRONG_OVERLAY' }, '*');
+      }
+      wrongOverlayOpen = false;
+      return;
+    }
     /* 拍照子层内 AI 识别结果页打开 → 退出只关结果页回取景（不收二级层） */
     if (camResultOpen) {
       var quiz2 = document.getElementById('frame-quiz');
@@ -2280,7 +2295,8 @@ var PANELS = {
           {k:'行1 进度', v:'分子=已攻克题数 solved；分母=全部错题道数 total；随攻克动作增长'},
           {k:'行2 概要', v:'n=待攻克题数（含上传题，= total - solved）；m=顽固三级考点个数（沿用章节刷题判定）'},
           {k:'行3 排行', v:'未攻克题按 path 第 3 段聚合累计答错次数，降序；上传题无 3 级段不计；排行行只显「考点名 错 n 次」不标顽固；默认显前 3，余量走「+n 个考点展开 ›」进子视图；未攻克 3 级 ≤ 3 时该入口不显示'},
-          {k:'行3 子视图', v:'页内 overlay（全屏白底 + 顶栏 ‹退出｜错误考点），列全部未攻克 3 级降序；点行 → 发 REQ_PRACTICE point 进入该 3 级练习'},
+          {k:'行3 子视图', v:'页内 overlay（全屏白底 + 顶栏 ‹退出｜错误考点），列全部未攻克 3 级降序；点行 → 发 REQ_PRACTICE point 进入该 3 级练习；子视图打开时隐藏拍照录错题悬浮球（camera-fab）'},
+          {k:'appbar 退出', v:'子视图打开时点 appbar 退出 → 优先收子视图回错题本首页（不关二级层）；再点退出 → 才关错题本回题库首页'},
           {k:'行4 重练', v:'startPractice("all")，重练全部未攻克错题'}
         ] },
       { num:'3', title:'筛选与排序',

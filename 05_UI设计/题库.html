@@ -675,6 +675,11 @@ window.addEventListener('message', function(evt) {
     try { window.parent.postMessage(d, '*'); } catch(e) {}
     return;
   }
+  if (d.type === 'WRONG_OVERLAY') {
+    /* 透传给总壳：错题本子视图开关（appbar 退出优先收子视图，PM 2026-09-07） */
+    try { window.parent.postMessage(d, '*'); } catch(e) {}
+    return;
+  }
   if (d.type === 'CAM_BACK') {
     /* 总壳退出（识别结果页态）→ 转发给当前打开的 cam/wrong 子层 iframe。
        必须用 postMessage 而非跨 frame 直接调函数：file:// 下各 frame origin=null，直接调用会被浏览器拦截 */
@@ -682,6 +687,16 @@ window.addEventListener('message', function(evt) {
       try {
         var inner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
         if (inner) inner.postMessage({ type: 'CAM_BACK' }, '*');
+      } catch(e) {}
+    }
+    return;
+  }
+  if (d.type === 'CLOSE_WRONG_OVERLAY') {
+    /* 总壳退出（错题本子视图态）→ 转发给错题本 iframe 收起子视图（PM 2026-09-07） */
+    if (activeSub === 'wrong') {
+      try {
+        var inner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
+        if (inner) inner.postMessage({ type: 'CLOSE_WRONG_OVERLAY' }, '*');
       } catch(e) {}
     }
     return;

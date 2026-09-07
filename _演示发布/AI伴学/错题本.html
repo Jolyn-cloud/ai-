@@ -311,6 +311,8 @@ body {
 }
 .camera-fab svg { width: 23px; height: 23px; }
 .camera-fab:active { transform: scale(.92); }
+/* 子视图打开时隐藏拍照录入悬浮球（PM 2026-09-07） */
+body.wrong-overlay-open .camera-fab { display: none; }
 
 /* ===== 上传题卡片（图片占位 / 拍照标签） ===== */
 .q-img-thumb {
@@ -921,9 +923,13 @@ function openWrongOverlay() {
   html += '</div>';
   document.getElementById('woList').innerHTML = html;
   document.getElementById('wrongOverlay').classList.add('on');
+  document.body.classList.add('wrong-overlay-open');
+  try { window.parent.postMessage({ type: 'WRONG_OVERLAY', data: { open: true } }, '*'); } catch(e) {}
 }
 function closeWrongOverlay() {
   document.getElementById('wrongOverlay').classList.remove('on');
+  document.body.classList.remove('wrong-overlay-open');
+  try { window.parent.postMessage({ type: 'WRONG_OVERLAY', data: { open: false } }, '*'); } catch(e) {}
 }
 
 /* ===== 渲染列表 ===== */
@@ -1701,10 +1707,12 @@ try {
   }
 } catch(e) { /* 极端环境忽略 */ }
 
-/* 监听总壳 appbar 退出（识别结果页态）→ 关结果页回取景 */
+/* 监听总壳 appbar 退出（识别结果页态/错题本子视图态）→ 关对应层 */
 window.addEventListener('message', function(evt) {
   var d = evt.data;
-  if (d && d.type === 'CAM_BACK') { closeResult(); }
+  if (!d) return;
+  if (d.type === 'CAM_BACK') { closeResult(); }
+  if (d.type === 'CLOSE_WRONG_OVERLAY') { closeWrongOverlay(); }   /* appbar 退出收子视图回错题本首页（PM 2026-09-07） */
 });
 </script>
 <!--__BODY_END__-->
