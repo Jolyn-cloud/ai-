@@ -10695,7 +10695,7 @@ function buildFullQueue() {
 
 /* 生成全新当天状态（跨天累计的 forgotCount 保留在卡片上） */
 function newState() {
-  return { date: todayStr(), quota: getDailyCount(), queue: shuffle(buildQueue()), marked: {} };
+  return { date: todayStr(), quota: getDailyCount(), queue: shuffle(buildQueue()), marked: {}, markedTime: {} };
 }
 
 /* ------------------------------------------------------------
@@ -10726,6 +10726,8 @@ function saveState(s) {
 function markCard(state, key, result) {
   if (state.marked[key]) return; // 防重复标记（规则：已答卡不重复操作）
   state.marked[key] = result;
+  if (!state.markedTime) state.markedTime = {};
+  state.markedTime[key] = Date.now();  /* 标记时间戳（薄弱 TOP5 同次数按最近未记住时间排序，PM 2026-09-07） */
 
   var el = null;
   for (var i = 0; i < state.queue.length; i++) {
@@ -10948,29 +10950,35 @@ function getLastHistory() {
 }
 
 /* ------------------------------------------------------------
-   薄弱知识点 TOP N（按 forgot 次数降序，同次数按 total 降序）
+   薄弱知识点 TOP N（按三级考点 topic 聚合，forgot 次数降序，
+   同次数按最近一次未记住时间降序；PM 2026-09-07 改三级聚合 + 时间排序）
    ------------------------------------------------------------ */
 function getWeakPoints(baseState, n) {
   n = n || 5;
   var map = {};
   if (!baseState || !baseState.queue) return [];
+  var mt = baseState.markedTime || {};
   for (var i = 0; i < baseState.queue.length; i++) {
     var c = baseState.queue[i];
-    var key = (c.point || c.topic || c.sub || c.chapter || '未命名');
-    var k2 = key + '\n' + (c.chapter || '') + '\n' + (c.sub || '');
+    var key = (c.topic || c.sub || c.chapter || '未命名');   /* 三级考点聚合（无 topic 回退 sub/chapter） */
+    var k2 = key + '\n' + (c.chapter || '');
     if (!map[k2]) {
-      map[k2] = { name: key, chapter: c.chapter || '', sub: c.sub || '', topic: c.topic || '', wrong: 0, total: 0 };
+      map[k2] = { name: key, chapter: c.chapter || '', sub: c.sub || '', topic: c.topic || '', wrong: 0, total: 0, lastForgot: 0 };
     }
     map[k2].total++;
-    if (baseState.marked[c.key] === 'forgot') map[k2].wrong++;
+    if (baseState.marked[c.key] === 'forgot') {
+      map[k2].wrong++;
+      var t = mt[c.key] || 0;
+      if (t > map[k2].lastForgot) map[k2].lastForgot = t;   /* 该 topic 最后一次未记住时间 */
+    }
   }
   var list = [];
   for (var k in map) {
     if (map.hasOwnProperty(k)) list.push(map[k]);
   }
   list.sort(function(a, b) {
-    if (b.wrong !== a.wrong) return b.wrong - a.wrong;
-    return b.total - a.total;
+    if (b.wrong !== a.wrong) return b.wrong - a.wrong;        /* 主排序：未记住次数降序 */
+    return b.lastForgot - a.lastForgot;                       /* 次排序：最近未记住时间降序 */
   });
   return list.slice(0, n);
 }

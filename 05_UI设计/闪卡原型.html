@@ -1657,90 +1657,113 @@
   }
   .completion-scroll::-webkit-scrollbar { display: none; }
 
-  /* 顶部 hero */
+  /* 顶部 hero：轻量完成反馈 */
   .completion-hero { text-align: center; margin-bottom: 22px; }
   .completion-emoji {
-    width: 64px; height: 64px; margin: 0 auto 12px;
+    width: 56px; height: 56px; margin: 0 auto 10px;
     border-radius: 50%;
     background: linear-gradient(135deg, #5B72F5, #6B5FE8);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 12px 28px rgba(91,114,245,0.28);
-    font-size: 30px;
+    box-shadow: 0 8px 22px rgba(91,114,245,0.24);
+    font-size: 26px;
   }
-  .completion-title { font-size: 24px; font-weight: 750; margin-bottom: 6px; }
-  .completion-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .completion-title { font-size: 22px; font-weight: 750; margin-bottom: 6px; }
+  .completion-subtitle { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
 
-  /* 核心指标卡：环形图 + 三指标 */
-  .completion-summary {
+  /* 本次结果：四项横排一行（正确率=第一视觉重点，带小环形图） */
+  .result-row {
+    display: flex; align-items: stretch;
     background: rgba(255,255,255,0.95);
-    border-radius: 18px;
-    padding: 18px 16px 16px;
+    border-radius: 16px;
+    padding: 18px 8px 14px;
     box-shadow: 0 6px 18px rgba(54,66,108,0.05);
     margin-bottom: 14px;
-    display: flex; align-items: center; gap: 18px;
   }
-  .ring-wrap {
-    position: relative;
-    width: 92px; height: 92px;
-    flex-shrink: 0;
+  .result-col {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px;
   }
-  .ring-wrap svg { transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: #E8EAF3; stroke-width: 8; }
-  .ring-fill { fill: none; stroke: url(#ringGradient); stroke-width: 8; stroke-linecap: round;
+  .result-col-rate { flex: 1.3; }   /* 正确率列略宽，视觉重点 */
+  .ring-mini-wrap { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+  .ring-mini-wrap svg { transform: rotate(-90deg); position: absolute; top: 0; left: 0; }
+  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 5; }
+  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 5; stroke-linecap: round;
     transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1);
   }
-  .ring-text {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .ring-pct { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1; }
-  .ring-label { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
-  .summary-bars { flex: 1; display: flex; flex-direction: column; gap: 11px; }
-  .summary-row {
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 13px; color: var(--text-secondary);
-  }
-  .summary-row strong { font-size: 18px; font-weight: 750; color: var(--text-primary); }
-  .summary-row .s-total strong { color: var(--primary); }
-  .summary-row .s-ok strong { color: var(--success); }
-  .summary-row .s-bad strong { color: var(--danger); }
+  .ring-mini-text { font-size: 15px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
+  .result-col-num { font-size: 20px; font-weight: 750; color: var(--text-primary); line-height: 1; }
+  .result-num-ok { color: var(--success); }
+  .result-num-bad { color: var(--danger); }
+  .result-col-label { font-size: 11px; color: var(--text-tertiary); }
+  /* 列间细分隔 */
+  .result-col + .result-col { border-left: 1px solid #F0F1F4; }
 
   /* 通用卡片区 */
   .comp-section {
     background: rgba(255,255,255,0.95);
-    border-radius: 18px;
+    border-radius: 16px;
     padding: 16px 16px 14px;
     box-shadow: 0 6px 18px rgba(54,66,108,0.05);
     margin-bottom: 14px;
   }
+  .comp-section-minor { background: rgba(255,255,255,0.7); box-shadow: none; }   /* 效率区降权 */
   .comp-section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 13px;
   }
   .comp-section-title {
     display: flex; align-items: center; gap: 7px;
-    font-size: 15px; font-weight: 700; color: var(--text-primary);
+    font-size: 14.5px; font-weight: 700; color: var(--text-primary);
   }
   .comp-section-title svg { width: 17px; height: 17px; }
+  .title-icon-warn { color: var(--warning); }
   .comp-section-extra { font-size: 12px; color: var(--text-tertiary); }
 
-  /* 薄弱知识点 TOP5 */
-  .weak-list { display: flex; flex-direction: column; gap: 11px; }
+  /* 薄弱知识点 TOP5（轻量列表，无小红条无副标） */
+  .weak-list { display: flex; flex-direction: column; gap: 10px; }
   .weak-item { display: flex; align-items: center; gap: 10px; }
   .weak-rank {
-    width: 20px; height: 20px; border-radius: 6px;
-    background: var(--primary-light); color: var(--primary);
-    font-size: 11px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    width: 20px; flex-shrink: 0;
+    font-size: 12px; font-weight: 700; color: var(--text-tertiary);   /* 序号低对比灰 */
+    text-align: left;
   }
-  .weak-rank.top { background: #FEECEC; color: #EF4444; }
-  .weak-info { flex: 1; min-width: 0; }
-  .weak-name { font-size: 13px; font-weight: 650; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .weak-path { font-size: 10.5px; color: var(--text-tertiary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .weak-bar { width: 64px; height: 5px; border-radius: 10px; background: #F3F4F6; overflow: hidden; flex-shrink: 0; }
-  .weak-bar-fill { height: 100%; border-radius: inherit; background: var(--danger); }
-  .weak-count { width: 42px; text-align: right; font-size: 12px; font-weight: 700; color: var(--danger); flex-shrink: 0; }
+  .weak-name {
+    flex: 1; min-width: 0;
+    font-size: 13.5px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .weak-count {
+    flex-shrink: 0;
+    font-size: 12px; font-weight: 600; color: var(--primary);       /* 未记住次数主题色轻强调 */
+    white-space: nowrap;
+  }
+
+  /* 检验本次背诵效果（轻量横向卡，立即刷题在右侧） */
+  .practice-cta-card {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(91,114,245,0.1);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .practice-cta-card:active { transform: scale(0.98); }
+  .practice-cta-icon { font-size: 20px; flex-shrink: 0; }
+  .practice-cta-body { flex: 1; min-width: 0; }
+  .practice-cta-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+  .practice-cta-desc { font-size: 11.5px; color: var(--text-tertiary); line-height: 1.4; }
+  .practice-cta-btn {
+    flex-shrink: 0;
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    white-space: nowrap;
+    padding: 6px 12px; border-radius: 14px;
+    background: var(--primary-light);
+    transition: background .15s ease;
+  }
+  .practice-cta-card:active .practice-cta-btn { background: #E0E5FF; }
 
   /* 章节掌握度分布 */
   .chapter-dist-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1752,42 +1775,16 @@
   .chapter-dist-pct { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
   .chapter-dist-total { width: 28px; text-align: right; font-size: 11px; color: var(--text-tertiary); }
 
-  /* 背诵效率分析 */
+  /* 背诵效率（次要，降权） */
   .efficiency-grid {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
   }
   .eff-item { text-align: center; }
-  .eff-icon { width: 36px; height: 36px; margin: 0 auto 7px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
-  .eff-icon svg { width: 18px; height: 18px; stroke: var(--primary); }
-  .eff-value { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+  .eff-value { font-size: 14px; font-weight: 700; color: var(--text-primary); }
   .eff-value.up { color: var(--success); }
   .eff-value.down { color: var(--danger); }
-  .eff-label { font-size: 10.5px; color: var(--text-tertiary); margin-top: 2px; }
-
-  /* 巩固 CTA */
-  .comp-cta {
-    background: linear-gradient(135deg, #FF9F43 0%, #F28B3D 100%);
-    border-radius: 18px;
-    padding: 16px 18px;
-    color: white;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
-    box-shadow: 0 10px 24px rgba(242,139,61,0.22);
-  }
-  .comp-cta-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .comp-cta-desc { font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; }
-  .comp-cta-btn {
-    flex-shrink: 0;
-    height: 34px; padding: 0 14px;
-    border: none; border-radius: 17px;
-    background: rgba(255,255,255,0.95);
-    color: #F28B3D; font-size: 13px; font-weight: 700;
-    cursor: pointer;
-    transition: transform .1s ease;
-  }
-  .comp-cta-btn:active { transform: scale(0.95); }
+  .eff-label { font-size: 10.5px; color: var(--text-tertiary); margin-top: 3px; }
 
   /* 底部操作 */
   .completion-actions {
@@ -2343,90 +2340,112 @@
   }
   .completion-scroll::-webkit-scrollbar { display: none; }
 
-  /* 顶部 hero */
+  /* 顶部 hero：轻量完成反馈 */
   .completion-hero { text-align: center; margin-bottom: 22px; }
   .completion-emoji {
-    width: 64px; height: 64px; margin: 0 auto 12px;
+    width: 56px; height: 56px; margin: 0 auto 10px;
     border-radius: 50%;
     background: linear-gradient(135deg, #5B72F5, #6B5FE8);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 12px 28px rgba(91,114,245,0.28);
-    font-size: 30px;
+    box-shadow: 0 8px 22px rgba(91,114,245,0.24);
+    font-size: 26px;
   }
-  .completion-title { font-size: 24px; font-weight: 750; margin-bottom: 6px; }
-  .completion-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .completion-title { font-size: 22px; font-weight: 750; margin-bottom: 6px; }
+  .completion-subtitle { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
 
-  /* 核心指标卡：环形图 + 三指标 */
-  .completion-summary {
+  /* 本次结果：四项横排一行（正确率=第一视觉重点，带小环形图） */
+  .result-row {
+    display: flex; align-items: stretch;
     background: rgba(255,255,255,0.95);
-    border-radius: 18px;
-    padding: 18px 16px 16px;
+    border-radius: 16px;
+    padding: 18px 8px 14px;
     box-shadow: 0 6px 18px rgba(54,66,108,0.05);
     margin-bottom: 14px;
-    display: flex; align-items: center; gap: 18px;
   }
-  .ring-wrap {
-    position: relative;
-    width: 92px; height: 92px;
-    flex-shrink: 0;
+  .result-col {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px;
   }
-  .ring-wrap svg { transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: #E8EAF3; stroke-width: 8; }
-  .ring-fill { fill: none; stroke: url(#ringGradient); stroke-width: 8; stroke-linecap: round;
+  .result-col-rate { flex: 1.3; }   /* 正确率列略宽，视觉重点 */
+  .ring-mini-wrap { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+  .ring-mini-wrap svg { transform: rotate(-90deg); position: absolute; top: 0; left: 0; }
+  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 5; }
+  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 5; stroke-linecap: round;
     transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1);
   }
-  .ring-text {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .ring-pct { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1; }
-  .ring-label { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
-  .summary-bars { flex: 1; display: flex; flex-direction: column; gap: 11px; }
-  .summary-row {
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 13px; color: var(--text-secondary);
-  }
-  .summary-row strong { font-size: 18px; font-weight: 750; color: var(--text-primary); }
-  .summary-row .s-total strong { color: var(--primary); }
-  .summary-row .s-ok strong { color: var(--success); }
-  .summary-row .s-bad strong { color: var(--danger); }
+  .ring-mini-text { font-size: 15px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
+  .result-col-num { font-size: 20px; font-weight: 750; color: var(--text-primary); line-height: 1; }
+  .result-num-ok { color: var(--success); }
+  .result-num-bad { color: var(--danger); }
+  .result-col-label { font-size: 11px; color: var(--text-tertiary); }
+  .result-col + .result-col { border-left: 1px solid #F0F1F4; }
 
   /* 通用卡片区 */
   .comp-section {
     background: rgba(255,255,255,0.95);
-    border-radius: 18px;
+    border-radius: 16px;
     padding: 16px 16px 14px;
     box-shadow: 0 6px 18px rgba(54,66,108,0.05);
     margin-bottom: 14px;
   }
+  .comp-section-minor { background: rgba(255,255,255,0.7); box-shadow: none; }
   .comp-section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 13px;
   }
   .comp-section-title {
     display: flex; align-items: center; gap: 7px;
-    font-size: 15px; font-weight: 700; color: var(--text-primary);
+    font-size: 14.5px; font-weight: 700; color: var(--text-primary);
   }
   .comp-section-title svg { width: 17px; height: 17px; }
+  .title-icon-warn { color: var(--warning); }
   .comp-section-extra { font-size: 12px; color: var(--text-tertiary); }
 
-  /* 薄弱知识点 TOP5 */
-  .weak-list { display: flex; flex-direction: column; gap: 11px; }
+  /* 薄弱知识点 TOP5（轻量列表） */
+  .weak-list { display: flex; flex-direction: column; gap: 10px; }
   .weak-item { display: flex; align-items: center; gap: 10px; }
   .weak-rank {
-    width: 20px; height: 20px; border-radius: 6px;
-    background: var(--primary-light); color: var(--primary);
-    font-size: 11px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    width: 20px; flex-shrink: 0;
+    font-size: 12px; font-weight: 700; color: var(--text-tertiary);
+    text-align: left;
   }
-  .weak-rank.top { background: #FEECEC; color: #EF4444; }
-  .weak-info { flex: 1; min-width: 0; }
-  .weak-name { font-size: 13px; font-weight: 650; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .weak-path { font-size: 10.5px; color: var(--text-tertiary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .weak-bar { width: 64px; height: 5px; border-radius: 10px; background: #F3F4F6; overflow: hidden; flex-shrink: 0; }
-  .weak-bar-fill { height: 100%; border-radius: inherit; background: var(--danger); }
-  .weak-count { width: 42px; text-align: right; font-size: 12px; font-weight: 700; color: var(--danger); flex-shrink: 0; }
+  .weak-name {
+    flex: 1; min-width: 0;
+    font-size: 13.5px; font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .weak-count {
+    flex-shrink: 0;
+    font-size: 12px; font-weight: 600; color: var(--primary);
+    white-space: nowrap;
+  }
+
+  /* 检验本次背诵效果 */
+  .practice-cta-card {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(91,114,245,0.1);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .practice-cta-card:active { transform: scale(0.98); }
+  .practice-cta-icon { font-size: 20px; flex-shrink: 0; }
+  .practice-cta-body { flex: 1; min-width: 0; }
+  .practice-cta-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+  .practice-cta-desc { font-size: 11.5px; color: var(--text-tertiary); line-height: 1.4; }
+  .practice-cta-btn {
+    flex-shrink: 0;
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    white-space: nowrap;
+    padding: 6px 12px; border-radius: 14px;
+    background: var(--primary-light);
+    transition: background .15s ease;
+  }
+  .practice-cta-card:active .practice-cta-btn { background: #E0E5FF; }
 
   /* 章节掌握度分布 */
   .chapter-dist-list { display: flex; flex-direction: column; gap: 10px; }
@@ -2438,42 +2457,16 @@
   .chapter-dist-pct { width: 34px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
   .chapter-dist-total { width: 28px; text-align: right; font-size: 11px; color: var(--text-tertiary); }
 
-  /* 背诵效率分析 */
+  /* 背诵效率（次要，降权） */
   .efficiency-grid {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
     gap: 8px;
   }
   .eff-item { text-align: center; }
-  .eff-icon { width: 36px; height: 36px; margin: 0 auto 7px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
-  .eff-icon svg { width: 18px; height: 18px; stroke: var(--primary); }
-  .eff-value { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+  .eff-value { font-size: 14px; font-weight: 700; color: var(--text-primary); }
   .eff-value.up { color: var(--success); }
   .eff-value.down { color: var(--danger); }
-  .eff-label { font-size: 10.5px; color: var(--text-tertiary); margin-top: 2px; }
-
-  /* 巩固 CTA */
-  .comp-cta {
-    background: linear-gradient(135deg, #FF9F43 0%, #F28B3D 100%);
-    border-radius: 18px;
-    padding: 16px 18px;
-    color: white;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
-    box-shadow: 0 10px 24px rgba(242,139,61,0.22);
-  }
-  .comp-cta-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .comp-cta-desc { font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; }
-  .comp-cta-btn {
-    flex-shrink: 0;
-    height: 34px; padding: 0 14px;
-    border: none; border-radius: 17px;
-    background: rgba(255,255,255,0.95);
-    color: #F28B3D; font-size: 13px; font-weight: 700;
-    cursor: pointer;
-    transition: transform .1s ease;
-  }
-  .comp-cta-btn:active { transform: scale(0.95); }
+  .eff-label { font-size: 10.5px; color: var(--text-tertiary); margin-top: 3px; }
 
   /* 底部操作 */
   .completion-actions {
@@ -2732,56 +2725,63 @@
       </defs>
     </svg>
     <div class="completion-scroll">
-      <!-- 顶部 hero -->
+      <!-- 顶部 hero：完成反馈 + 考点路径 -->
       <div class="completion-hero">
-        <div class="completion-emoji" id="compEmoji">🎉</div>
-        <div class="completion-title" id="compTitle">今日背诵完成</div>
+        <div class="completion-emoji" id="compEmoji">💪</div>
+        <div class="completion-title" id="compTitle">继续加油</div>
         <div class="completion-subtitle" id="compSubtitle">全部章节</div>
       </div>
 
-      <!-- 核心指标卡：环形图 + 三指标 -->
-      <div class="completion-summary">
-        <div class="ring-wrap">
-          <svg width="92" height="92" viewBox="0 0 92 92">
-            <circle class="ring-bg" cx="46" cy="46" r="40"/>
-            <circle class="ring-fill" id="ringFill" cx="46" cy="46" r="40"
-              stroke-dasharray="251.33" stroke-dashoffset="251.33"/>
-          </svg>
-          <div class="ring-text">
-            <div class="ring-pct" id="ringPct">0%</div>
-            <div class="ring-label">正确率</div>
+      <!-- 本次结果：四项横排一行（正确率为第一视觉重点） -->
+      <div class="result-row" id="resultRow">
+        <div class="result-col result-col-rate">
+          <div class="ring-mini-wrap">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
+              <circle class="ring-mini-fill" id="ringFill" cx="24" cy="24" r="20"
+                stroke-dasharray="125.66" stroke-dashoffset="125.66"/>
+            </svg>
+            <div class="ring-mini-text" id="ringPct">0%</div>
           </div>
+          <div class="result-col-label">正确率</div>
         </div>
-        <div class="summary-bars">
-          <div class="summary-row s-total">
-            <span>总张数</span>
-            <strong id="sumTotal">0</strong>
-          </div>
-          <div class="summary-row s-ok">
-            <span>已记住</span>
-            <strong id="sumRemembered">0</strong>
-          </div>
-          <div class="summary-row s-bad">
-            <span>未记住</span>
-            <strong id="sumForgot">0</strong>
-          </div>
+        <div class="result-col">
+          <div class="result-col-num" id="sumTotal">0</div>
+          <div class="result-col-label">总题数</div>
+        </div>
+        <div class="result-col">
+          <div class="result-col-num result-num-ok" id="sumRemembered">0</div>
+          <div class="result-col-label">已记住</div>
+        </div>
+        <div class="result-col">
+          <div class="result-col-num result-num-bad" id="sumForgot">0</div>
+          <div class="result-col-label">未记住</div>
         </div>
       </div>
 
-      <!-- 薄弱知识点 TOP5 -->
+      <!-- 薄弱知识点 TOP5（三级考点） -->
       <div class="comp-section">
         <div class="comp-section-header">
           <div class="comp-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="title-icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            薄弱知识点
+            薄弱知识点 TOP5
           </div>
-          <span class="comp-section-extra">错误次数</span>
         </div>
         <div class="weak-list" id="weakList"></div>
+      </div>
+
+      <!-- 检验本次背诵效果（横向卡片，立即刷题在右侧） -->
+      <div class="practice-cta-card" id="practiceCtaCard" onclick="goPracticeFromWeak()">
+        <div class="practice-cta-icon">📖</div>
+        <div class="practice-cta-body">
+          <div class="practice-cta-title">检验本次背诵效果</div>
+          <div class="practice-cta-desc">针对本次未记住的考点进行练习</div>
+        </div>
+        <div class="practice-cta-btn">立即刷题 ›</div>
       </div>
 
       <!-- 章节掌握度分布 -->
@@ -2798,57 +2798,31 @@
         <div class="chapter-dist-list" id="chapterDistList"></div>
       </div>
 
-      <!-- 背诵效率分析 -->
-      <div class="comp-section">
+      <!-- 背诵效率（次要） -->
+      <div class="comp-section comp-section-minor">
         <div class="comp-section-header">
           <div class="comp-section-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            背诵效率分析
+            背诵效率
           </div>
         </div>
         <div class="efficiency-grid">
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effTime">0:00</div>
-            <div class="eff-label">本次用时</div>
+            <div class="eff-label">总用时</div>
           </div>
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effSpeed">0s</div>
             <div class="eff-label">平均速度</div>
           </div>
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                <polyline points="17 6 23 6 23 12"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effCompare">--</div>
             <div class="eff-label">较上次</div>
           </div>
         </div>
-      </div>
-
-      <!-- 巩固 CTA -->
-      <div class="comp-cta">
-        <div>
-          <div class="comp-cta-title">去刷题巩固薄弱点</div>
-          <div class="comp-cta-desc">针对错误最多的知识点进行专项练习</div>
-        </div>
-        <button class="comp-cta-btn" id="ctaPracticeBtn">立即练习</button>
       </div>
     </div>
 
@@ -2944,56 +2918,63 @@
       </defs>
     </svg>
     <div class="completion-scroll">
-      <!-- 顶部 hero -->
+      <!-- 顶部 hero：完成反馈 + 考点路径 -->
       <div class="completion-hero">
-        <div class="completion-emoji" id="compEmoji">🎉</div>
-        <div class="completion-title" id="compTitle">今日背诵完成</div>
+        <div class="completion-emoji" id="compEmoji">💪</div>
+        <div class="completion-title" id="compTitle">继续加油</div>
         <div class="completion-subtitle" id="compSubtitle">全部章节</div>
       </div>
 
-      <!-- 核心指标卡：环形图 + 三指标 -->
-      <div class="completion-summary">
-        <div class="ring-wrap">
-          <svg width="92" height="92" viewBox="0 0 92 92">
-            <circle class="ring-bg" cx="46" cy="46" r="40"/>
-            <circle class="ring-fill" id="ringFill" cx="46" cy="46" r="40"
-              stroke-dasharray="251.33" stroke-dashoffset="251.33"/>
-          </svg>
-          <div class="ring-text">
-            <div class="ring-pct" id="ringPct">0%</div>
-            <div class="ring-label">正确率</div>
+      <!-- 本次结果：四项横排一行（正确率为第一视觉重点） -->
+      <div class="result-row" id="resultRow">
+        <div class="result-col result-col-rate">
+          <div class="ring-mini-wrap">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
+              <circle class="ring-mini-fill" id="ringFill" cx="24" cy="24" r="20"
+                stroke-dasharray="125.66" stroke-dashoffset="125.66"/>
+            </svg>
+            <div class="ring-mini-text" id="ringPct">0%</div>
           </div>
+          <div class="result-col-label">正确率</div>
         </div>
-        <div class="summary-bars">
-          <div class="summary-row s-total">
-            <span>总张数</span>
-            <strong id="sumTotal">0</strong>
-          </div>
-          <div class="summary-row s-ok">
-            <span>已记住</span>
-            <strong id="sumRemembered">0</strong>
-          </div>
-          <div class="summary-row s-bad">
-            <span>未记住</span>
-            <strong id="sumForgot">0</strong>
-          </div>
+        <div class="result-col">
+          <div class="result-col-num" id="sumTotal">0</div>
+          <div class="result-col-label">总题数</div>
+        </div>
+        <div class="result-col">
+          <div class="result-col-num result-num-ok" id="sumRemembered">0</div>
+          <div class="result-col-label">已记住</div>
+        </div>
+        <div class="result-col">
+          <div class="result-col-num result-num-bad" id="sumForgot">0</div>
+          <div class="result-col-label">未记住</div>
         </div>
       </div>
 
-      <!-- 薄弱知识点 TOP5 -->
+      <!-- 薄弱知识点 TOP5（三级考点） -->
       <div class="comp-section">
         <div class="comp-section-header">
           <div class="comp-section-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="title-icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            薄弱知识点
+            薄弱知识点 TOP5
           </div>
-          <span class="comp-section-extra">错误次数</span>
         </div>
         <div class="weak-list" id="weakList"></div>
+      </div>
+
+      <!-- 检验本次背诵效果（横向卡片，立即刷题在右侧） -->
+      <div class="practice-cta-card" id="practiceCtaCard" onclick="goPracticeFromWeak()">
+        <div class="practice-cta-icon">📖</div>
+        <div class="practice-cta-body">
+          <div class="practice-cta-title">检验本次背诵效果</div>
+          <div class="practice-cta-desc">针对本次未记住的考点进行练习</div>
+        </div>
+        <div class="practice-cta-btn">立即刷题 ›</div>
       </div>
 
       <!-- 章节掌握度分布 -->
@@ -3010,57 +2991,31 @@
         <div class="chapter-dist-list" id="chapterDistList"></div>
       </div>
 
-      <!-- 背诵效率分析 -->
-      <div class="comp-section">
+      <!-- 背诵效率（次要） -->
+      <div class="comp-section comp-section-minor">
         <div class="comp-section-header">
           <div class="comp-section-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            背诵效率分析
+            背诵效率
           </div>
         </div>
         <div class="efficiency-grid">
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effTime">0:00</div>
-            <div class="eff-label">本次用时</div>
+            <div class="eff-label">总用时</div>
           </div>
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effSpeed">0s</div>
             <div class="eff-label">平均速度</div>
           </div>
           <div class="eff-item">
-            <div class="eff-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                <polyline points="17 6 23 6 23 12"/>
-              </svg>
-            </div>
             <div class="eff-value" id="effCompare">--</div>
             <div class="eff-label">较上次</div>
           </div>
         </div>
-      </div>
-
-      <!-- 巩固 CTA -->
-      <div class="comp-cta">
-        <div>
-          <div class="comp-cta-title">去刷题巩固薄弱点</div>
-          <div class="comp-cta-desc">针对错误最多的知识点进行专项练习</div>
-        </div>
-        <button class="comp-cta-btn" id="ctaPracticeBtn">立即练习</button>
       </div>
     </div>
 
@@ -3094,27 +3049,34 @@
     <!-- 顶部 hero（演示数据） -->
     <div class="completion-hero">
       <div class="completion-emoji" id="demoEmoji">🎉</div>
-      <div class="completion-title" id="demoTitle">不错哦！</div>
-      <div class="completion-subtitle" id="demoSubtitle">今日 350 张 · 2026/08/27</div>
+      <div class="completion-title" id="demoTitle">掌握得不错！</div>
+      <div class="completion-subtitle" id="demoSubtitle">信息与计算机基础 → 信息与信息技术概述</div>
     </div>
 
-    <!-- 核心指标卡：环形图 + 三指标 -->
-    <div class="completion-summary">
-      <div class="ring-wrap">
-        <svg width="92" height="92" viewBox="0 0 92 92">
-          <circle class="ring-bg" cx="46" cy="46" r="40"/>
-          <circle class="ring-fill" id="demoRingFill" cx="46" cy="46" r="40"
-            stroke-dasharray="251.33" stroke-dashoffset="35"/>
-        </svg>
-        <div class="ring-text">
-          <div class="ring-pct" id="demoRingPct">86%</div>
-          <div class="ring-label">正确率</div>
+    <!-- 本次结果：四项横排一行（演示数据） -->
+    <div class="result-row">
+      <div class="result-col result-col-rate">
+        <div class="ring-mini-wrap">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
+            <circle class="ring-mini-fill" id="demoRingFill" cx="24" cy="24" r="20"
+              stroke-dasharray="125.66" stroke-dashoffset="17.59"/>
+          </svg>
+          <div class="ring-mini-text" id="demoRingPct">86%</div>
         </div>
+        <div class="result-col-label">正确率</div>
       </div>
-      <div class="summary-bars">
-        <div class="summary-row s-total"><span>总张数</span><strong id="demoTotal">350</strong></div>
-        <div class="summary-row s-ok"><span>已记住</span><strong id="demoRemembered">301</strong></div>
-        <div class="summary-row s-bad"><span>未记住</span><strong id="demoForgot">49</strong></div>
+      <div class="result-col">
+        <div class="result-col-num" id="demoTotal">9</div>
+        <div class="result-col-label">总题数</div>
+      </div>
+      <div class="result-col">
+        <div class="result-col-num result-num-ok" id="demoRemembered">5</div>
+        <div class="result-col-label">已记住</div>
+      </div>
+      <div class="result-col">
+        <div class="result-col-num result-num-bad" id="demoForgot">4</div>
+        <div class="result-col-label">未记住</div>
       </div>
     </div>
 
@@ -3122,16 +3084,25 @@
     <div class="comp-section">
       <div class="comp-section-header">
         <div class="comp-section-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="title-icon-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          薄弱知识点
+          薄弱知识点 TOP5
         </div>
-        <span class="comp-section-extra">错误次数</span>
       </div>
       <div class="weak-list" id="demoWeakList"></div>
+    </div>
+
+    <!-- 检验本次背诵效果（演示数据） -->
+    <div class="practice-cta-card" onclick="nav('view-single')">
+      <div class="practice-cta-icon">📖</div>
+      <div class="practice-cta-body">
+        <div class="practice-cta-title">检验本次背诵效果</div>
+        <div class="practice-cta-desc">针对本次未记住的考点进行练习</div>
+      </div>
+      <div class="practice-cta-btn">立即刷题 ›</div>
     </div>
 
     <!-- 章节掌握度分布（演示数据） -->
@@ -3148,57 +3119,31 @@
       <div class="chapter-dist-list" id="demoChapterDist"></div>
     </div>
 
-    <!-- 背诵效率分析（演示数据） -->
-    <div class="comp-section">
+    <!-- 背诵效率（次要，演示数据） -->
+    <div class="comp-section comp-section-minor">
       <div class="comp-section-header">
         <div class="comp-section-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <polyline points="12 6 12 12 16 14"/>
           </svg>
-          背诵效率分析
+          背诵效率
         </div>
       </div>
       <div class="efficiency-grid">
         <div class="eff-item">
-          <div class="eff-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </div>
-          <div class="eff-value" id="demoEffTime">32:15</div>
-          <div class="eff-label">本次用时</div>
+          <div class="eff-value" id="demoEffTime">18分钟</div>
+          <div class="eff-label">总用时</div>
         </div>
         <div class="eff-item">
-          <div class="eff-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
-          <div class="eff-value" id="demoEffSpeed">5.5s</div>
+          <div class="eff-value" id="demoEffSpeed">21.6秒/张</div>
           <div class="eff-label">平均速度</div>
         </div>
         <div class="eff-item">
-          <div class="eff-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-              <polyline points="17 6 23 6 23 12"/>
-            </svg>
-          </div>
-          <div class="eff-value eff-up" id="demoEffCompare">↑ 12%</div>
+          <div class="eff-value eff-up" id="demoEffCompare">+14.6%</div>
           <div class="eff-label">较上次</div>
         </div>
       </div>
-    </div>
-
-    <!-- 巩固 CTA -->
-    <div class="comp-cta">
-      <div>
-        <div class="comp-cta-title">去刷题巩固薄弱点</div>
-        <div class="comp-cta-desc">针对错误最多的知识点进行专项练习</div>
-      </div>
-      <button class="comp-cta-btn" id="demoCtaBtn">立即练习</button>
     </div>
   </div>
 
@@ -3224,38 +3169,33 @@
 /* 完成结算页独立演示页：切到「完成结算页」tab 时填充静态演示数据
    （真实完成页由单卡/列表 showCompletion 填充，此处仅演示效果） */
 function __complete_enter() {
-  /* 薄弱知识点 TOP5 演示数据 */
+  /* 薄弱知识点 TOP5 演示数据（三级考点 topic 名，PM 2026-09-07） */
   var demoWeak = [
-    { name: '数据的存储单位换算', chapter: '信息与计算机基础知识', sub: '数制与编码', wrong: 12 },
-    { name: 'TCP/IP 协议层次', chapter: '计算机网络的体系结构', sub: '网络协议', wrong: 9 },
-    { name: '关系数据库三大范式', chapter: '数据库技术基础', sub: '关系数据库', wrong: 7 },
-    { name: '二叉树后序遍历', chapter: '程序设计基础', sub: '数据结构', wrong: 5 },
-    { name: 'Excel 函数 IF/VLOOKUP', chapter: '信息安全与技术', sub: '办公应用', wrong: 3 }
+    { name: '信息与数据', wrong: 6 },
+    { name: '信息技术与计算机文化', wrong: 6 },
+    { name: '设置分页、分节和分栏', wrong: 6 },
+    { name: '插入和编辑形状、艺术字、文本框和数学公式', wrong: 6 },
+    { name: '文档的排版', wrong: 5 }
   ];
   var weakEl = document.getElementById('demoWeakList');
-  var maxWrong = 12;
   var wHtml = '';
   for (var w = 0; w < demoWeak.length; w++) {
     var wp = demoWeak[w];
-    var pct = Math.round(wp.wrong / maxWrong * 100);
+    var idx = (w + 1 < 10 ? '0' : '') + (w + 1);
     wHtml += '<div class="weak-item">' +
-      '<div class="weak-rank' + (w === 0 ? ' top' : '') + '">' + (w + 1) + '</div>' +
-      '<div class="weak-info">' +
-        '<div class="weak-name">' + wp.name + '</div>' +
-        '<div class="weak-path">' + wp.chapter + (wp.sub ? ' · ' + wp.sub : '') + '</div>' +
-      '</div>' +
-      '<div class="weak-bar"><div class="weak-bar-fill" style="width:' + pct + '%;"></div></div>' +
-      '<div class="weak-count">' + wp.wrong + '次</div>' +
+      '<div class="weak-rank">' + idx + '</div>' +
+      '<div class="weak-name">' + wp.name + '</div>' +
+      '<div class="weak-count">未记住 ' + wp.wrong + '次</div>' +
     '</div>';
   }
   if (weakEl) weakEl.innerHTML = wHtml;
 
   /* 章节掌握度分布 演示数据 */
   var demoDist = [
-    { name: '计算机文化基础', remembered: 58, forgot: 6,  total: 64 },
-    { name: '网络技术基础',   remembered: 42, forgot: 14, total: 56 },
-    { name: '数据库基础',     remembered: 35, forgot: 13, total: 48 },
-    { name: '程序设计基础',   remembered: 22, forgot: 18, total: 40 }
+    { name: '信息与计算机基础', remembered: 6, forgot: 2, total: 8 },
+    { name: '计算思维',         remembered: 4, forgot: 3, total: 7 },
+    { name: '操作系统',         remembered: 7, forgot: 1, total: 8 },
+    { name: '文档处理',         remembered: 5, forgot: 2, total: 7 }
   ];
   var distEl = document.getElementById('demoChapterDist');
   var dHtml = '';
@@ -4625,10 +4565,10 @@ function showCompletion() {
   var speedSec = done > 0 ? Math.round(elapsed / done) : 0;
   var lastH = getLastHistory();
 
-  /* 1. Hero 区域：动态标题 + 范围 */
-  var emoji = '\uD83D\uDCDA', title = '再加把劲！';
-  if (accuracy >= 80) { emoji = '\uD83C\uDF89'; title = '不错哦！'; }
-  else if (accuracy >= 60) { emoji = '\uD83D\uDCAA'; title = '继续加油！'; }
+  /* 1. Hero 区域：按正确率动态文案 + 范围（PM 2026-09-07） */
+  var emoji = '💪', title = '继续加油';
+  if (accuracy >= 80) { emoji = '🎉'; title = '掌握得不错！'; }
+  else if (accuracy >= 60) { emoji = '📖'; title = '再巩固一下'; }
   getById('compEmoji').textContent = emoji;
   getById('compTitle').textContent = title;
   getById('compSubtitle').textContent = getRangeText();
@@ -4641,37 +4581,30 @@ function showCompletion() {
 
   var ring = getById('ringFill');
   if (ring) {
-    ring.style.strokeDashoffset = '251.33';
+    ring.style.strokeDashoffset = '125.66';
     setTimeout(function() {
-      ring.style.strokeDashoffset = (251.33 * (1 - accuracy / 100)).toFixed(2);
+      ring.style.strokeDashoffset = (125.66 * (1 - accuracy / 100)).toFixed(2);
     }, 200);
   }
 
-  /* 3. 薄弱知识点 TOP5 */
+  /* 3. 薄弱知识点 TOP5（三级考点 topic 聚合，轻量列表，PM 2026-09-07） */
   var weakPoints = getWeakPoints(state, 5);
   var weakEl = getById('weakList');
-  if (weakPoints.length === 0) {
-    weakEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">\u672C\u8F6E\u5168\u90E8\u638C\u63E1\uFF0C\u6682\u65E0\u8584\u5F31\u70B9 \uD83C\uDF89</div>';
+  if (weakPoints.length === 0 || weakPoints[0].wrong === 0) {
+    weakEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">本轮全部掌握，暂无薄弱点 🎉</div>';
   } else {
-    var maxWrong = 1;
-    for (var i = 0; i < weakPoints.length; i++) {
-      if (weakPoints[i].wrong > maxWrong) maxWrong = weakPoints[i].wrong;
-    }
     var weakHtml = '';
     for (var w = 0; w < weakPoints.length; w++) {
       var wp = weakPoints[w];
-      var pct = Math.round(wp.wrong / maxWrong * 100);
+      if (wp.wrong === 0) break;
+      var idx = (w + 1 < 10 ? '0' : '') + (w + 1);
       weakHtml += '<div class="weak-item">' +
-        '<div class="weak-rank' + (w === 0 ? ' top' : '') + '">' + (w + 1) + '</div>' +
-        '<div class="weak-info">' +
-          '<div class="weak-name">' + esc(wp.name) + '</div>' +
-          '<div class="weak-path">' + esc(wp.chapter) + (wp.sub ? ' \u00B7 ' + esc(wp.sub) : '') + '</div>' +
-        '</div>' +
-        '<div class="weak-bar"><div class="weak-bar-fill" style="width:' + pct + '%;"></div></div>' +
-        '<div class="weak-count">' + wp.wrong + '\u6B21</div>' +
+        '<div class="weak-rank">' + idx + '</div>' +
+        '<div class="weak-name">' + esc(wp.name) + '</div>' +
+        '<div class="weak-count">未记住 ' + wp.wrong + '次</div>' +
       '</div>';
     }
-    weakEl.innerHTML = weakHtml;
+    weakEl.innerHTML = weakHtml || '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">本轮全部掌握，暂无薄弱点 🎉</div>';
   }
 
   /* 4. 章节掌握度分布 */
@@ -4782,6 +4715,17 @@ function goToPractice() {
   }
 }
 
+
+/* 检验本次背诵效果：跳闪卡列表定位薄弱 topic 所属章（演示阶段，PM 2026-09-07） */
+function goPracticeFromWeak() {
+  var weakPoints = getWeakPoints(state, 1);
+  if (weakPoints.length > 0 && weakPoints[0].chapter) {
+    __jump('\u95EA\u5361\u5217\u8868\u6A21\u5F0F.html?chapter=' + encodeURIComponent(weakPoints[0].chapter));
+  } else {
+    __jump('\u95EA\u5361\u5217\u8868\u6A21\u5F0F.html' + filterQuery());
+  }
+}
+
 /* 继续下一章 */
 function goNextChapter() {
   var chapters = [], seen = {};
@@ -4842,7 +4786,7 @@ getById('prevBtn').addEventListener('click', goPrev);
 
 getById('nextBtn').addEventListener('click', goNext);
 
-getById('ctaPracticeBtn').addEventListener('click', goToPractice);
+/* 旧 ctaPracticeBtn 已移除：新版检验背诵效果改为 practice-cta-card + onclick=goPracticeFromWeak（PM 2026-09-07） */
 
 /* ============================================================
    启动
@@ -4858,8 +4802,10 @@ function _doEnter(f) {
 /* ============ 导出全局：单卡模式导航实例（外壳按 CURRENT 分发） ============ */
 glob.studyNav = {
   goHome: goHome, restart: restart, closeExitModal: closeExitModal,
-  goNextChapter: goNextChapter, goList: goList, goToPractice: goToPractice
+  goNextChapter: goNextChapter, goList: goList, goToPractice: goToPractice,
+  goPracticeFromWeak: goPracticeFromWeak
 };
+glob.goPracticeFromWeak = goPracticeFromWeak;
 })(window);
 })();
 
@@ -5186,10 +5132,10 @@ function showCompletion() {
   var speedSec = done > 0 ? Math.round(elapsed / done) : 0;
   var lastH = getLastHistory();
 
-  /* 1. Hero 区域：动态标题 + 范围 */
-  var emoji = '\uD83D\uDCDA', title = '再加把劲！';
-  if (accuracy >= 80) { emoji = '\uD83C\uDF89'; title = '不错哦！'; }
-  else if (accuracy >= 60) { emoji = '\uD83D\uDCAA'; title = '继续加油！'; }
+  /* 1. Hero 区域：按正确率动态文案 + 范围（PM 2026-09-07） */
+  var emoji = '💪', title = '继续加油';
+  if (accuracy >= 80) { emoji = '🎉'; title = '掌握得不错！'; }
+  else if (accuracy >= 60) { emoji = '📖'; title = '再巩固一下'; }
   getById('compEmoji').textContent = emoji;
   getById('compTitle').textContent = title;
   getById('compSubtitle').textContent = getRangeText();
@@ -5202,37 +5148,30 @@ function showCompletion() {
 
   var ring = getById('ringFill');
   if (ring) {
-    ring.style.strokeDashoffset = '251.33';
+    ring.style.strokeDashoffset = '125.66';
     setTimeout(function() {
-      ring.style.strokeDashoffset = (251.33 * (1 - accuracy / 100)).toFixed(2);
+      ring.style.strokeDashoffset = (125.66 * (1 - accuracy / 100)).toFixed(2);
     }, 200);
   }
 
-  /* 3. 薄弱知识点 TOP5 */
+  /* 3. 薄弱知识点 TOP5（三级考点 topic 聚合，轻量列表，PM 2026-09-07） */
   var weakPoints = getWeakPoints(state, 5);
   var weakEl = getById('weakList');
-  if (weakPoints.length === 0) {
-    weakEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">\u672C\u8F6E\u5168\u90E8\u638C\u63E1\uFF0C\u6682\u65E0\u8584\u5F31\u70B9 \uD83C\uDF89</div>';
+  if (weakPoints.length === 0 || weakPoints[0].wrong === 0) {
+    weakEl.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">本轮全部掌握，暂无薄弱点 🎉</div>';
   } else {
-    var maxWrong = 1;
-    for (var i = 0; i < weakPoints.length; i++) {
-      if (weakPoints[i].wrong > maxWrong) maxWrong = weakPoints[i].wrong;
-    }
     var weakHtml = '';
     for (var w = 0; w < weakPoints.length; w++) {
       var wp = weakPoints[w];
-      var pct = Math.round(wp.wrong / maxWrong * 100);
+      if (wp.wrong === 0) break;
+      var idx = (w + 1 < 10 ? '0' : '') + (w + 1);
       weakHtml += '<div class="weak-item">' +
-        '<div class="weak-rank' + (w === 0 ? ' top' : '') + '">' + (w + 1) + '</div>' +
-        '<div class="weak-info">' +
-          '<div class="weak-name">' + esc(wp.name) + '</div>' +
-          '<div class="weak-path">' + esc(wp.chapter) + (wp.sub ? ' \u00B7 ' + esc(wp.sub) : '') + '</div>' +
-        '</div>' +
-        '<div class="weak-bar"><div class="weak-bar-fill" style="width:' + pct + '%;"></div></div>' +
-        '<div class="weak-count">' + wp.wrong + '\u6B21</div>' +
+        '<div class="weak-rank">' + idx + '</div>' +
+        '<div class="weak-name">' + esc(wp.name) + '</div>' +
+        '<div class="weak-count">未记住 ' + wp.wrong + '次</div>' +
       '</div>';
     }
-    weakEl.innerHTML = weakHtml;
+    weakEl.innerHTML = weakHtml || '<div style="text-align:center;padding:16px 0;color:var(--text-tertiary);font-size:13px;">本轮全部掌握，暂无薄弱点 🎉</div>';
   }
 
   /* 4. 章节掌握度分布 */
@@ -5343,6 +5282,16 @@ function goToPractice() {
   }
 }
 
+/* 检验本次背诵效果：跳列表定位薄弱 topic 所属章（演示阶段，PM 2026-09-07） */
+function goPracticeFromWeak() {
+  var weakPoints = getWeakPoints(state, 1);
+  if (weakPoints.length > 0 && weakPoints[0].chapter) {
+    __jump('闪卡列表模式.html?chapter=' + encodeURIComponent(weakPoints[0].chapter));
+  } else {
+    __jump('闪卡列表模式.html' + filterQuery());
+  }
+}
+
 /* 继续下一章（仍在列表模式） */
 function goNextChapter() {
   var chapters = [], seen = {};
@@ -5394,7 +5343,7 @@ getById('exitBtn').addEventListener('click', function() {
 
 getById('switchBtn').addEventListener('click', goSingle);
 
-getById('ctaPracticeBtn').addEventListener('click', goToPractice);
+/* 旧 ctaPracticeBtn 已移除：新版检验背诵效果改为 practice-cta-card + onclick=goPracticeFromWeak（PM 2026-09-07） */
 
 /* ============================================================
    启动
@@ -5411,8 +5360,10 @@ function _doEnter(f) {
 /* ============ 导出全局：列表模式导航实例（外壳按 CURRENT 分发） ============ */
 glob.listNav = {
   goHome: goHome, restart: restart, closeExitModal: closeExitModal,
-  goNextChapter: goNextChapter, goSingle: goSingle, goToPractice: goToPractice
+  goNextChapter: goNextChapter, goSingle: goSingle, goToPractice: goToPractice,
+  goPracticeFromWeak: goPracticeFromWeak
 };
+glob.goPracticeFromWeak = goPracticeFromWeak;
 })(window);
 })();
 
