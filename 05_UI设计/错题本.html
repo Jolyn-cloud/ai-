@@ -125,6 +125,46 @@ body {
 .q-list { display: none; }
 .chapter.open .q-list { display: block; }
 
+/* ===== 1/2/3 级树（收藏本范式，PM 2026-09-07）=====
+   1级：模块行（默认第1个展开）；2级：章节行（点 toggle 展开 3级）；3级：考点行（点进练习，下挂卡片）
+   各级右侧 meta：n道 顽固 n个（顽固数=其下顽固3级个数；3级=该3级下stubborn题道数） */
+.wt-l1 { margin-top: 10px; }
+.wt-l2-list { display: none; }
+.wt-l1.open > .wt-l2-list { display: block; }
+.wt-l1-head, .wt-l2-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 2px;
+  cursor: pointer;
+}
+.wt-l1-head:active, .wt-l2-head:active { opacity: .7; }
+.wt-l1-head .wt-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.wt-l2-head .wt-name { font-size: 13px; font-weight: 600; color: var(--primary-dark); }
+.wt-caret {
+  flex-shrink: 0; width: 16px; text-align: center;
+  font-size: 12px; color: var(--text-tertiary);
+  transition: transform .18s ease;
+}
+.wt-meta {
+  margin-left: auto; font-size: 11px; color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.wt-l2 { margin-left: 4px; padding-left: 11px; border-left: 2px solid #E5E8F0; }
+.wt-l3-list { display: none; }
+.wt-l2.open > .wt-l3-list { display: block; }
+.wt-l3 { margin: 0 0 0 3px; padding-left: 9px; border-left: 2px solid #F0F1F7; }
+.wt-l3.stubborn { border-left-color: #FECACA; }
+.wt-l3-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 2px; cursor: pointer;
+}
+.wt-l3-head:active { opacity: .7; }
+.wt-l3-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-quaternary); flex-shrink: 0; }
+.wt-l3.stubborn .wt-l3-dot { background: var(--danger); }
+.wt-l3-name { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.wt-l3.stubborn .wt-l3-name { color: var(--danger); }
+.wt-card-list { padding: 2px 0 6px; display: flex; flex-direction: column; gap: 8px; }
+
+
 /* 题目卡 */
 .q-card {
   background: #fff;
@@ -683,6 +723,8 @@ function syncUploads() {
   if (loaded && loaded.length) WRONG_DATA.uploads = loaded;
 }
 var FILTER = 'all';
+/* 1/2 级展开态：key 形如 l1_0 / l1_0_l2_1，值 true=展开。收藏本范式（PM 2026-09-07） */
+var OPEN_MAP = { 'l1_0': true };   /* 默认展开第 1 个 1 级，露出其下 2 级标题 */
 
 /* 便捷遍历：收集所有题目 */
 function allQuestions() {
@@ -745,47 +787,92 @@ function renderList() {
   syncUploads();
   var box = document.getElementById('list');
   var html = '';
-  /* 我的上传区（source=upload）：按筛选显示，按收纳时间降序 */
+  /* 我的上传区（source=upload）：独立平铺顶部，不参与 1/2/3 级树（path 仅两段，无 3 级考点） */
   var ups = WRONG_DATA.uploads.filter(function(q) { return passFilter(q); }).sort(byAddedDesc);
   if (ups.length > 0) {
-    html += '<div class="module open">'
-      + '<div class="module-head"><span class="module-name"><span class="caret">▶</span>我的上传</span>'
-      + '<span class="module-meta">' + ups.length + ' 道 · 拍照录入</span></div>'
-      + '<div class="chapter open"><div class="q-list">';
+    html += '<div class="wt-l1 open">'
+      + '<div class="wt-l1-head"><span class="wt-name">我的上传</span>'
+      + '<span class="wt-meta">' + ups.length + ' 道 · 拍照录入</span></div>'
+      + '<div class="wt-l2-list">';
     ups.forEach(function(q) { html += qCard(q); });
-    html += '</div></div></div>';
+    html += '</div></div>';
   }
-  WRONG_DATA.modules.forEach(function(m, mi) {
-    var chapters = m.chapters
-      .map(function(c) {
-        return { c: c, qs: c.questions.filter(function(q) { return passFilter(q); }).sort(byAddedDesc) };
-      })
-      .filter(function(x) { return x.qs.length > 0; });
-    if (chapters.length === 0) return;
-    html += '<div class="module open" id="mod' + mi + '">'
-      + '<div class="module-head" onclick="toggleModule(' + mi + ')">'
-      +   '<span class="module-name"><span class="caret">▶</span>' + m.name + '</span>'
-      +   '<span class="module-meta">' + m.chapters.reduce(function(n, c) { return n + c.questions.length; }, 0)
-      +      '道 · 正确率 <span class="' + (m.rate < 60 ? 'rate-low' : '') + '">' + m.rate + '%</span></span>'
-      + '</div>';
-    chapters.forEach(function(x) {
-      var c = x.c;
-      html += '<div class="chapter" id="chap' + mi + '">'
-        + '<div class="chapter-head' + (c.weak ? ' weak' : '') + '" onclick="toggleChapter(' + mi + ')">'
-        +   '<span>' + (c.weak ? '🔥 ' : '') + c.name + '</span>'
+  /* 章节错题：按 path 三段聚成 1级→2级→3级→卡片 树（收藏本范式，默认展开到 2 级） */
+  var tree = buildWrongTree();
+  tree.forEach(function(l1, i) {
+    var l1Stubborn = 0;   /* 1级顽固数 = 其下所有顽固 3 级个数 */
+    l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) l1Stubborn++; }); });
+    var l1Key = 'l1_' + i;
+    html += '<div class="wt-l1' + (OPEN_MAP[l1Key] ? ' open' : '') + '">'
+      + '<div class="wt-l1-head" onclick="toggleNode(\'' + l1Key + '\')">'
+      +   '<span class="wt-caret">' + (OPEN_MAP[l1Key] ? '⌄' : '›') + '</span>'
+      +   '<span class="wt-name">' + l1.name + '</span>'
+      +   '<span class="wt-meta">' + l1.count + ' 道' + (l1Stubborn ? ' 顽固 ' + l1Stubborn + ' 个' : '') + '</span>'
+      + '</div>'
+      + '<div class="wt-l2-list">';
+    l1.l2s.forEach(function(l2, j) {
+      var l2Stubborn = 0;   /* 2级顽固数 = 其下顽固 3 级个数 */
+      l2.l3s.forEach(function(l3) { if (l3.stubborn) l2Stubborn++; });
+      var l2Key = l1Key + '_l2_' + j;
+      var l2Open = !!OPEN_MAP[l2Key];
+      html += '<div class="wt-l2' + (l2Open ? ' open' : '') + '">'
+        + '<div class="wt-l2-head">'
+        +   '<span class="wt-caret" onclick="toggleNode(\'' + l2Key + '\')">' + (l2Open ? '⌄' : '›') + '</span>'
+        +   '<span class="wt-name" onclick="startPractice(\'sub\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\')">' + l2.name + '</span>'
+        +   '<span class="wt-meta">' + l2.count + ' 道' + (l2Stubborn ? ' 顽固 ' + l2Stubborn + ' 个' : '') + '</span>'
         + '</div>'
-        + '<div class="q-list">';
-      x.qs.forEach(function(q) { html += qCard(q); });
-      html += '</div></div>';
+        + '<div class="wt-l3-list">';
+      l2.l3s.forEach(function(l3, k) {
+        var l3Stubborn = l3.qs.filter(function(q) { return q.stubborn; }).length;   /* 3级顽固数 = 该 3 级下 stubborn 题道数 */
+        html += '<div class="wt-l3' + (l3.stubborn ? ' stubborn' : '') + '">'
+          + '<div class="wt-l3-head" onclick="startPractice(\'point\',\'' + escapeQuote(l1.name) + '\',\'' + escapeQuote(l2.name) + '\',\'' + escapeQuote(l3.name) + '\')">'
+          +   '<span class="wt-l3-dot"></span>'
+          +   '<span class="wt-l3-name">' + l3.name + '</span>'
+          +   '<span class="wt-meta">' + l3.count + ' 道' + (l3Stubborn ? ' 顽固 ' + l3Stubborn + ' 个' : '') + '</span>'
+          + '</div>'
+          + '<div class="wt-card-list">';
+        l3.qs.forEach(function(q) { html += qCard(q); });
+        html += '</div></div>';
+      });
+      html += '</div></div>';   /* wt-l3-list / wt-l2 */
     });
-    html += '</div>';
+    html += '</div></div>';   /* wt-l2-list / wt-l1 */
   });
   box.innerHTML = html || '<div class="empty">当前筛选下暂无错题</div>';
-  /* 默认展开各章节 */
-  WRONG_DATA.modules.forEach(function(m, mi) {
-    var el = document.getElementById('chap' + mi);
-    if (el) el.classList.add('open');
+}
+
+/* 按 path 三段聚合 1级→2级→3级→题目 树（仅章节错题，不含上传题）
+   3 级顽固判定：该 3 级下题目 wrongCount 之和 ≥ 3 → 顽固（PM 2026-09-07 演示阈值） */
+function buildWrongTree() {
+  var STUB_THRESHOLD = 3;
+  var root = [];
+  WRONG_DATA.modules.forEach(function(m) {
+    var l1 = null;
+    m.chapters.forEach(function(c) {
+      c.questions.filter(function(q) { return passFilter(q); }).forEach(function(q) {
+        var segs = (q.path || '').split(' → ');
+        if (segs.length < 3) return;
+        var l1n = segs[0], l2n = segs[1], l3n = segs[2];
+        if (!l1 || l1.name !== l1n) {
+          l1 = { name: l1n, count: 0, l2s: [] };
+          root.push(l1);
+        }
+        var l2 = null;
+        for (var i = 0; i < l1.l2s.length; i++) { if (l1.l2s[i].name === l2n) { l2 = l1.l2s[i]; break; } }
+        if (!l2) { l2 = { name: l2n, count: 0, l3s: [] }; l1.l2s.push(l2); }
+        var l3 = null;
+        for (var j = 0; j < l2.l3s.length; j++) { if (l2.l3s[j].name === l3n) { l3 = l2.l3s[j]; break; } }
+        if (!l3) { l3 = { name: l3n, count: 0, wsum: 0, stubborn: false, qs: [] }; l2.l3s.push(l3); }
+        l3.qs.push(q);
+        l3.count++;
+        l3.wsum += (q.wrongCount || 1);
+        l2.count++;
+        l1.count++;
+      });
+    });
+    if (l1) l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { l3.stubborn = l3.wsum >= STUB_THRESHOLD; }); });
   });
+  return root;
 }
 
 /* ===== 左滑删除包裹层（PM 2026-09-06：移植自笔记本，错题卡片通用） ===== */
@@ -945,12 +1032,10 @@ function updateChipCounts() {
   document.getElementById('cntSolved').textContent = solved ? '(' + solved + ')' : '';
   document.getElementById('cntUpload').textContent = uploads ? '(' + uploads + ')' : '';
 }
-/* ===== 折叠 ===== */
-function toggleModule(mi) {
-  document.getElementById('mod' + mi).classList.toggle('open');
-}
-function toggleChapter(mi) {
-  document.getElementById('chap' + mi).classList.toggle('open');
+/* ===== 折叠（1/2 级手风琴，OPEN_MAP 保持态，收藏本范式） ===== */
+function toggleNode(key) {
+  OPEN_MAP[key] = !OPEN_MAP[key];
+  renderList();
 }
 
 /* ===== 拍照录入 =====
@@ -1395,12 +1480,17 @@ function closeResult() {
 /* ===== 进入做题页 =====
    scope：all 全部重练 / stubborn 顽固集中攻克 / qid 单题再练
    qid：详情定位该题 */
-function startPractice(scope, qid) {
+function startPractice(scope, a, b, c) {
+  /* scope=qid 单题再练 / stubborn 顽固集中攻克 / sub 二级范围 / point 三级考点范围 / all 全部重练 */
+  var data = { entry:'wrong', scope: scope || 'all' };
+  var name = '错题本重练';
+  if (scope === 'qid') { data.qid = a || ''; name = '单题再练'; }
+  else if (scope === 'stubborn') { name = '顽固错题集中攻克'; }
+  else if (scope === 'sub') { data.l1 = a||''; data.l2 = b||''; name = (b || a || '错题') + ' · 重练'; }
+  else if (scope === 'point') { data.l1 = a||''; data.l2 = b||''; data.l3 = c||''; name = (c || '错题') + ' · 重练'; }
+  data.name = name;
   try {
-    window.parent.postMessage({ type:'REQ_PRACTICE', data:{
-      entry:'wrong', scope: scope || 'all', qid: qid || '',
-      name: (scope === 'stubborn') ? '顽固错题集中攻克' : ((qid ? '单题再练' : '错题本重练'))
-    } }, '*');
+    window.parent.postMessage({ type:'REQ_PRACTICE', data: data }, '*');
   } catch(e) {
     showToast('请从总壳进入，开始错题练习');
   }

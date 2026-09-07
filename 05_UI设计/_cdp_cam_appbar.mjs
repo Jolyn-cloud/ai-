@@ -210,7 +210,7 @@ try {
   const w1Head = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
-    var card=f.contentWindow.document.querySelector('.q-card[data-qid="W01"]');
+    var card=f.contentWindow.document.querySelector('.swipe-cell[data-qid="W01"] .q-card');
     if(!card) return 'no-card';
     var t=card.querySelector('.q-head-title');
     var tags=card.querySelector('.q-head-tags');
@@ -231,19 +231,25 @@ try {
   check('章节题无待攻克/已攻克状态', w1.hasStatus === false, w1Head);
   check('章节题无 q-path 路径行', w1.hasPath === false);
 
-  // 二级标题无数量
-  const chapCount = await evalIn('quiz', `(function(){
+  // 二级标题带 n道 顽固n个（PM 2026-09-07：错题本列表改 1/2/3 级树，2级带数量）
+  const l2Meta = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
-    return f.contentWindow.document.querySelectorAll('.chapter-count').length;
+    var l2 = f.contentWindow.document.querySelector('.wt-l2-head');
+    if(!l2) return 'no-l2';
+    var m = l2.querySelector('.wt-meta').textContent.trim();
+    /* 形如「1 道」「2 道 顽固 1 个」均合法 */
+    var ok = /^\\d+\\s*道(\\s*顽固\\s*\\d+\\s*个)?$/.test(m);
+    return JSON.stringify({ m: m, ok: ok });
   })()`);
-  check('二级标题无题目数量(.chapter-count=0)', chapCount === 0, `剩 ${chapCount} 个`);
+  const l2r = JSON.parse(l2Meta);
+  check('二级标题带 n道 顽固n个', l2r.ok, `得到: ${l2r.m}`);
 
   // 我的上传题 U01：concept='中断系统' → 标题=中断系统；无拍照/原图/单选标签
   const u1Head = await evalIn('quiz', `(function(){
     var f=document.getElementById('wrongLayer').querySelector('iframe');
     if(!f||!f.contentWindow) return 'no-iframe';
-    var card=f.contentWindow.document.querySelector('.q-card[data-qid="U01"]');
+    var card=f.contentWindow.document.querySelector('.swipe-cell[data-qid="U01"] .q-card');
     if(!card) return 'no-card';
     var t=card.querySelector('.q-head-title');
     var tags=card.querySelector('.q-head-tags');
