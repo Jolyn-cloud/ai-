@@ -47,29 +47,39 @@ body {
   padding: 16px;
   box-shadow: 0 10px 24px rgba(91,114,245,.24);
 }
-/* 今日待攻克卡（PM 2026-09-07：4行重构——进度/概要/排行/重练）：紫蓝渐变学习行动卡 */
-.today-head { display: flex; align-items: center; justify-content: space-between; }
-.today-title { font-size: 15px; font-weight: 700; }
-.today-done { font-size: 12px; opacity: .88; font-weight: 600; }
-.today-summary { font-size: 12.5px; opacity: .92; margin: 10px 0 12px; }
-.today-summary b { color: #FFD9A8; font-weight: 600; }
-.today-rank { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+/* 今日待攻克卡（PM 2026-09-07：视觉层级强化——7道错题为第一重点，弱化辅助信息与按钮） */
+.today-head { display: flex; align-items: baseline; justify-content: space-between; }
+.today-title { font-size: 14px; font-weight: 700; opacity: .9; }
+.today-done { font-size: 11px; opacity: .6; font-weight: 400; }   /* 辅助状态：轻量低对比 */
+.today-summary { margin: 8px 0 14px; line-height: 1.1; }
+.today-summary .ts-num { font-size: 30px; font-weight: 800; }   /* 核心数字：最大最重 */
+.today-summary .ts-unit { font-size: 14px; font-weight: 600; opacity: .92; margin-left: 2px; }
+.today-summary .ts-sep { font-size: 12px; opacity: .5; margin: 0 8px; }
+.today-summary .ts-stub {   /* 顽固小标签：轻量，沿用橙色但不厚重 */
+  font-size: 11px; font-weight: 600;
+  color: #FFD9A8;
+  background: rgba(255,217,168,.16);
+  padding: 2px 8px; border-radius: 8px;
+}
+.today-rank { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .rank-row {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px; opacity: .95;
+  font-size: 13px; opacity: .88;
 }
+.rank-row .rn-idx { font-size: 11px; opacity: .55; margin-right: 6px; }
 .rank-row .rn-name { font-weight: 600; }
-.rank-row .rn-cnt { font-size: 12px; opacity: .8; }
+.rank-row .rn-cnt { font-size: 11px; opacity: .62; }
 .rank-more {
-  font-size: 12px; opacity: .82; cursor: pointer; padding: 4px 0; margin-top: 2px;
+  font-size: 12px; opacity: .7; cursor: pointer; text-align: center;
+  padding: 6px 0; margin-top: 2px;
 }
 .rank-more:active { opacity: 1; }
 .practice-btn {
-  width: 100%; height: 42px; border: none; border-radius: 21px;
-  background: #fff; color: var(--primary); font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: transform .12s ease;
+  width: 100%; border: none; border-radius: 8px;
+  background: rgba(255,255,255,.14); color: #fff; font-size: 13px; font-weight: 600;
+  padding: 8px; cursor: pointer; transition: background .12s ease;
 }
-.practice-btn:active { transform: scale(.97); }
+.practice-btn:active { background: rgba(255,255,255,.22); }
 /* 全部错误考点子视图（页内 overlay）：全屏白底覆盖 */
 .wrong-overlay {
   position: absolute; inset: 0; z-index: 50;
@@ -534,12 +544,12 @@ body.has-appbar .result-body { padding-top: 12px; }
 <div class="overview" id="overview">
   <!-- 今日待攻克卡（PM 2026-09-07：重构为4行——已完成进度/待攻克概要/三级考点排行/重练按钮） -->
   <div class="today-head">
-    <span class="today-title">今日待攻克</span>
+    <span class="today-title">今天待攻克</span>
     <span class="today-done" id="todayDone">已完成 0/0</span>
   </div>
   <div class="today-summary" id="todaySummary"></div>
   <div class="today-rank" id="todayRank"></div>
-  <button class="practice-btn" onclick="startPractice('all','')">开始重练</button>
+  <button class="practice-btn" onclick="startPractice('all','')">开始重练 →</button>
 </div>
 <!-- 全部错误考点子视图（PM 2026-09-07：页内 overlay，点「+n个展开」进入，列出全部未攻克3级降序） -->
 <div class="wrong-overlay" id="wrongOverlay">
@@ -819,17 +829,20 @@ function renderOverview() {
   };
   WRONG_DATA.stats = s;
 
-  /* 行1：已完成 solved/total（随攻克动作增长） */
+  /* 行1：已完成 solved/total（辅助状态，轻量） */
   document.getElementById('todayDone').textContent = '已完成 ' + s.solved + '/' + s.total;
 
-  /* 行2：n道错题 · 包含 m 个顽固知识点。
-     n = 待攻克（pending，含上传题）；m = 顽固3级考点个数（沿用章节刷题判定结果，错题本不另判，演示用假数据）。 */
+  /* 行2核心任务摘要：「7 道错题 · 顽固知识点 ×1」同行不拆行。
+     数字放大为第一视觉重点，顽固用轻量小标签。 */
   var stubbornL3 = countStubbornL3();
   document.getElementById('todaySummary').innerHTML =
-    '<b>' + s.pending + '道错题</b> · 包含<b>' + stubbornL3 + '个</b>顽固知识点';
+    '<span class="ts-num">' + s.pending + '</span>'
+    + '<span class="ts-unit">道错题</span>'
+    + '<span class="ts-sep">·</span>'
+    + '<span class="ts-stub">顽固知识点 ×' + stubbornL3 + '</span>';
 
-  /* 行3：三级考点排行——未攻克题按 path 第3段聚合累计错次，降序；默认显前3，其余进子视图。
-     上传题 path 无3级段，不计入排行。 */
+  /* 行3：三级考点排行——未攻克题按 path 第3段聚合累计错次，降序；
+     错次相同按最近错题时间降序；默认显前3，其余走居中下钻入口。 */
   var map = {}, k;
   for (k = 0; k < qs.length; k++) {
     var q = qs[k];
@@ -837,26 +850,32 @@ function renderOverview() {
     var segs = (q.path || '').split(' → ');
     if (segs.length < 3) continue;                  /* 无3级段（上传题）不计 */
     var l3n = segs[2];
-    if (!map[l3n]) map[l3n] = { name: l3n, cnt: 0, l1: segs[0], l2: segs[1] };
+    if (!map[l3n]) map[l3n] = { name: l3n, cnt: 0, l1: segs[0], l2: segs[1], latest: '' };
     map[l3n].cnt += (q.wrongCount || 1);
+    var t = q.addedAt || q.createdAt || '';
+    if (t > map[l3n].latest) map[l3n].latest = t;   /* 记最近错题时间 */
   }
   var arr = [];
   for (var kk in map) arr.push(map[kk]);
-  arr.sort(function(a, b) { return b.cnt - a.cnt; });   /* 错次降序 */
+  arr.sort(function(a, b) {
+    if (b.cnt !== a.cnt) return b.cnt - a.cnt;       /* 错次降序 */
+    return (b.latest || '') > (a.latest || '') ? 1 : -1;   /* 同错次按最近时间降序 */
+  });
   var TOPN = 3;
   var top = arr.slice(0, TOPN);
   var rest = arr.slice(TOPN);
+  var idxMark = ['①','②','③'];
   var rankHtml = '';
-  top.forEach(function(r) {
+  top.forEach(function(r, i) {
     rankHtml += '<div class="rank-row" onclick="startPractice(\'point\',\''
       + escapeQuote(r.l1) + '\',\'' + escapeQuote(r.l2) + '\',\'' + escapeQuote(r.name) + '\')">'
-      +   '<span class="rn-name">' + r.name + '</span>'
+      +   '<span class="rn-name"><span class="rn-idx">' + (idxMark[i] || '') + '</span>' + r.name + '</span>'
       +   '<span class="rn-cnt">错' + r.cnt + '次</span>'
       + '</div>';
   });
   if (rest.length) {
     rankHtml += '<div class="rank-more" onclick="openWrongOverlay()">+'
-      + rest.length + '个考点展开 ›</div>';
+      + rest.length + '个考点 ›</div>';
   }
   document.getElementById('todayRank').innerHTML = rankHtml;
 
