@@ -36,6 +36,7 @@ body {
   color: var(--text-primary);
   background-color: #EDEFF7;
   -webkit-overflow-scrolling: touch;
+  position: relative;   /* 错题本子视图 overlay absolute 定位基准 */
 }
 
 /* ===== 总览卡 ===== */
@@ -70,8 +71,8 @@ body {
 .rank-row .rn-name { font-weight: 600; }
 .rank-row .rn-cnt { font-size: 11px; opacity: .62; }
 .rank-more {
-  font-size: 12px; opacity: .7; cursor: pointer; text-align: center;
-  padding: 6px 0; margin-top: 2px;
+  font-size: 11px; opacity: .65; cursor: pointer; text-align: center;
+  padding: 3px 0; margin-top: 0;
 }
 .rank-more:active { opacity: 1; }
 .practice-btn {
@@ -80,29 +81,40 @@ body {
   padding: 8px; cursor: pointer; transition: background .12s ease;
 }
 .practice-btn:active { background: rgba(255,255,255,.22); }
-/* 全部错误考点子视图（页内 overlay）：全屏白底覆盖 */
+/* 全部错误考点子视图（PM 2026-09-07：极简圆角列表，无第二层标题，导航由外壳承担） */
 .wrong-overlay {
   position: absolute; inset: 0; z-index: 50;
-  background: #fff; display: none; flex-direction: column;
+  background: #F5F6FA; display: none; flex-direction: column;
   animation: woIn .2s ease;
 }
 .wrong-overlay.on { display: flex; }
 @keyframes woIn { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
-.wo-bar {
-  height: 44px; display: flex; align-items: center; gap: 8px;
-  padding: 0 12px; border-bottom: 1px solid var(--border, #eee);
-  font-size: 15px;
+.wo-list {
+  flex: 1; overflow-y: auto;
+  padding: 20px 16px;     /* 导航栏下方呼吸 + 左右留白 */
+  background: #F5F6FA;
 }
-.wo-back { color: var(--primary, #5B72F5); cursor: pointer; }
-.wo-title { font-weight: 700; }
-.wo-list { flex: 1; overflow-y: auto; padding: 8px 16px; }
+.wo-card {   /* 整体轻量圆角容器 */
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 16px;
+  box-shadow: 0 1px 3px rgba(38,48,96,.04);
+}
 .wo-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 0; border-bottom: 1px solid var(--border, #eee);
+  display: flex; align-items: center;
+  height: 50px;
   font-size: 14px; cursor: pointer;
+  position: relative;
 }
-.wo-row:active { background: #f7f7f9; }
-.wo-row .wo-n { font-size: 12px; color: #999; }
+.wo-row:not(:last-child)::after {   /* 极浅分割线，左右缩进不贯穿 */
+  content: ''; position: absolute; left: 30px; right: 0; bottom: 0;
+  height: 1px; background: #F0F1F4;
+}
+.wo-row:active { background: #FAFBFC; border-radius: 8px; }
+.wo-idx { font-size: 11px; color: #B8BCC8; width: 24px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.wo-name { font-size: 14px; font-weight: 500; color: var(--text-primary, #1E2130); flex: 1; margin-left: 10px; }
+.wo-n { font-size: 11px; color: var(--primary, #5B72F5); font-weight: 500; margin-right: 8px; }
+.wo-arrow { font-size: 14px; color: #C8CCD6; }
 /* ===== 筛选 chip 行（横向滑动，页面 x 锁定） ===== */
 .filter-row {
   display: flex; gap: 8px;
@@ -551,12 +563,8 @@ body.has-appbar .result-body { padding-top: 12px; }
   <div class="today-rank" id="todayRank"></div>
   <button class="practice-btn" onclick="startPractice('all','')">开始重练 →</button>
 </div>
-<!-- 全部错误考点子视图（PM 2026-09-07：页内 overlay，点「+n个展开」进入，列出全部未攻克3级降序） -->
+<!-- 全部错误考点子视图（PM 2026-09-07：页内 overlay，点「+n个展开」进入；导航栏由外壳 appbar 承担，列表直接铺开） -->
 <div class="wrong-overlay" id="wrongOverlay">
-  <div class="wo-bar">
-    <span class="wo-back" onclick="closeWrongOverlay()">‹ 退出</span>
-    <span class="wo-title">错误考点</span>
-  </div>
   <div class="wo-list" id="woList"></div>
 </div>
 
@@ -899,14 +907,18 @@ function countStubbornL3() {
 /* 全部错误考点子视图：列全部未攻克3级降序，点行发 REQ_PRACTICE point */
 function openWrongOverlay() {
   var arr = window.__wrongRankAll || [];
-  var html = '';
-  arr.forEach(function(r) {
+  var html = '<div class="wo-card">';
+  arr.forEach(function(r, i) {
+    var idx = (i + 1 < 10 ? '0' : '') + (i + 1);   /* 序号 01/02/03… */
     html += '<div class="wo-row" onclick="startPractice(\'point\',\''
       + escapeQuote(r.l1) + '\',\'' + escapeQuote(r.l2) + '\',\'' + escapeQuote(r.name) + '\')">'
-      +   '<span>' + r.name + '</span>'
+      +   '<span class="wo-idx">' + idx + '</span>'
+      +   '<span class="wo-name">' + r.name + '</span>'
       +   '<span class="wo-n">错' + r.cnt + '次</span>'
+      +   '<span class="wo-arrow">›</span>'
       + '</div>';
   });
+  html += '</div>';
   document.getElementById('woList').innerHTML = html;
   document.getElementById('wrongOverlay').classList.add('on');
 }
