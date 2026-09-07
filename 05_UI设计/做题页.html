@@ -1712,13 +1712,13 @@ function renderWrongDiag(q) {
   /* AI 错因建议（演示 mock）：题目带 aiReason 用之，否则按已有 tag 兜底，再否则建议概念混淆。
      演示阶段前端直接给值，标「AI 已识别」范式，不做真接口（PM 2026-09-07 拍板） */
   var aiK = q.aiReason || q.tag || 'confusion';
-  /* 5 类 key 与错题本首页 TAG_NAME 对齐：misread 审题 / blind 盲区 / confusion 概念混淆 / memory 记忆遗漏 / operation 操作失误 */
+  /* 5 类 key 与错题本首页 TAG_NAME 对齐：misread 审题 / blind 盲区 / confusion 概念混淆 / memory 记忆遗漏 / operation 操作知识错误 */
   var opts = [
     { k:'misread', label:'审题错误' },
     { k:'blind', label:'知识盲区' },
     { k:'confusion', label:'概念混淆' },
     { k:'memory', label:'记忆遗漏' },
-    { k:'operation', label:'操作失误' }
+    { k:'operation', label:'操作知识错误' }
   ];
   var btns = '';
   opts.forEach(function(o) {

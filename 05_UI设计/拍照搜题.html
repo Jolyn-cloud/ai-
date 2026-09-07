@@ -461,7 +461,7 @@ body.has-appbar .note-result .result-body { padding-top: 12px; }
      localStorage 两 key 均为单点数据源（章节刷题/错题本页各自读取合并）
    ============================================================ */
 
-var TAG_NAME = { misread:'审题错误', blind:'知识盲区', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作失误' };
+var TAG_NAME = { misread:'审题错误', blind:'知识盲区', confusion:'概念混淆', memory:'记忆遗漏', operation:'操作知识错误' };
 var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', image:'图片题' };
 var CONCEPT_CATS = [
   { kw:/操作系统|文件系统|进程|线程|内存|磁盘|死锁|调度/, label:'操作系统' },
@@ -671,7 +671,7 @@ var TAG_OPTIONS = {
     ['信息安全','信息安全'], ['新一代信息技术','新一代信息技术'], ['计算机基础','计算机基础'], ['待归类','待归类']
   ],
   tag: [
-    ['misread','审题错误'], ['blind','知识盲区'], ['confusion','概念混淆'], ['memory','记忆遗漏'], ['operation','操作失误']
+    ['misread','审题错误'], ['blind','知识盲区'], ['confusion','概念混淆'], ['memory','记忆遗漏'], ['operation','操作知识错误']
   ]
 };
 var PICKER_FIELD = null;
