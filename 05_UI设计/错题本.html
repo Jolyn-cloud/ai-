@@ -881,9 +881,9 @@ function renderList() {
       +   '<span class="wt-meta">' + ups.length + ' 道 · 拍照录入</span>'
       +   '<span class="wt-l1-arrow">›</span>'
       + '</div>'
-      + '<div class="wt-l2-list wt-card-list">';
+      + '<div class="wt-l2-list"><div class="wt-card-list">';
     ups.forEach(function(q) { html += qCard(q); });
-    html += '</div></div>';
+    html += '</div></div></div>';
   }
   box.innerHTML = html || '<div class="empty">当前筛选下暂无错题</div>';
 }
