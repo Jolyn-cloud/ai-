@@ -1669,29 +1669,30 @@
   }
   .completion-title { font-size: 22px; font-weight: 750; margin-bottom: 6px; }
   .completion-subtitle { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .completion-subtitle:empty { display: none; }   /* 无考点路径时不占空白行（PM 2026-09-07） */
 
   /* 本次结果：四项横排一行（正确率=第一视觉重点，带小环形图） */
   .result-row {
     display: flex; align-items: stretch;
     background: rgba(255,255,255,0.95);
-    border-radius: 16px;
-    padding: 18px 8px 14px;
-    box-shadow: 0 6px 18px rgba(54,66,108,0.05);
+    border-radius: 14px;
+    padding: 14px 6px 12px;
+    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
     margin-bottom: 14px;
   }
   .result-col {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 5px;
   }
-  .result-col-rate { flex: 1.3; }   /* 正确率列略宽，视觉重点 */
-  .ring-mini-wrap { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+  .result-col-rate { flex: 1.4; }   /* 正确率列略宽，视觉重点 */
+  .ring-mini-wrap { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
   .ring-mini-wrap svg { transform: rotate(-90deg); position: absolute; top: 0; left: 0; }
-  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 5; }
-  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 5; stroke-linecap: round;
+  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 6; }
+  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 6; stroke-linecap: round;
     transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1);
   }
-  .ring-mini-text { font-size: 15px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
-  .result-col-num { font-size: 20px; font-weight: 750; color: var(--text-primary); line-height: 1; }
+  .ring-mini-text { font-size: 17px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
+  .result-col-num { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1; }
   .result-num-ok { color: var(--success); }
   .result-num-bad { color: var(--danger); }
   .result-col-label { font-size: 11px; color: var(--text-tertiary); }
@@ -1734,19 +1735,19 @@
   }
   .weak-count {
     flex-shrink: 0;
-    font-size: 12px; font-weight: 600; color: var(--primary);       /* 未记住次数主题色轻强调 */
+    font-size: 11.5px; font-weight: 400; color: var(--text-tertiary);   /* 灰色轻量提示（PM 2026-09-07） */
     white-space: nowrap;
   }
 
   /* 检验本次背诵效果（轻量横向卡，立即刷题在右侧） */
   .practice-cta-card {
     display: flex; align-items: center; gap: 12px;
-    background: rgba(255,255,255,0.95);
-    border: 1px solid rgba(91,114,245,0.1);
+    background: linear-gradient(135deg, #EEF1FF, #FFFFFF);
+    border: 1px solid rgba(91,114,245,0.22);
     border-radius: 14px;
-    padding: 14px 16px;
+    padding: 16px 16px;
     margin-bottom: 14px;
-    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
+    box-shadow: 0 6px 18px rgba(91,114,245,0.12);
     cursor: pointer;
     transition: transform .1s ease;
   }
@@ -1768,7 +1769,7 @@
   /* 章节掌握度分布 */
   .chapter-dist-list { display: flex; flex-direction: column; gap: 10px; }
   .chapter-dist-item { display: flex; align-items: center; gap: 10px; }
-  .chapter-dist-name { width: 78px; font-size: 12px; color: var(--text-primary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chapter-dist-name { width: 78px; font-size: 11.5px; color: var(--text-secondary); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chapter-dist-bar { flex: 1; height: 10px; border-radius: 10px; background: #F3F4F6; overflow: hidden; display: flex; }
   .cdb-ok { height: 100%; background: linear-gradient(90deg, #34D399, #20A866); }
   .cdb-bad { height: 100%; background: linear-gradient(90deg, #FCA5A5, #EF4444); }
@@ -2352,29 +2353,30 @@
   }
   .completion-title { font-size: 22px; font-weight: 750; margin-bottom: 6px; }
   .completion-subtitle { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .completion-subtitle:empty { display: none; }   /* 无考点路径时不占空白行（PM 2026-09-07） */
 
   /* 本次结果：四项横排一行（正确率=第一视觉重点，带小环形图） */
   .result-row {
     display: flex; align-items: stretch;
     background: rgba(255,255,255,0.95);
-    border-radius: 16px;
-    padding: 18px 8px 14px;
-    box-shadow: 0 6px 18px rgba(54,66,108,0.05);
+    border-radius: 14px;
+    padding: 14px 6px 12px;
+    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
     margin-bottom: 14px;
   }
   .result-col {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 5px;
   }
-  .result-col-rate { flex: 1.3; }   /* 正确率列略宽，视觉重点 */
-  .ring-mini-wrap { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+  .result-col-rate { flex: 1.4; }   /* 正确率列略宽，视觉重点 */
+  .ring-mini-wrap { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
   .ring-mini-wrap svg { transform: rotate(-90deg); position: absolute; top: 0; left: 0; }
-  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 5; }
-  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 5; stroke-linecap: round;
+  .ring-mini-bg { fill: none; stroke: #E8EAF3; stroke-width: 6; }
+  .ring-mini-fill { fill: none; stroke: url(#ringGradient); stroke-width: 6; stroke-linecap: round;
     transition: stroke-dashoffset 1s cubic-bezier(.22,.61,.36,1);
   }
-  .ring-mini-text { font-size: 15px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
-  .result-col-num { font-size: 20px; font-weight: 750; color: var(--text-primary); line-height: 1; }
+  .ring-mini-text { font-size: 17px; font-weight: 800; color: var(--primary); line-height: 1; position: relative; z-index: 1; }
+  .result-col-num { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1; }
   .result-num-ok { color: var(--success); }
   .result-num-bad { color: var(--danger); }
   .result-col-label { font-size: 11px; color: var(--text-tertiary); }
@@ -2416,19 +2418,19 @@
   }
   .weak-count {
     flex-shrink: 0;
-    font-size: 12px; font-weight: 600; color: var(--primary);
+    font-size: 11.5px; font-weight: 400; color: var(--text-tertiary);   /* 灰色轻量提示（PM 2026-09-07） */
     white-space: nowrap;
   }
 
   /* 检验本次背诵效果 */
   .practice-cta-card {
     display: flex; align-items: center; gap: 12px;
-    background: rgba(255,255,255,0.95);
-    border: 1px solid rgba(91,114,245,0.1);
+    background: linear-gradient(135deg, #EEF1FF, #FFFFFF);
+    border: 1px solid rgba(91,114,245,0.22);
     border-radius: 14px;
-    padding: 14px 16px;
+    padding: 16px 16px;
     margin-bottom: 14px;
-    box-shadow: 0 4px 12px rgba(54,66,108,0.04);
+    box-shadow: 0 6px 18px rgba(91,114,245,0.12);
     cursor: pointer;
     transition: transform .1s ease;
   }
@@ -2450,7 +2452,7 @@
   /* 章节掌握度分布 */
   .chapter-dist-list { display: flex; flex-direction: column; gap: 10px; }
   .chapter-dist-item { display: flex; align-items: center; gap: 10px; }
-  .chapter-dist-name { width: 78px; font-size: 12px; color: var(--text-primary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chapter-dist-name { width: 78px; font-size: 11.5px; color: var(--text-secondary); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chapter-dist-bar { flex: 1; height: 10px; border-radius: 10px; background: #F3F4F6; overflow: hidden; display: flex; }
   .cdb-ok { height: 100%; background: linear-gradient(90deg, #34D399, #20A866); }
   .cdb-bad { height: 100%; background: linear-gradient(90deg, #FCA5A5, #EF4444); }
@@ -2729,17 +2731,17 @@
       <div class="completion-hero">
         <div class="completion-emoji" id="compEmoji">💪</div>
         <div class="completion-title" id="compTitle">继续加油</div>
-        <div class="completion-subtitle" id="compSubtitle">全部章节</div>
+        <div class="completion-subtitle" id="compSubtitle"></div>
       </div>
 
       <!-- 本次结果：四项横排一行（正确率为第一视觉重点） -->
       <div class="result-row" id="resultRow">
         <div class="result-col result-col-rate">
           <div class="ring-mini-wrap">
-            <svg width="48" height="48" viewBox="0 0 48 48">
-              <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
-              <circle class="ring-mini-fill" id="ringFill" cx="24" cy="24" r="20"
-                stroke-dasharray="125.66" stroke-dashoffset="125.66"/>
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="ring-mini-bg" cx="32" cy="32" r="26"/>
+              <circle class="ring-mini-fill" id="ringFill" cx="32" cy="32" r="26"
+                stroke-dasharray="163.36" stroke-dashoffset="163.36"/>
             </svg>
             <div class="ring-mini-text" id="ringPct">0%</div>
           </div>
@@ -2922,17 +2924,17 @@
       <div class="completion-hero">
         <div class="completion-emoji" id="compEmoji">💪</div>
         <div class="completion-title" id="compTitle">继续加油</div>
-        <div class="completion-subtitle" id="compSubtitle">全部章节</div>
+        <div class="completion-subtitle" id="compSubtitle"></div>
       </div>
 
       <!-- 本次结果：四项横排一行（正确率为第一视觉重点） -->
       <div class="result-row" id="resultRow">
         <div class="result-col result-col-rate">
           <div class="ring-mini-wrap">
-            <svg width="48" height="48" viewBox="0 0 48 48">
-              <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
-              <circle class="ring-mini-fill" id="ringFill" cx="24" cy="24" r="20"
-                stroke-dasharray="125.66" stroke-dashoffset="125.66"/>
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="ring-mini-bg" cx="32" cy="32" r="26"/>
+              <circle class="ring-mini-fill" id="ringFill" cx="32" cy="32" r="26"
+                stroke-dasharray="163.36" stroke-dashoffset="163.36"/>
             </svg>
             <div class="ring-mini-text" id="ringPct">0%</div>
           </div>
@@ -3057,10 +3059,10 @@
     <div class="result-row">
       <div class="result-col result-col-rate">
         <div class="ring-mini-wrap">
-          <svg width="48" height="48" viewBox="0 0 48 48">
-            <circle class="ring-mini-bg" cx="24" cy="24" r="20"/>
-            <circle class="ring-mini-fill" id="demoRingFill" cx="24" cy="24" r="20"
-              stroke-dasharray="125.66" stroke-dashoffset="17.59"/>
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle class="ring-mini-bg" cx="32" cy="32" r="26"/>
+            <circle class="ring-mini-fill" id="demoRingFill" cx="32" cy="32" r="26"
+              stroke-dasharray="163.36" stroke-dashoffset="22.87"/>
           </svg>
           <div class="ring-mini-text" id="demoRingPct">86%</div>
         </div>
@@ -4581,9 +4583,9 @@ function showCompletion() {
 
   var ring = getById('ringFill');
   if (ring) {
-    ring.style.strokeDashoffset = '125.66';
+    ring.style.strokeDashoffset = '163.36';
     setTimeout(function() {
-      ring.style.strokeDashoffset = (125.66 * (1 - accuracy / 100)).toFixed(2);
+      ring.style.strokeDashoffset = (163.36 * (1 - accuracy / 100)).toFixed(2);
     }, 200);
   }
 
@@ -4691,7 +4693,7 @@ function getRangeText() {
   if (activeFilter.topic) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub + ' \u00B7 ' + activeFilter.topic;
   if (activeFilter.sub) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub;
   if (activeFilter.chapter) return activeFilter.chapter;
-  return '\u5168\u90E8\u7AE0\u8282';
+  return '';   /* \u65E0\u7AE0\u8282\u8FC7\u6EE4\u4E0D\u663E\u526F\u6807\u9898\uFF08\u300C\u5168\u90E8\u7AE0\u8282\u300D\u5360\u4F4D\u65E0\u610F\u4E49\uFF0CPM 2026-09-07\uFF09 */
 }
 
 /* 格式化时长（秒 → M:SS） */
@@ -5148,9 +5150,9 @@ function showCompletion() {
 
   var ring = getById('ringFill');
   if (ring) {
-    ring.style.strokeDashoffset = '125.66';
+    ring.style.strokeDashoffset = '163.36';
     setTimeout(function() {
-      ring.style.strokeDashoffset = (125.66 * (1 - accuracy / 100)).toFixed(2);
+      ring.style.strokeDashoffset = (163.36 * (1 - accuracy / 100)).toFixed(2);
     }, 200);
   }
 
@@ -5258,7 +5260,7 @@ function getRangeText() {
   if (activeFilter.topic) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub + ' \u00B7 ' + activeFilter.topic;
   if (activeFilter.sub) return activeFilter.chapter + ' \u00B7 ' + activeFilter.sub;
   if (activeFilter.chapter) return activeFilter.chapter;
-  return '\u5168\u90E8\u7AE0\u8282';
+  return '';   /* \u65E0\u7AE0\u8282\u8FC7\u6EE4\u4E0D\u663E\u526F\u6807\u9898\uFF08\u300C\u5168\u90E8\u7AE0\u8282\u300D\u5360\u4F4D\u65E0\u610F\u4E49\uFF0CPM 2026-09-07\uFF09 */
 }
 
 /* 格式化时长（秒 → M:SS） */
