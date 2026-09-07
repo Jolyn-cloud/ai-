@@ -201,6 +201,29 @@ body {
   white-space: nowrap;
 }
 .toast.show { opacity: 1; }
+
+/* ===== 做题返回提示浮层（有未练闪卡） ===== */
+.fav-prompt-mask {
+  position: fixed; inset: 0; background: rgba(30,33,48,.45);
+  z-index: 1000; display: none; align-items: center; justify-content: center;
+}
+.fav-prompt-mask.show { display: flex; }
+.fav-prompt-card {
+  width: 300px; background: #fff; border-radius: 16px;
+  padding: 24px 22px 18px; text-align: center;
+  box-shadow: 0 12px 40px rgba(30,33,48,.18);
+  animation: fp-in .2s ease;
+}
+@keyframes fp-in { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.fav-prompt-ico { font-size: 32px; margin-bottom: 10px; }
+.fav-prompt-title { font-size: 15.5px; font-weight: 700; color: var(--text-primary, #1E2130); margin-bottom: 6px; }
+.fav-prompt-desc { font-size: 12.5px; color: var(--text-tertiary, #98A0B2); line-height: 1.5; margin-bottom: 18px; }
+.fav-prompt-btns { display: flex; gap: 10px; }
+.fav-prompt-btn { flex: 1; padding: 10px 0; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+.fav-prompt-btn-primary { background: var(--primary, #5B72F5); color: #fff; }
+.fav-prompt-btn-primary:active { opacity: .85; }
+.fav-prompt-btn-secondary { background: #F3F4F6; color: var(--text-secondary, #6E778B); }
+.fav-prompt-btn-secondary:active { opacity: .7; }
 </style>
 </head>
 <body>
@@ -240,6 +263,19 @@ body {
 
 <div class="toast" id="toast"></div>
 
+<!-- 做题返回提示：有未练闪卡 -->
+<div class="fav-prompt-mask" id="favPromptMask">
+  <div class="fav-prompt-card">
+    <div class="fav-prompt-ico">📚</div>
+    <div class="fav-prompt-title">您还有未完成的闪卡</div>
+    <div class="fav-prompt-desc">做题已完成，收藏的闪卡还没背，趁热巩固一下？</div>
+    <div class="fav-prompt-btns">
+      <button class="fav-prompt-btn fav-prompt-btn-secondary" onclick="dismissFavPrompt()">稍后练</button>
+      <button class="fav-prompt-btn fav-prompt-btn-primary" onclick="continueFavFlash()">继续练</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    收藏本 mock 数据（演示期；三级章节树覆盖计算机四模块）
@@ -258,22 +294,26 @@ var FAV_DATA = [
   { qid:'W01', source:'chapter', l1:'计算机基础', l2:'信息与计算机基础知识', l3:'信息技术概述',     type:'single', collectedAt:'09-03' },
   { qid:'W02', source:'real',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'计算机的发展',     type:'fill',   collectedAt:'09-02', paper:'2023 山东专升本真题' },
   { qid:'W03', source:'exam',     l1:'计算机基础', l2:'信息与计算机基础知识', l3:'数制与编码',       type:'single', collectedAt:'08-30', paper:'2026 山东专升本全真模拟（一）' },
-  { qid:'W04', source:'flash',    l1:'计算机基础', l2:'信息与计算机基础知识', l3:'信息与数据的区别', type:'judge',  collectedAt:'08-28' },
+  { qid:'W04', source:'flash',    l1:'计算机基础', l2:'信息与计算机基础知识', l3:'信息与数据的区别', type:'judge',  collectedAt:'08-28',
+    front:'信息是可以直接用于决策的数据。', answer:'错误', analysis:'信息是经过加工处理后对决策有价值的数据，不是所有数据都能直接用于决策。原始数据需经处理、解释后才能成为信息。' },
   { qid:'W01', source:'chapter',  l1:'计算机基础', l2:'操作系统',             l3:'操作系统的基本功能', type:'single', collectedAt:'09-01' },
   { qid:'W02', source:'real',     l1:'计算机基础', l2:'操作系统',             l3:'进程与线程的概念',   type:'fill',   collectedAt:'08-29', paper:'2023 山东专升本真题' },
   { qid:'W03', source:'exam',     l1:'计算机基础', l2:'操作系统',             l3:'文件系统与扩展名',   type:'judge',  collectedAt:'08-27', paper:'2026 山东专升本全真模拟（一）' },
-  { qid:'W04', source:'flash',    l1:'计算机基础', l2:'操作系统',             l3:'存储管理方式',       type:'multi',  collectedAt:'08-25' },
+  { qid:'W04', source:'flash',    l1:'计算机基础', l2:'操作系统',             l3:'存储管理方式',       type:'multi',  collectedAt:'08-25',
+    front:'下列属于操作系统存储管理方式的有（多选）：\nA. 分页式\nB. 分段式\nC. 段页式\nD. 虚拟内存', answer:'A, B, C, D', analysis:'操作系统存储管理主要有连续分配、分页、分段、段页式四种方式；虚拟内存是存储管理的一种扩展技术，可实现逻辑上扩充内存容量。四种都是常见的存储管理方式。' },
 
   /* —— 计算机网络 —— */
   { qid:'W05', source:'chapter',  l1:'计算机网络', l2:'网络协议', l3:'TCP/IP 协议体系',    type:'multi',  collectedAt:'09-03' },
   { qid:'W06', source:'real',     l1:'计算机网络', l2:'网络协议', l3:'OSI 参考模型',       type:'single', collectedAt:'08-31', paper:'2022 山东专升本真题' },
   { qid:'W05', source:'exam',     l1:'计算机网络', l2:'IP 地址',  l3:'IP 地址与子网掩码',   type:'judge',  collectedAt:'08-24', paper:'2026 山东专升本全真模拟（二）' },
-  { qid:'W06', source:'flash',    l1:'计算机网络', l2:'IP 地址',  l3:'域名与 DNS',          type:'single', collectedAt:'08-20' },
+  { qid:'W06', source:'flash',    l1:'计算机网络', l2:'IP 地址',  l3:'域名与 DNS',          type:'single', collectedAt:'08-20',
+    front:'DNS 的主要作用是（单选）：\nA. 分配 IP 地址\nB. 将域名解析为 IP 地址\nC. 路由数据包\nD. 加密网络通信', answer:'B', analysis:'DNS（Domain Name System）的主要功能是将人类易记的域名（如 www.example.com）解析为机器识别的 IP 地址，便于网络通信。IP 分配由 DHCP 负责，路由由路由器负责。' },
 
   /* —— 数据库 —— */
   { qid:'W06', source:'chapter',  l1:'数据库', l2:'关系数据库', l3:'三级模式结构',    type:'single', collectedAt:'09-02' },
   { qid:'W01', source:'real',     l1:'数据库', l2:'关系数据库', l3:'关系代数运算',    type:'fill',   collectedAt:'08-26', paper:'2023 山东专升本真题' },
-  { qid:'W02', source:'flash',    l1:'数据库', l2:'SQL 语言',    l3:'SQL 语句分类',   type:'multi',  collectedAt:'08-22' },
+  { qid:'W02', source:'flash',    l1:'数据库', l2:'SQL 语言',    l3:'SQL 语句分类',   type:'multi',  collectedAt:'08-22',
+    front:'下列属于 DML（数据操纵语言）的语句有（多选）：\nA. SELECT\nB. INSERT\nC. CREATE\nD. UPDATE', answer:'A, B, D', analysis:'DML（Data Manipulation Language）用于操作数据，包含 SELECT、INSERT、UPDATE、DELETE 等。CREATE 属于 DDL（数据定义语言），用于定义表结构，不属于 DML。' },
 
   /* —— 数据结构 —— */
   { qid:'W03', source:'chapter',  l1:'数据结构', l2:'树与图',   l3:'二叉树的遍历方法', type:'single', collectedAt:'09-01' },
@@ -453,6 +493,8 @@ function toggleL2(key) {
 }
 
 /* ===== 进入做题页（复用 REQ_PRACTICE；entry=fav, scope=chap/sub/point/all/paper/papersub/paperpoint） ===== */
+/* 收藏题做题+闪卡分阶段：做题列表排除 source=flash（闪卡不经做题页填空）；
+   若原范围含 flash → 写临时 key 供闪卡原型读取 + 标记总壳 sessionStorage（PM 2026-09-07） */
 function goPractice(scope, l1, l2, l3) {
   var list = items.filter(function(it) {
     if (!passFilter(it)) return false;
@@ -466,7 +508,10 @@ function goPractice(scope, l1, l2, l3) {
     return false;
   });
   if (!list.length) { showToast('该范围暂无收藏题'); return; }
-  writeFavPractice(list, scope, l1, l2, l3);
+  stashFlashForLater(list, scope);
+  var practiceList = list.filter(function(it){ return it.source !== 'flash'; });
+  if (!practiceList.length) { showToast('该范围仅有闪卡，请直接练闪卡'); return; }
+  writeFavPractice(practiceList, scope, l1, l2, l3);
   var name = scope === 'chap' ? l1
     : scope === 'sub' ? l2
     : scope === 'point' ? l3
@@ -486,7 +531,15 @@ function goPractice(scope, l1, l2, l3) {
 function practiceAll() {
   var list = items.filter(passFilter);
   if (!list.length) { showToast('没有可练习的收藏题'); return; }
-  writeFavPractice(list, 'all', '', '', '');
+  stashFlashForLater(list, 'all');
+  var practiceList = list.filter(function(it){ return it.source !== 'flash'; });
+  /* 随机打乱做题列表（PM 2026-09-07） */
+  for (var i = practiceList.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = practiceList[i]; practiceList[i] = practiceList[j]; practiceList[j] = t;
+  }
+  if (!practiceList.length) { showToast('当前仅有闪卡，请直接练闪卡'); return; }
+  writeFavPractice(practiceList, 'all', '', '', '');
   try {
     window.parent.postMessage({ type:'REQ_PRACTICE', data:{
       entry:'fav', scope:'all', name:'收藏题练习'
@@ -494,6 +547,20 @@ function practiceAll() {
   } catch(e) {
     showToast('请从总壳进入，开始练习');
   }
+}
+
+/* 范围内含 flash 时：写临时 key 供闪卡原型读取 + 标记总壳 sessionStorage（做题返回后弹提示） */
+function stashFlashForLater(fullList, scope) {
+  var flashList = fullList.filter(function(it){ return it.source === 'flash' && it.front; });
+  if (!flashList.length) return;
+  try {
+    localStorage.setItem('zsb_fav_flash_v1', JSON.stringify(flashList.map(function(x){
+      return { qid: x.qid, source: x.source, l1: x.l1, l2: x.l2, l3: x.l3, type: x.type,
+        front: x.front, answer: x.answer, analysis: x.analysis };
+    })));
+    /* 标记总壳 sessionStorage：返回做题页时据此弹「还有未练闪卡」提示 */
+    window.parent.sessionStorage.setItem('favFlashPending', '1');
+  } catch(e) {}
 }
 
 /* 写入临时 key，做题页 entry=fav 读取出题 */
@@ -517,6 +584,40 @@ function showToast(msg) {
   t.classList.add('show');
   clearTimeout(t._tid);
   t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
+}
+
+/* ===== 做题返回提示（有未练闪卡；总壳→题库→收藏本 转发链路） ===== */
+window.addEventListener('message', function(e) {
+  var d = e.data || {};
+  if (d.type === 'FAV_PRACTICE_CLOSED') {
+    /* 总壳 closePractice 广播 → 题库转发到此；检查是否有待练闪卡 */
+    var pending = false;
+    try { pending = window.parent.sessionStorage.getItem('favFlashPending') === '1'; } catch(err) {}
+    var hasFlash = false;
+    try { hasFlash = !!localStorage.getItem('zsb_fav_flash_v1'); } catch(err) {}
+    if (pending && hasFlash) showFavPrompt();
+  }
+});
+
+function showFavPrompt() {
+  document.getElementById('favPromptMask').classList.add('show');
+}
+function dismissFavPrompt() {
+  document.getElementById('favPromptMask').classList.remove('show');
+  /* 稍后练：清标记，本次不再弹（PM 2026-09-07） */
+  try { window.parent.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  try { localStorage.removeItem('zsb_fav_flash_v1'); } catch(e) {}
+}
+function continueFavFlash() {
+  document.getElementById('favPromptMask').classList.remove('show');
+  /* 继续练：跳转闪卡原型读取 flash 题目；清标记避免返回时重复弹 */
+  try { window.parent.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  try {
+    window.parent.postMessage({ type:'REQ_FLASH_FROM_FAV' }, '*');
+  } catch(err) {
+    /* 降级：直接跳转 */
+    window.location.href = '闪卡原型.html?from=fav';
+  }
 }
 
 /* ===== 初始化 ===== */

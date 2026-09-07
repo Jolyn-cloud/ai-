@@ -1708,6 +1708,10 @@
     margin-bottom: 14px;
   }
   .comp-section-minor { background: rgba(255,255,255,0.7); box-shadow: none; }   /* 效率区降权 */
+  /* 简版（题量<10）：砍薄弱 TOP5 + 章节掌握度 + 背诵效率，保留 hero+四项+检验背诵+按钮（PM 2026-09-07） */
+  .completion-simple .comp-section:has(.weak-list),
+  .completion-simple .comp-section:has(.chapter-dist-list),
+  .completion-simple .comp-section-minor { display: none; }
   .comp-section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 13px;
@@ -3045,7 +3049,7 @@
 <script src="闪卡题库.js"></script>
         </div>
         <div class="view" id="view-complete">
-<div class="page" id="completeDemoPage">
+<div class="page completion-simple" id="completeDemoPage">
 
   <div class="completion-scroll" id="completeDemoScroll" style="flex:1;min-height:0;overflow-y:auto;padding:24px 22px 96px;">
     <!-- 顶部 hero（演示数据） -->
@@ -3781,7 +3785,17 @@ function getById(id) { return ROOT.querySelector('#' + id); }
 */
 var activeFilter = filterFromUrl();
 var baseState;
-if (activeFilter.chapter || activeFilter.sub || activeFilter.topic || activeFilter.point) {
+if (location.search.indexOf('from=fav') >= 0) {
+  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额（PM 2026-09-07） */
+  var _favCards = [];
+  try { _favCards = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+  baseState = {
+    date: todayStr(),
+    quota: _favCards.length,
+    queue: buildFavQueue(_favCards),
+    marked: {}, markedTime: {}
+  };
+} else if (activeFilter.chapter || activeFilter.sub || activeFilter.topic || activeFilter.point) {
   /* 全卡池状态：queue = 全部 CARDS，marked 复用当日已标记（同 key 同步） */
   var _today = loadState();
   baseState = {
@@ -4567,6 +4581,10 @@ function showCompletion() {
   var speedSec = done > 0 ? Math.round(elapsed / done) : 0;
   var lastH = getLastHistory();
 
+  /* 简版判定：题量<10 时砍薄弱 TOP5/章节分布/效率（收藏本少量 flash 卡场景，PM 2026-09-07） */
+  var cs = getById('completionScreen');
+  if (cs) cs.classList.toggle('completion-simple', stats.total < 10);
+
   /* 1. Hero 区域：按正确率动态文案 + 范围（PM 2026-09-07） */
   var emoji = '💪', title = '继续加油';
   if (accuracy >= 80) { emoji = '🎉'; title = '掌握得不错！'; }
@@ -4829,7 +4847,20 @@ function getById(id) { return ROOT.querySelector('#' + id); }
    - 全部标记完毕 → 完成结算页
    ============================================================ */
 var listEl = getById('listScroll');
-var baseState = loadState();
+var baseState;
+if (location.search.indexOf('from=fav') >= 0) {
+  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额（PM 2026-09-07） */
+  var _favCardsL = [];
+  try { _favCardsL = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+  baseState = {
+    date: todayStr(),
+    quota: _favCardsL.length,
+    queue: buildFavQueue(_favCardsL),
+    marked: {}, markedTime: {}
+  };
+} else {
+  baseState = loadState();
+}
 var activeFilter = filterFromUrl();
 var filteredQueue = [];
 
@@ -5133,6 +5164,10 @@ function showCompletion() {
   var accuracy = done > 0 ? Math.round(stats.remembered / done * 100) : 0;
   var speedSec = done > 0 ? Math.round(elapsed / done) : 0;
   var lastH = getLastHistory();
+
+  /* 简版判定：题量<10 时砍薄弱 TOP5/章节分布/效率（收藏本少量 flash 卡场景，PM 2026-09-07） */
+  var cs = getById('completionScreen');
+  if (cs) cs.classList.toggle('completion-simple', stats.total < 10);
 
   /* 1. Hero 区域：按正确率动态文案 + 范围（PM 2026-09-07） */
   var emoji = '💪', title = '继续加油';

@@ -1155,6 +1155,23 @@ window.addEventListener('message', function(evt) {
     closePractice();
     var tab = currentTabName();
     if (tab) updateLogicForTab(tab);
+    /* 收藏本「做题+闪卡」分阶段：做题关闭后若 session 标记有待练闪卡 → 广播给题库转发到收藏本弹提示（PM 2026-09-07） */
+    try {
+      if (sessionStorage.getItem('favFlashPending') === '1') {
+        var quiz = document.getElementById('frame-quiz');
+        if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
+      }
+    } catch(e) {}
+    return;
+  }
+  if (d.type === 'REQ_FLASH_FROM_FAV') {
+    /* 收藏本「继续练闪卡」→ 切闪卡 tab + 跳闪卡原型读 zsb_fav_flash_v1（PM 2026-09-07） */
+    try { sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+    switchTab('flash');
+    var favFlash = document.getElementById('frame-flash');
+    if (favFlash && favFlash.contentWindow) {
+      favFlash.contentWindow.location.href = '闪卡原型.html?from=fav';
+    }
     return;
   }
   if (d.type === 'CHAPTER_LAYER') {

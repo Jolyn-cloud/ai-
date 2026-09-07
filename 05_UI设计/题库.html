@@ -701,6 +701,16 @@ window.addEventListener('message', function(evt) {
     }
     return;
   }
+  if (d.type === 'FAV_PRACTICE_CLOSED') {
+    /* 收藏本「做题+闪卡」分阶段：做题关闭后 → 转发给收藏本 iframe 弹「还有未练闪卡」提示（PM 2026-09-07） */
+    if (activeSub === 'fav') {
+      try {
+        var favInner = SUB_LAYERS[activeSub].querySelector('iframe').contentWindow;
+        if (favInner) favInner.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
+      } catch(e) {}
+    }
+    return;
+  }
   if (d.type === 'OPEN_NOTE_CAM' || d.type === 'OPEN_NOTE_CAM_FROM_PRACTICE') {
     /* 打开拍照搜题子层并进入「记笔记」模式。
        来源两种：笔记本 FAB（OPEN_NOTE_CAM，无上下文）；解析页「我的笔记」拍照上传（OPEN_NOTE_CAM_FROM_PRACTICE，带题目上下文，PM 2026-09-05） */

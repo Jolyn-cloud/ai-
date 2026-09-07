@@ -10693,6 +10693,23 @@ function buildFullQueue() {
   return queue;
 }
 
+/* 收藏本注入队列：把收藏的 flash 题目转为队列对象格式（PM 2026-09-07）
+   来源：localStorage zsb_fav_flash_v1（收藏本写入选「继续练闪卡」时读取）
+   不走 buildQueue 的当日配额/顽固卡逻辑，直接全量入队 */
+function buildFavQueue(favCards) {
+  var queue = [];
+  for (var i = 0; i < favCards.length; i++) {
+    var c = favCards[i];
+    queue.push({
+      key: 'fav' + i + '#1', id: 'fav' + i,
+      chapter: c.l1, sub: c.l2, topic: c.l3, point: c.l3,
+      question: c.front, answer: c.answer, analysis: c.analysis,
+      forgotCount: 0, round: 1
+    });
+  }
+  return queue;
+}
+
 /* 生成全新当天状态（跨天累计的 forgotCount 保留在卡片上） */
 function newState() {
   return { date: todayStr(), quota: getDailyCount(), queue: shuffle(buildQueue()), marked: {}, markedTime: {} };
