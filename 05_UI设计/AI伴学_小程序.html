@@ -1151,17 +1151,11 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'CLOSE_PRACTICE') {
-    /* 做题页点关闭/完成 → 收起做题层回原页 + 逻辑面板恢复当前 tab */
+    /* 做题页点关闭/完成 → 收起做题层回原页 + 逻辑面板恢复当前 tab。
+       广播 FAV_PRACTICE_CLOSED 的逻辑已收敛进 closePractice() 函数，此处不重复（PM 2026-09-07） */
     closePractice();
     var tab = currentTabName();
     if (tab) updateLogicForTab(tab);
-    /* 收藏本「做题+闪卡」分阶段：做题关闭后若 session 标记有待练闪卡 → 广播给题库转发到收藏本弹提示（PM 2026-09-07） */
-    try {
-      if (sessionStorage.getItem('favFlashPending') === '1') {
-        var quiz = document.getElementById('frame-quiz');
-        if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
-      }
-    } catch(e) {}
     return;
   }
   if (d.type === 'REQ_FLASH_FROM_FAV') {
@@ -1484,6 +1478,16 @@ function closePractice() {
   /* 退出做题层 → 隐藏答题页子 tab + 恢复当前 tab 对应的面板 */
   if (practiceSwitch) practiceSwitch.style.display = 'none';
   updateLogicForTab(currentTabName());
+  /* 收藏本「做题+闪卡」分阶段：做题层无论从哪关（appbar 退出 / 做题页消息 / 切 tab），
+     只要 session 标记有待练闪卡 → 广播给题库转发到收藏本弹提示。
+     此前只在 CLOSE_PRACTICE 消息分支广播，但做题页不主动调 closePractice，
+     用户实际从 appbar 退出走本函数 → 漏广播 → 弹窗不触发（PM 2026-09-07 修） */
+  try {
+    if (sessionStorage.getItem('favFlashPending') === '1') {
+      var quiz = document.getElementById('frame-quiz');
+      if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
+    }
+  } catch(e) {}
 }
 /* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析并高亮笔记卡（PM 2026-09-05） */
 function reopenPracticeToNoteReview(ctx) {

@@ -558,8 +558,10 @@ function stashFlashForLater(fullList, scope) {
       return { qid: x.qid, source: x.source, l1: x.l1, l2: x.l2, l3: x.l3, type: x.type,
         front: x.front, answer: x.answer, analysis: x.analysis };
     })));
-    /* 标记总壳 sessionStorage：返回做题页时据此弹「还有未练闪卡」提示 */
-    window.parent.sessionStorage.setItem('favFlashPending', '1');
+    /* 标记总壳 sessionStorage：返回做题页时据此弹「还有未练闪卡」提示。
+       收藏本嵌在 题库→收藏本 两层 iframe 内，window.parent 是题库而非总壳，
+       必须用 window.top 指向总壳 sessionStorage（与 CLOSE_PRACTICE 读取处一致，PM 2026-09-07） */
+    window.top.sessionStorage.setItem('favFlashPending', '1');
   } catch(e) {}
 }
 
@@ -592,7 +594,7 @@ window.addEventListener('message', function(e) {
   if (d.type === 'FAV_PRACTICE_CLOSED') {
     /* 总壳 closePractice 广播 → 题库转发到此；检查是否有待练闪卡 */
     var pending = false;
-    try { pending = window.parent.sessionStorage.getItem('favFlashPending') === '1'; } catch(err) {}
+    try { pending = window.top.sessionStorage.getItem('favFlashPending') === '1'; } catch(err) {}
     var hasFlash = false;
     try { hasFlash = !!localStorage.getItem('zsb_fav_flash_v1'); } catch(err) {}
     if (pending && hasFlash) showFavPrompt();
@@ -605,13 +607,13 @@ function showFavPrompt() {
 function dismissFavPrompt() {
   document.getElementById('favPromptMask').classList.remove('show');
   /* 稍后练：清标记，本次不再弹（PM 2026-09-07） */
-  try { window.parent.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  try { window.top.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
   try { localStorage.removeItem('zsb_fav_flash_v1'); } catch(e) {}
 }
 function continueFavFlash() {
   document.getElementById('favPromptMask').classList.remove('show');
   /* 继续练：跳转闪卡原型读取 flash 题目；清标记避免返回时重复弹 */
-  try { window.parent.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  try { window.top.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
   try {
     window.parent.postMessage({ type:'REQ_FLASH_FROM_FAV' }, '*');
   } catch(err) {
