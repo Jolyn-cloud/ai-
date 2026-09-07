@@ -47,28 +47,52 @@ body {
   padding: 16px;
   box-shadow: 0 10px 24px rgba(91,114,245,.24);
 }
-/* 今日待攻克卡（PM 2026-09-05：从「今日攻克」改为「今日待攻克」；删除「重点推荐」红字标签）：学习行动卡，保持紫蓝渐变视觉语言 */
+/* 今日待攻克卡（PM 2026-09-07：4行重构——进度/概要/排行/重练）：紫蓝渐变学习行动卡 */
 .today-head { display: flex; align-items: center; justify-content: space-between; }
 .today-title { font-size: 15px; font-weight: 700; }
-.today-all { font-size: 11.5px; opacity: .78; cursor: pointer; padding: 4px 6px; margin: -4px -6px; }
-.today-all:active { opacity: 1; }
-.today-body { margin: 14px 0 16px; }
-.today-weak-label { font-size: 11px; opacity: .82; margin-bottom: 8px; }
-.today-weak-name {
-  display: inline-block; font-size: 16px; font-weight: 700;
-  padding: 7px 14px; border-radius: 10px;
-  background: rgba(255,255,255,.14); box-shadow: 0 0 18px rgba(160,200,255,.18);
+.today-done { font-size: 12px; opacity: .88; font-weight: 600; }
+.today-summary { font-size: 12.5px; opacity: .92; margin: 10px 0 12px; }
+.today-summary b { color: #FFD9A8; font-weight: 600; }
+.today-rank { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.rank-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; opacity: .95;
 }
-.today-reason { font-size: 12px; opacity: .9; margin-top: 10px; }
-.today-reason b { color: #FFD9A8; font-weight: 600; }
-.today-good { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-.today-good-sub { font-size: 12px; opacity: .82; }
+.rank-row .rn-name { font-weight: 600; }
+.rank-row .rn-cnt { font-size: 12px; opacity: .8; }
+.rank-more {
+  font-size: 12px; opacity: .82; cursor: pointer; padding: 4px 0; margin-top: 2px;
+}
+.rank-more:active { opacity: 1; }
 .practice-btn {
   width: 100%; height: 42px; border: none; border-radius: 21px;
   background: #fff; color: var(--primary); font-size: 15px; font-weight: 700;
   cursor: pointer; transition: transform .12s ease;
 }
 .practice-btn:active { transform: scale(.97); }
+/* 全部错误考点子视图（页内 overlay）：全屏白底覆盖 */
+.wrong-overlay {
+  position: absolute; inset: 0; z-index: 50;
+  background: #fff; display: none; flex-direction: column;
+  animation: woIn .2s ease;
+}
+.wrong-overlay.on { display: flex; }
+@keyframes woIn { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.wo-bar {
+  height: 44px; display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; border-bottom: 1px solid var(--border, #eee);
+  font-size: 15px;
+}
+.wo-back { color: var(--primary, #5B72F5); cursor: pointer; }
+.wo-title { font-weight: 700; }
+.wo-list { flex: 1; overflow-y: auto; padding: 8px 16px; }
+.wo-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border, #eee);
+  font-size: 14px; cursor: pointer;
+}
+.wo-row:active { background: #f7f7f9; }
+.wo-row .wo-n { font-size: 12px; color: #999; }
 /* ===== 筛选 chip 行（横向滑动，页面 x 锁定） ===== */
 .filter-row {
   display: flex; gap: 8px;
@@ -508,15 +532,22 @@ body.has-appbar .result-body { padding-top: 12px; }
 </head>
 <body>
 <div class="overview" id="overview">
-  <!-- 今日待攻克卡（PM 2026-09-05：从「今日攻克」改为「今日待攻克」；删除「重点推荐」小红字，保留知识点名+理由） -->
+  <!-- 今日待攻克卡（PM 2026-09-07：重构为4行——已完成进度/待攻克概要/三级考点排行/重练按钮） -->
   <div class="today-head">
     <span class="today-title">今日待攻克</span>
-    <span class="today-all" onclick="goAllWeak()">查看全部 ›</span>
+    <span class="today-done" id="todayDone">已完成 0/0</span>
   </div>
-  <div class="today-body" id="todayBody">
-    <!-- 有顽固考点 / 无顽固考点 两态，由 renderOverview 注入 -->
-  </div>
+  <div class="today-summary" id="todaySummary"></div>
+  <div class="today-rank" id="todayRank"></div>
   <button class="practice-btn" onclick="startPractice('all','')">开始重练</button>
+</div>
+<!-- 全部错误考点子视图（PM 2026-09-07：页内 overlay，点「+n个展开」进入，列出全部未攻克3级降序） -->
+<div class="wrong-overlay" id="wrongOverlay">
+  <div class="wo-bar">
+    <span class="wo-back" onclick="closeWrongOverlay()">‹ 退出</span>
+    <span class="wo-title">错误考点</span>
+  </div>
+  <div class="wo-list" id="woList"></div>
 </div>
 
 <div class="filter-row">
@@ -787,31 +818,81 @@ function renderOverview() {
     solved: qs.filter(function(q) { return q.status === 'solved'; }).length
   };
   WRONG_DATA.stats = s;
-  /* 推荐知识点：按 path 第3段（3级考点）聚合 wrongCount，取最高；无顽固则走「状态不错」态 */
+
+  /* 行1：已完成 solved/total（随攻克动作增长） */
+  document.getElementById('todayDone').textContent = '已完成 ' + s.solved + '/' + s.total;
+
+  /* 行2：n道错题 · 包含 m 个顽固知识点。
+     n = 待攻克（pending，含上传题）；m = 顽固3级考点个数（沿用章节刷题判定结果，错题本不另判，演示用假数据）。 */
+  var stubbornL3 = countStubbornL3();
+  document.getElementById('todaySummary').innerHTML =
+    '<b>' + s.pending + '道错题</b> · 包含<b>' + stubbornL3 + '个</b>顽固知识点';
+
+  /* 行3：三级考点排行——未攻克题按 path 第3段聚合累计错次，降序；默认显前3，其余进子视图。
+     上传题 path 无3级段，不计入排行。 */
   var map = {}, k;
   for (k = 0; k < qs.length; k++) {
     var q = qs[k];
-    if (q.status === 'solved') continue;   /* 已攻克不计 */
+    if (q.status === 'solved') continue;            /* 已攻克不计 */
     var segs = (q.path || '').split(' → ');
-    var point = segs.length >= 3 ? segs[2] : (segs[segs.length-1] || '');
-    var module = segs.length >= 2 ? segs[0] : '';
-    var key = module + ' · ' + point;
-    map[key] = (map[key] || 0) + (q.wrongCount || 1);
+    if (segs.length < 3) continue;                  /* 无3级段（上传题）不计 */
+    var l3n = segs[2];
+    if (!map[l3n]) map[l3n] = { name: l3n, cnt: 0, l1: segs[0], l2: segs[1] };
+    map[l3n].cnt += (q.wrongCount || 1);
   }
-  var top = null;
-  for (var kk in map) { if (!top || map[kk] > top.cnt) top = { name: kk, cnt: map[kk] }; }
-  var body = document.getElementById('todayBody');
-  if (top && top.cnt >= 2) {
-    /* PM 2026-09-05：删除「重点推荐」红字标签，直接给知识点名 + 理由，减少噪音 */
-    body.innerHTML = ''
-      + '<span class="today-weak-name">' + top.name + '</span>'
-      + '<div class="today-reason">你在这个知识点连续错了 <b>' + top.cnt + '</b> 次</div>';
-  } else {
-    body.innerHTML = ''
-      + '<div class="today-good">状态不错 🎉</div>'
-      + '<div class="today-good-sub">目前没有反复出错的知识点，继续保持，完成剩余错题巩固</div>';
+  var arr = [];
+  for (var kk in map) arr.push(map[kk]);
+  arr.sort(function(a, b) { return b.cnt - a.cnt; });   /* 错次降序 */
+  var TOPN = 3;
+  var top = arr.slice(0, TOPN);
+  var rest = arr.slice(TOPN);
+  var rankHtml = '';
+  top.forEach(function(r) {
+    rankHtml += '<div class="rank-row" onclick="startPractice(\'point\',\''
+      + escapeQuote(r.l1) + '\',\'' + escapeQuote(r.l2) + '\',\'' + escapeQuote(r.name) + '\')">'
+      +   '<span class="rn-name">' + r.name + '</span>'
+      +   '<span class="rn-cnt">错' + r.cnt + '次</span>'
+      + '</div>';
+  });
+  if (rest.length) {
+    rankHtml += '<div class="rank-more" onclick="openWrongOverlay()">+'
+      + rest.length + '个考点展开 ›</div>';
   }
+  document.getElementById('todayRank').innerHTML = rankHtml;
+
+  /* 子视图数据挂全局，供 openWrongOverlay 渲染 */
+  window.__wrongRankAll = arr;
+
   updateChipCounts();
+}
+
+/* 顽固3级考点数：取 buildWrongTree 中 l3.stubborn 计数（口径=错次累加≥3，演示沿用）。
+   口径与章节刷题（wrong/total≥50%）不同，逻辑面板如实写明两套口径。 */
+function countStubbornL3() {
+  var n = 0;
+  var tree = buildWrongTree();
+  tree.forEach(function(l1) {
+    l1.l2s.forEach(function(l2) { l2.l3s.forEach(function(l3) { if (l3.stubborn) n++; }); });
+  });
+  return n;
+}
+
+/* 全部错误考点子视图：列全部未攻克3级降序，点行发 REQ_PRACTICE point */
+function openWrongOverlay() {
+  var arr = window.__wrongRankAll || [];
+  var html = '';
+  arr.forEach(function(r) {
+    html += '<div class="wo-row" onclick="startPractice(\'point\',\''
+      + escapeQuote(r.l1) + '\',\'' + escapeQuote(r.l2) + '\',\'' + escapeQuote(r.name) + '\')">'
+      +   '<span>' + r.name + '</span>'
+      +   '<span class="wo-n">错' + r.cnt + '次</span>'
+      + '</div>';
+  });
+  document.getElementById('woList').innerHTML = html;
+  document.getElementById('wrongOverlay').classList.add('on');
+}
+function closeWrongOverlay() {
+  document.getElementById('wrongOverlay').classList.remove('on');
 }
 
 /* ===== 渲染列表 ===== */
