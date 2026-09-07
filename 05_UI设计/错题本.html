@@ -155,6 +155,8 @@ body {
 .q-tag.confusion { background: #E8F3FF; color: #2F6FED; }
 .q-tag.memory { background: #F0FAF5; color: #20A866; }
 .q-tag.operation { background: #FFF4E5; color: #F28B3D; }
+.q-tag.misread { background: #FFF7E6; color: #B66B0A; }
+.q-tag.blind { background: #F3F0FF; color: #7C6BD9; }
 .q-btns { display: flex; gap: 8px; }
 .q-btn {
   flex: 1; height: 32px;
@@ -604,7 +606,7 @@ var WRONG_DATA = {
           questions: [
             { qid: 'W02', path: '操作系统 → 文件管理 → 扩展名', type: 'judge',
               title: '文件的扩展名相同，其内容一定相同。',
-              tag: 'stubborn', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
+              tag: 'confusion', wrongCount: 3, status: 'pending', stubborn: true, addedAt: '2026-08-26 09:15' },
             { qid: 'W04', path: '操作系统 → 文件管理 → 回收站', type: 'single',
               title: '回收站中的文件被「还原」后，将恢复到（ ）。',
               tag: 'memory', wrongCount: 1, status: 'pending', stubborn: false, addedAt: '2026-08-27 14:20' }
@@ -671,7 +673,7 @@ var WRONG_DATA = {
   }
 })();
 
-var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', audit:'审题错误', blind:'知识盲区' };
+var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', misread:'审题错误', blind:'知识盲区' };
 
 /* 与 localStorage 同步（跨页最终一致）：拍照页/本页均写 zsb_wrong_uploads_v1。
    渲染前调用：以 localStorage 为准整体替换（本页自己的保存都已写回 storage）。 */
@@ -885,7 +887,7 @@ function closeAllSwipe(except) {
 })();
 
 function qCard(q) {
-  var tagCls = ['stubborn','confusion','memory','operation'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
+  var tagCls = ['confusion','memory','operation','misread','blind'].indexOf(q.tag) >= 0 ? q.tag : 'confusion';
   var action = q.stubborn ? '集中攻克' : '再练';
   var isUpload = q.source === 'upload';
   /* 三级标题：章节题取 path 末段（如「进程概念」）；上传题取 AI 识别考点 concept（兜底「待归类」） */
@@ -1039,7 +1041,7 @@ function takeNote() {
   showToast('✓ 已存入笔记本，可在笔记本查看');
 }
 
-var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', audit:'审题错误', blind:'知识盲区' };
+var TAG_NAME = { confusion:'概念混淆', operation:'操作知识错误', memory:'记忆遗漏', misread:'审题错误', blind:'知识盲区' };
 var TYPE_NAME = { single:'单选题', multi:'多选题', judge:'判断题', fill:'填空题', operate:'操作题', short:'简答题', image:'图片题' };
 var CONCEPT_CATS = [
   { kw:/操作系统|文件系统|进程|线程|内存|磁盘|死锁|调度/, label:'操作系统' },
@@ -1073,7 +1075,7 @@ function suggestTag(text) {
   if (/概念|特征|区别|原理|定义|分类|特点/.test(t)) return 'confusion';
   if (/快捷键|操作|步骤|点击|按钮|工具栏|命令|实践/.test(t)) return 'operation';
   if (/记忆|口诀|背诵|顺序|规律/.test(t)) return 'memory';
-  if (/审题|看错|漏选|误读|没看清/.test(t)) return 'audit';
+  if (/审题|看错|漏选|误读|没看清/.test(t)) return 'misread';
   if (/不会|没学过|没见过|超纲|陌生/.test(t)) return 'blind';
   return 'confusion';
 }
@@ -1158,7 +1160,7 @@ var TAG_OPTIONS = {
     ['single','单选题'], ['multi','多选题'], ['judge','判断题'], ['fill','填空题'], ['operate','操作题'], ['short','简答题'], ['image','图片题']
   ],
   tag: [
-    ['confusion','概念混淆'], ['operation','操作知识错误'], ['memory','记忆遗漏'], ['audit','审题错误'], ['blind','知识盲区']
+    ['confusion','概念混淆'], ['operation','操作知识错误'], ['memory','记忆遗漏'], ['misread','审题错误'], ['blind','知识盲区']
   ]
 };
 /* 四级知识树（与拍照搜题/笔记本对齐） */

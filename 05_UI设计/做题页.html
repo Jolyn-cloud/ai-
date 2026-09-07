@@ -259,6 +259,18 @@ body{
   transition:all .15s ease;
 }
 .diag-btn:active{ transform:scale(.96); }
+.diag-btn{ position:relative; }
+/* AI 预选态：虚线描边+浅底，区别于用户确认的实心 active 态 */
+.diag-btn.ai-suggest{ background:#F0F6FF; border-color:#7BA8F5; border-style:dashed; }
+/* AI 小角标：右上角，不占按钮内文宽度 */
+.diag-ai-badge{
+  position:absolute; top:-6px; right:-6px;
+  background:linear-gradient(135deg,#7C6BD9,#9D8EE8);
+  color:#fff; font-size:8px; font-weight:700; line-height:1;
+  padding:2px 4px; border-radius:6px; letter-spacing:.3px;
+  pointer-events:none;
+}
+.diag-btn.active .diag-ai-badge{ background:#fff; color:#2F6FED; }
 .diag-btn.active{ background:#2F6FED; color:#fff; border-color:#2F6FED; }
 
 /* 错题统计卡 */
@@ -1127,7 +1139,7 @@ var QUESTIONS = (function buildQuestions(){
       steps:['① 操作系统 = 资源管理 + 用户接口','② 编译器负责编译源程序，与操作系统无关']
     },
     {
-      qid:'W02', path:'操作系统 → 文件管理 → 扩展名', tag:'stubborn', wrongCount:3, stubborn:true,
+      qid:'W02', path:'操作系统 → 文件管理 → 扩展名', tag:'confusion', wrongCount:3, stubborn:true,
       type:'judge', chapter:'第3章 操作系统', concept:'文件管理', difficulty:'低',
       stats:{ avgSec:46, avgRate:55, okCount:1, failCount:3 },
       stem:'文件的扩展名相同，其内容一定相同。',
@@ -1697,6 +1709,10 @@ function loadDiag() { try { return JSON.parse(localStorage.getItem(DIAG_KEY) || 
 function renderWrongDiag(q) {
   var id = q.qid || (ENTRY + '-' + idx);
   var cur = loadDiag()[id] || '';
+  /* AI 错因建议（演示 mock）：题目带 aiReason 用之，否则按已有 tag 兜底，再否则建议概念混淆。
+     演示阶段前端直接给值，标「AI 已识别」范式，不做真接口（PM 2026-09-07 拍板） */
+  var aiK = q.aiReason || q.tag || 'confusion';
+  /* 5 类 key 与错题本首页 TAG_NAME 对齐：misread 审题 / blind 盲区 / confusion 概念混淆 / memory 记忆遗漏 / operation 操作失误 */
   var opts = [
     { k:'misread', label:'审题错误' },
     { k:'blind', label:'知识盲区' },
@@ -1706,11 +1722,17 @@ function renderWrongDiag(q) {
   ];
   var btns = '';
   opts.forEach(function(o) {
-    btns += '<button class="diag-btn' + (o.k === cur ? ' active' : '') + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + '</button>';
+    var isAi = (o.k === aiK);                       /* 本项是 AI 建议的 */
+    var isCur = (o.k === cur);                     /* 用户已手选的 */
+    var cls = 'diag-btn';
+    if (isCur) cls += ' active';                   /* 用户选中 → 实心高亮，盖过 AI 态 */
+    else if (isAi && !cur) cls += ' ai-suggest';   /* 无手选 → AI 建议项预选高亮 */
+    var badge = isAi ? '<span class="diag-ai-badge">AI</span>' : '';
+    btns += '<button class="' + cls + '" data-k="' + o.k + '" onclick="setDiag(this)">' + o.label + badge + '</button>';
   });
   return '<div class="diag-card">'
     + '<div class="diag-title">💡 这次为什么错了？</div>'
-    + '<div class="diag-desc">如实标记错因，错题本将按错因帮你强化同类考点。</div>'
+    + '<div class="diag-desc">AI 已依据解析预判错因，可直接确认或改选。</div>'
     + '<div class="diag-actions">' + btns + '</div>'
     + '</div>';
 }
