@@ -226,6 +226,7 @@ body.has-appbar .result-body { padding-top: 12px; }
 .tag-picker {
   width: 100%; background: #fff; border-radius: 18px 18px 0 0;
   padding: 16px 16px 28px; animation: tpUp .25s ease;
+  max-height: 70vh; display: flex; flex-direction: column;
 }
 @keyframes tpUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .tp-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
@@ -748,8 +749,7 @@ function renderKpListConcept() {
   var pathHtml = parts.length
     ? parts.map(function(p){ return '<span class="kp-l">' + p + '</span>'; }).join(' › ')
     : '<span class="kp-empty">未选择（将标记为「待归类」）</span>';
-  var html = '<div class="kp-picker">'
-    +   '<div class="kp-picker-head"><span class="kp-picker-title">选择' + levelNames[KP_LEVEL] + '考点</span><span class="kp-picker-skip" onclick="skipKpConcept()">跳过本级</span></div>'
+  var html = '<div class="kp-picker-head"><span class="kp-picker-title">选择' + levelNames[KP_LEVEL] + '考点</span><span class="kp-picker-skip" onclick="skipKpConcept()">跳过本级</span></div>'
     +   '<div class="kp-path-bar">' + pathHtml + '</div>'
     +   '<div class="kp-list">';
   opts.forEach(function(name) {
@@ -758,7 +758,7 @@ function renderKpListConcept() {
       +   '<span>' + name + '</span>' + (on ? '<span class="kp-ck">✓</span>' : '<span class="kp-next">›</span>') + '</div>';
   });
   if (!opts.length) html += '<div style="padding:24px;text-align:center;color:var(--text-tertiary);font-size:13px;">无更多选项，点「跳过本级」或「完成」</div>';
-  html += '</div><button class="kp-picker-done" onclick="confirmKpConcept()">完成</button></div>';
+  html += '</div><button class="kp-picker-done" onclick="confirmKpConcept()">完成</button>';
   document.getElementById('tagPicker').innerHTML = html;
 }
 
