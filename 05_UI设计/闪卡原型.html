@@ -3771,6 +3771,8 @@ glob.goLevel1 = goLevel1;
 glob.goLevel2 = goLevel2;
 glob.goLevel4 = goLevel4;
 glob.render = render;
+glob.showPopTip = showPopTip;   /* 供单卡 IIFE toggleFav 调用（PM 2026-09-07） */
+glob.hidePopTip = hidePopTip;
 })(window);
 })();
 
@@ -4595,7 +4597,7 @@ function toggleFav(){
   var on = !glob.favSet[key];
   glob.favSet[key] = on;
   updateFavBtn();
-  showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
+  glob.showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
 }
 
 /* ============================================================
@@ -5225,7 +5227,7 @@ listEl.addEventListener('click', function(e) {
     var on = !glob.favSet[fkey];
     glob.favSet[fkey] = on;
     renderList();
-    showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
+    glob.showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
     return;
   }
 
