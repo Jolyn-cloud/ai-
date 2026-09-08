@@ -568,13 +568,26 @@ function renderLatestCard(arr) {
   } else {
     trendHtml = '<span class="latest-trend">首次记录</span>';
   }
+  /* 目标线对比三态（PM 2026-09-08） */
+  var t = loadTarget();
+  var gapHtml = '';
+  if (t && t.score) {
+    var gap = total - t.score;
+    if (gap >= 0) {
+      gapHtml = '<span>目标线 ' + t.score + '</span><span class="gap over">已超过 +' + gap + '</span>';
+    } else {
+      gapHtml = '<span>目标线 ' + t.score + '</span><span class="gap lack">还差 ' + (-gap) + ' 分</span>';
+    }
+  } else {
+    gapHtml = '<span>尚未设置目标院校</span><span></span>';
+  }
   return '<div class="sec-card latest-card">'
     + '<div class="latest-head">最近一次总分</div>'
     + '<div class="latest-main">'
     +   '<div class="latest-score">' + total + '<span class="unit">/ 400分</span></div>'
     +   trendHtml
     + '</div>'
-    + '<div class="latest-target"><span id="latestTargetGap">—</span><span>目标线 —</span></div>'
+    + '<div class="latest-target">' + gapHtml + '</div>'
     + '</div>';
 }
 
