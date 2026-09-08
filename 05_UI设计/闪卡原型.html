@@ -799,11 +799,11 @@
     color: #8a92a4;
     font-variant-numeric: tabular-nums;
   }
-  /* 一级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08：四项常驻，口径=总张数/已记住/未记住/顽固） */
+  /* 一级统计标签：n张 ✓n ×n 顽固n（PM 2026-09-08：四项常驻，口径=总张数/已记住/未记住/顽固） */
   .cd-cnt { color: #8a92a4; }
   .cd-ok { color: var(--success); font-weight: 600; }
   .cd-no { color: #E0658A; font-weight: 600; }
-  .cd-stub { color: var(--warning); font-weight: 600; }
+  .cd-stub { color: var(--warning); font-weight: 600; font-size: 10.5px; }   /* 顽固字变小 */
 
   .chapter-right {
     display: flex;
@@ -895,17 +895,23 @@
   }
   .sub-right {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    align-items: center;
     flex-shrink: 0;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
   }
-  /* 二级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08） */
+  /* 二级第二行统计：n张 ✓n ×n 顽固n（PM 2026-09-08：标题下方，小字收紧间距） */
+  .sub-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 2px 0 0 17px;
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-tertiary);
+  }
   .sub-cnt { color: var(--text-tertiary); }
   .sub-ok { color: var(--success); font-weight: 600; }
   .sub-no { color: #E0658A; font-weight: 600; }
-  .sub-stub { color: var(--warning); font-weight: 600; }
+  .sub-stub { color: var(--warning); font-weight: 600; font-size: 9.5px; }   /* 顽固字变小 */
   .sub-arrow {
     margin-left: 3px;
     color: #c3c9d5;
@@ -993,7 +999,7 @@
   }
   /* 三级统计标签：n个考点 顽固n（PM 2026-09-08） */
   .l3-cnt { color: #8A90A8; }
-  .l3-stub { color: var(--warning); font-weight: 600; }
+  .l3-stub { color: var(--warning); font-weight: 600; font-size: 9.5px; }   /* 顽固字变小 */
 
   /* ========================= 四级章节 ========================= */
   .level4-list {
@@ -1045,14 +1051,7 @@
     gap: 7px;
     flex-shrink: 0;
   }
-  /* 四级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08） */
-  .l4-cnt {
-    color: #8A90A8;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
+  /* 四级统计标签：✓n ×n 顽固n（PM 2026-09-08：不显n张） */
   .l4-check {
     color: #16A66A;
     font-size: 12px;
@@ -1068,11 +1067,11 @@
     font-variant-numeric: tabular-nums;
   }
   .l4-tag {
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 999px;
     background: #FFF2E8;
     color: #FF8A45;
-    font-size: 10.5px;
+    font-size: 9px;
     font-weight: 600;
     line-height: 1;
   }
@@ -3414,15 +3413,14 @@ function render(){
             var cd = CARDS[i];
             if ((cd.forgotCount || 0) >= 3 && cd.chapter === c.name && cd.sub === s.name && cd.topic === l3.name) l3Stubborn++;
           }
-          /* 四级答题情况：n张 ✅n ❌n 顽固n 四项常驻显示（含 0），口径=总张数/已记住(mastered)/未记住(unmastered)/顽固（PM 2026-09-08） */
+          /* 四级答题情况：✓n ×n 顽固n 三项常驻显示（PM 2026-09-08：不显n张，口径=已记住/未记住/顽固） */
           const level4Html = (l3.level4 || []).map(function(l4){
             var stubborn = 0;
             for (var i = 0; i < CARDS.length; i++) {
               if ((CARDS[i].forgotCount || 0) >= 3 && CARDS[i].point === l4.name) stubborn++;
             }
-            var statusHtml = '<span class="l4-cnt">'+safeNum(l4.cards)+'张</span>'
-              + '<span class="l4-check">✅'+safeNum(l4.mastered)+'</span>'
-              + '<span class="l4-cross">❌'+safeNum(l4.unmastered)+'</span>'
+            var statusHtml = '<span class="l4-check">✓'+safeNum(l4.mastered)+'</span>'
+              + '<span class="l4-cross">×'+safeNum(l4.unmastered)+'</span>'
               + '<span class="l4-tag">顽固'+stubborn+'</span>';
             return '<div class="level4-item" onclick="goLevel4(\''+esc(c.name)+'\',\''+esc(s.name)+'\',\''+esc(l4.name)+'\', event)">'
               +   '<div class="level4-dot"></div>'
@@ -3457,12 +3455,14 @@ function render(){
           +   '<div class="sub-dot"></div>'
           +   '<div class="sub-title">'+s.name+'</div>'
           +   '<div class="sub-right">'
-          +     '<span class="sub-cnt">'+sCards+'张</span>'
-          +     '<span class="sub-ok">✅'+safeNum(s.memorized)+'</span>'
-          +     '<span class="sub-no">❌'+sForgot+'</span>'
-          +     '<span class="sub-stub">顽固'+sStubborn+'</span>'
           +     '<span class="sub-arrow">›</span>'
           +   '</div>'
+          + '</div>'
+          + '<div class="sub-stats">'
+          +   '<span class="sub-cnt">'+sCards+'张</span>'
+          +   '<span class="sub-ok">✓'+safeNum(s.memorized)+'</span>'
+          +   '<span class="sub-no">×'+sForgot+'</span>'
+          +   '<span class="sub-stub">顽固'+sStubborn+'</span>'
           + '</div>'
           + '<div class="sub-progress"><div class="sub-progress-inner" data-w="'+safeNum(s.done)+'"></div></div>'
           + '<div class="level3-list"><div class="level3-inner">'+level3Html+'</div></div>'
@@ -3478,8 +3478,8 @@ function render(){
       +         '<div class="chapter-name">'+c.name+'</div>'
       +         '<div class="chapter-data">'
       +           '<span class="cd-cnt">'+fmt(cards)+'张</span>'
-      +           '<span class="cd-ok">✅'+fmt(memorized)+'</span>'
-      +           '<span class="cd-no">❌'+fmt(Math.max(0, cards - memorized))+'</span>'
+      +           '<span class="cd-ok">✓'+fmt(memorized)+'</span>'
+      +           '<span class="cd-no">×'+fmt(Math.max(0, cards - memorized))+'</span>'
       +           '<span class="cd-stub">顽固'+stubborn+'</span>'
       +         '</div>'
       +       '</div>'
