@@ -492,141 +492,56 @@
     }
   }
 
-  /* ========================= 顶部 ========================= */
+  /* ========================= 顶部（PM 2026-09-08：称呼/倒计时/头像移除，卡片上移） ========================= */
   .header {
-    padding-top: 48px;
-    padding-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-  .greeting {
-    font-size: 25px;
-    line-height: 1.35;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-  }
-  .countdown {
-    margin-top: 7px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-  .countdown-icon {
-    width: 16px; height: 16px;
-    border: 2px solid #A8B0C8;
-    border-radius: 50%;
-    position: relative;
-  }
-  .countdown-icon::before {
-    content: ""; position: absolute;
-    width: 1.5px; height: 5px;
-    background: #A8B0C8;
-    left: 6px; top: 2px;
-  }
-  .countdown-icon::after {
-    content: ""; position: absolute;
-    width: 4px; height: 1.5px;
-    background: #A8B0C8;
-    left: 6px; top: 7px;
-    transform: rotate(25deg);
-    transform-origin: left center;
-  }
-  /* 仅数字 42：深紫 + 加大加粗；"天" 字保持次要灰小字 */
-  .countdown .days-num {
-    color: #4A3FA0;
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .countdown .days-unit {
-    font-size: 14px;
-    color: var(--text-secondary);
+    padding-top: 16px;
+    padding-bottom: 0;
   }
 
-  /* ========================= 用户头像 ========================= */
-  .avatar {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(235,239,255,0.95));
-    border: 1px solid rgba(255,255,255,0.8);
-    box-shadow: 0 8px 24px rgba(75,91,160,0.08);
-    flex-shrink: 0;
-  }
-  .avatar svg { width: 25px; height: 25px; stroke: var(--primary); }
-
-  /* ========================= 背诵计划卡 ========================= */
+  /* ========================= 背诵计划卡（PM 2026-09-08 重构：今日待复习行动卡，对齐错题本「今天待攻克」） ========================= */
   .study-card {
-    position: relative;
-    overflow: hidden;
-    padding: 22px 20px 20px;
+    margin: 16px 6px 0;
+    padding: 16px;
     border-radius: var(--hero-radius);
-    background: linear-gradient(135deg, #4A5FE0 0%, #5B6DEF 50%, #6B5FE8 100%);
-    box-shadow: 0 14px 32px rgba(76,99,221,0.25);
-  }
-  .study-card::before {
-    content: ""; position: absolute;
-    width: 260px; height: 260px;
-    top: -150px; right: -60px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.13), rgba(255,255,255,0));
-  }
-  .study-card::after {
-    content: ""; position: absolute;
-    width: 220px; height: 220px;
-    bottom: -170px; left: -90px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0));
-  }
-  .study-card > * { position: relative; z-index: 2; }
-
-  .study-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-  .study-title { color: #fff; font-size: 20px; font-weight: 700; white-space: nowrap; }
-  .study-subtitle {
-    margin-top: 7px;
-    color: rgba(255,255,255,0.85);
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  .streak {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 7px 11px;
+    background: linear-gradient(135deg, #5B72F5 0%, #764BA2 100%);
     color: #fff;
-    font-size: 12px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.16);
-    border: 1px solid rgba(255,255,255,0.12);
-    flex-shrink: 0;
+    box-shadow: 0 10px 24px rgba(91,114,245,.24);
   }
-  .streak span { font-size: 14px; white-space: nowrap; }
-
-  .settings-btn {
-    width: 34px; height: 34px;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 50%;
-    background: rgba(255,255,255,0.16);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: transform .1s ease, background .2s ease;
+  .sc-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .sc-title { font-size: 14px; font-weight: 700; opacity: .9; }
+  .sc-done { font-size: 11px; opacity: .6; font-weight: 400; }   /* 辅助状态：轻量低对比 */
+  .sc-summary { margin: 8px 0 14px; line-height: 1.1; }
+  .sc-summary .ts-num { font-size: 30px; font-weight: 800; }   /* 核心数字：最大最重 */
+  .sc-summary .ts-unit { font-size: 14px; font-weight: 600; opacity: .92; margin-left: 2px; }
+  .sc-summary .ts-sep { font-size: 12px; opacity: .5; margin: 0 8px; }
+  .sc-summary .ts-stub {   /* 顽固小标签：轻量，沿用橙色但不厚重 */
+    font-size: 11px; font-weight: 600;
+    color: #FFD9A8;
+    background: rgba(255,217,168,.16);
+    padding: 2px 8px; border-radius: 8px;
   }
-  .settings-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.28); }
-  .settings-btn svg { width: 17px; height: 17px; stroke: #fff; }
+  .sc-rank { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .sc-rank .rn-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; opacity: .88;
+  }
+  .sc-rank .rn-idx { font-size: 11px; opacity: .55; margin-right: 6px; }
+  .sc-rank .rn-name { font-weight: 600; }
+  .sc-rank .rn-cnt { font-size: 11px; opacity: .62; }
+  .sc-rank .rn-more {
+    font-size: 11px; opacity: .65; cursor: pointer; text-align: center;
+    padding: 3px 0; margin-top: 0;
+  }
+  .sc-rank .rn-more:active { opacity: 1; }
+  .sc-cta {
+    width: 100%; height: 50px; border: none; border-radius: 14px;
+    background: rgba(255,255,255,.98); color: #5B72F5;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(48,65,150,.06);
+    transition: transform .1s ease;
+  }
+  .sc-cta:active { transform: scale(.98); }
+  .sc-cta span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
 
   /* ========================= 每日数量设置弹窗（底部上滑 + 遮罩） ========================= */
   .sheet-mask {
@@ -721,77 +636,6 @@
   }
   .pop-tip.ok { background: #E8F8F0; color: #1E9E6A; }
   .pop-tip.next { background: #FFF4E3; color: #C77A18; }
-
-  /* ========================= 进度数据 ========================= */
-  .study-data {
-    margin-top: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .data-left { display: flex; align-items: center; gap: 12px; }
-  .data-icon {
-    width: 48px; height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.18);
-    flex-shrink: 0;
-  }
-  .data-icon svg { width: 27px; height: 27px; stroke: white; }
-  .data-label { color: rgba(255,255,255,0.8); font-size: 13px; }
-  .data-number {
-    margin-top: 4px; /* 与"总进度"间距 +1 */
-    color: #fff;
-    font-size: 14px;
-    font-weight: 400;
-    font-variant-numeric: tabular-nums;
-  }
-  /* 3,568 与单位同字号，仅加粗（Q17A） */
-  .data-number strong { font-weight: 700; }
-  .percentage {
-    color: white;
-    font-size: 30px; /* 由 39px 缩小，避免压过卡片标题 */
-    font-weight: 750;
-    letter-spacing: -1px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ========================= 主进度条 ========================= */
-  .main-progress {
-    margin-top: 18px;
-    width: 100%;
-    height: 6px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.25);
-    overflow: hidden;
-  }
-  .main-progress-inner {
-    width: 0;
-    height: 100%;
-    border-radius: inherit;
-    background: rgba(255,255,255,0.95);
-    transition: width 1s cubic-bezier(.22,.61,.36,1);
-  }
-
-  /* ========================= 继续按钮 ========================= */
-  .continue-button {
-    margin-top: 18px;
-    width: 100%;
-    height: 50px;
-    border: none;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.98);
-    color: #536be8;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(48,65,150,0.06);
-    transition: transform .1s ease;
-  }
-  .continue-button:active { transform: scale(.98); }
-  .continue-button span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
 
   /* ========================= 全部章节 ========================= */
   .chapter-section { margin-top: 26px; }
@@ -1152,15 +996,6 @@
   /* ========================= 手机尺寸适配 ========================= */
   @media (max-width: 360px) {
     .content { padding-left: 15px; padding-right: 15px; }
-    .greeting { font-size: 23px; }
-    .study-card { padding: 19px 16px 17px; }
-    .study-title { font-size: 18px; }
-    .percentage { font-size: 34px; }
-    /* 小屏更窄：数据行用负边距补偿缩进的卡内距，避免总进度/百分比挤成两行 */
-    .study-data { margin-left: -6px; margin-right: -6px; }
-    .study-data .data-label,
-    .study-data .data-number,
-    .study-data .percentage { white-space: nowrap; }
     .chapter-percent { font-size: 17px; }
     .chapter-progress { margin-left: 53px; }
     .sub-inner { margin-left: 53px; }
@@ -2551,63 +2386,15 @@
 
   <main class="content">
 
-    <!-- 顶部 -->
-    <header class="header">
-      <div>
-        <div class="greeting">你好，团团酱 👋</div>
-        <div class="countdown">
-          <div class="countdown-icon"></div>
-          <span>距离2026届专升本考试还有</span>
-          <span class="days-num">42</span>
-          <span class="days-unit">天</span>
-        </div>
-      </div>
-      <div class="avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="3.5"></circle>
-          <path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"></path>
-        </svg>
-      </div>
-    </header>
-
-    <!-- 背诵计划 -->
+    <!-- 背诵计划（PM 2026-09-08：重构为今日待复习行动卡，对齐错题本「今天待攻克」；去掉称呼/倒计时/头像） -->
     <section class="study-card">
-      <div class="study-card-header">
-        <div>
-          <div class="study-title">背诵计划进行中</div>
-          <div class="study-subtitle">计算机专升本 · 每日 <span id="dailyLabel">30</span> 张</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="settings-btn" onclick="toggleSettingsPop(event)" aria-label="背诵设置">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-          <div class="streak"><span>🔥</span>连续 7 天</div>
-        </div>
+      <div class="sc-head">
+        <span class="sc-title">今日待复习</span>
+        <span class="sc-done" id="scDone">已完成 0/0</span>
       </div>
-
-      <div class="study-data">
-        <div class="data-left">
-          <div class="data-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 7l8-4 8 4-8 4-8-4z"></path>
-              <path d="M4 12l8 4 8-4"></path>
-              <path d="M4 17l8 4 8-4"></path>
-            </svg>
-          </div>
-          <div>
-            <div class="data-label">总进度</div>
-            <div class="data-number" id="heroNums"><strong>0</strong><span> / 0 张</span></div>
-          </div>
-        </div>
-        <div class="percentage" id="heroPct">0%</div>
-      </div>
-
-      <div class="main-progress"><div class="main-progress-inner" id="heroFill"></div></div>
-
-      <button class="continue-button" id="studyCta" onclick="continueStudy()">继续背诵<span>→</span></button>
+      <div class="sc-summary" id="scSummary"></div>
+      <div class="sc-rank" id="scRank"></div>
+      <button class="sc-cta" id="studyCta" onclick="continueStudy()">开始刷卡<span>→</span></button>
     </section>
 
     <!-- 全部章节 -->
@@ -3427,25 +3214,44 @@ function fmt(n){ return n.toLocaleString('en-US'); }
 function safeNum(v){ return Number.isFinite(v) ? v : 0; }
 
 function render(){
-  /* 每日卡片数量：读学生配置（闪卡题库.js），演示卡池自动收缩 */
-  var dailyEl = getById('dailyLabel');
-  if (dailyEl) dailyEl.textContent = getDailyCount();
-
-  /* 学习入口按钮：今日已刷 →「继续背诵」（未标记锚点续接），未刷 →「开始学习」 */
+  /* 学习入口按钮：今日已刷 →「继续刷卡」（未标记锚点续接），未刷 →「开始刷卡」 */
   var cta = getById('studyCta');
+  var st = typeof loadState === 'function' ? loadState() : null;
+  var stats = st ? (typeof calcStats === 'function' ? calcStats(st) : null) : null;
   if (cta) {
-    var st = typeof loadState === 'function' ? loadState() : null;
-    var doneToday = st ? (typeof calcStats === 'function' ? calcStats(st).done : 0) : 0;
-    cta.innerHTML = (doneToday > 0 ? '继续背诵' : '开始学习') + '<span>→</span>';
+    var doneToday = stats ? stats.done : 0;
+    cta.innerHTML = (doneToday > 0 ? '继续刷卡' : '开始刷卡') + '<span>→</span>';
   }
 
-  /* 核心卡数据：由章节实时汇总，保证首页与章节口径一致 */
-  const total = CHAPTERS.reduce(function(s,c){ return s + safeNum(c.cards); }, 0);
-  const done  = CHAPTERS.reduce(function(s,c){ return s + safeNum(c.memorized); }, 0);
-  const pct   = total > 0 ? +(done / total * 100).toFixed(1) : 0;
+  /* 今日待复习卡：行1已完成 + 行2新卡数/顽固 + 行3顽固考点列表（对齐错题本「今天待攻克」口径） */
+  var quota = stats ? stats.total : getDailyCount();
+  var doneToday = stats ? stats.done : 0;
+  var stubborn = stats ? stats.stubborn : 0;
+  var newCards = Math.max(0, quota - stubborn);   /* 新卡数 = 每日配额扣减顽固卡（与 index.html 同口径） */
 
-  getById('heroNums').innerHTML = '<strong>' + fmt(done) + '</strong><span> / ' + fmt(total) + ' 张</span>';
-  getById('heroPct').textContent = pct + '%';
+  getById('scDone').textContent = '已完成 ' + doneToday + '/' + quota;
+  getById('scSummary').innerHTML =
+    '<span class="ts-num">' + newCards + '</span>'
+    + '<span class="ts-unit">张新卡</span>'
+    + '<span class="ts-sep">·</span>'
+    + '<span class="ts-stub">顽固 ×' + stubborn + '</span>';
+
+  /* 行3：顽固考点列表（今日未记住题按三级 topic 聚合，按未记住次数降序，取前3） */
+  var weakPoints = st ? getWeakPoints(st, 3) : [];
+  var rankHtml = '';
+  var idxMark = ['①','②','③'];
+  var hasWrong = weakPoints.length > 0 && weakPoints[0].wrong > 0;
+  if (hasWrong) {
+    for (var w = 0; w < weakPoints.length; w++) {
+      var wp = weakPoints[w];
+      if (wp.wrong === 0) break;
+      rankHtml += '<div class="rn-row">'
+        + '<span class="rn-name"><span class="rn-idx">' + (idxMark[w] || '') + '</span>' + esc(wp.name) + '</span>'
+        + '<span class="rn-cnt">错' + wp.wrong + '次</span>'
+        + '</div>';
+    }
+  }
+  getById('scRank').innerHTML = rankHtml;
 
   /* 章节按进度升序（最薄弱排最前 = 学习主次） */
   const sorted = CHAPTERS.slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); });
@@ -3631,10 +3437,9 @@ function render(){
     }
   };
 
-  /* 进度条入场动画 */
+  /* 章节进度条入场动画（首页 hero 进度条已随卡片重构移除） */
   requestAnimationFrame(function(){
     setTimeout(function(){
-      getById('heroFill').style.width = pct + '%';
       document.querySelectorAll('.chapter-progress-inner, .sub-progress-inner').forEach(function(el){
         el.style.width = el.dataset.w + '%';
       });
@@ -3709,9 +3514,8 @@ function savePopSettings(){
     immediate ? '✓ 今天还没开始刷，已按新数量立即生效'
               : '⏳ 今天已开始背诵，新数量将于明日生效');
 
-  /* 首页「每日 N 张」标签同步（卡池不足时自动收缩） */
-  var dailyEl = getById('dailyLabel');
-  if (dailyEl) dailyEl.textContent = getDailyCount();
+  /* 首页「今日待复习」卡数据同步（配额变化后刷新新卡数/顽固/已完成） */
+  if (typeof render === 'function') render();
 
   if (popTimer) clearTimeout(popTimer);
   popTimer = setTimeout(closeSettingsPop, 1800);
