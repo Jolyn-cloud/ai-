@@ -3421,7 +3421,7 @@ function render(){
             }
             var statusHtml = '<span class="l4-check">✓'+safeNum(l4.mastered)+'</span>'
               + '<span class="l4-cross">×'+safeNum(l4.unmastered)+'</span>'
-              + '<span class="l4-tag">顽固'+stubborn+'</span>';
+              + (stubborn > 0 ? '<span class="l4-tag">顽固'+stubborn+'</span>' : '');
             return '<div class="level4-item" onclick="goLevel4(\''+esc(c.name)+'\',\''+esc(s.name)+'\',\''+esc(l4.name)+'\', event)">'
               +   '<div class="level4-dot"></div>'
               +   '<div class="level4-title">'+l4.name+'</div>'
@@ -3435,7 +3435,7 @@ function render(){
             +   '<div class="level3-title">'+l3.name+'</div>'
             +   '<div class="level3-right">'
             +     '<span class="l3-cnt">'+safeNum((l3.level4||[]).length)+'个考点</span>'
-            +     '<span class="l3-stub">顽固'+l3Stubborn+'</span>'
+            + (l3Stubborn > 0 ? '<span class="l3-stub">顽固'+l3Stubborn+'</span>' : '')
             +   '</div>'
             + '</div>'
             + '<div class="level4-list"><div class="level4-inner">'+level4Html+'</div></div>'
@@ -3462,7 +3462,7 @@ function render(){
           +   '<span class="sub-cnt">'+sCards+'张</span>'
           +   '<span class="sub-ok">✓'+safeNum(s.memorized)+'</span>'
           +   '<span class="sub-no">×'+sForgot+'</span>'
-          +   '<span class="sub-stub">顽固'+sStubborn+'</span>'
+          + (sStubborn > 0 ? '<span class="sub-stub">顽固'+sStubborn+'</span>' : '')
           + '</div>'
           + '<div class="sub-progress"><div class="sub-progress-inner" data-w="'+safeNum(s.done)+'"></div></div>'
           + '<div class="level3-list"><div class="level3-inner">'+level3Html+'</div></div>'
@@ -3480,7 +3480,7 @@ function render(){
       +           '<span class="cd-cnt">'+fmt(cards)+'张</span>'
       +           '<span class="cd-ok">✓'+fmt(memorized)+'</span>'
       +           '<span class="cd-no">×'+fmt(Math.max(0, cards - memorized))+'</span>'
-      +           '<span class="cd-stub">顽固'+stubborn+'</span>'
+      + (stubborn > 0 ? '           <span class="cd-stub">顽固'+stubborn+'</span>' : '')
       +         '</div>'
       +       '</div>'
       +       '<div class="chapter-right">'
