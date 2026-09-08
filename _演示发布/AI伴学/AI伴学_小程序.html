@@ -1151,22 +1151,15 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'CLOSE_PRACTICE') {
-    /* 做题页点关闭/完成 → 收起做题层回原页 + 逻辑面板恢复当前 tab */
+    /* 做题页点关闭/完成 → 收起做题层回原页 + 逻辑面板恢复当前 tab。
+       广播 FAV_PRACTICE_CLOSED 的逻辑已收敛进 closePractice() 函数，此处不重复（PM 2026-09-07） */
     closePractice();
     var tab = currentTabName();
     if (tab) updateLogicForTab(tab);
-    /* 收藏本「做题+闪卡」分阶段：做题关闭后若 session 标记有待练闪卡 → 广播给题库转发到收藏本弹提示（PM 2026-09-07） */
-    try {
-      if (sessionStorage.getItem('favFlashPending') === '1') {
-        var quiz = document.getElementById('frame-quiz');
-        if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
-      }
-    } catch(e) {}
     return;
   }
   if (d.type === 'REQ_FLASH_FROM_FAV') {
     /* 收藏本「继续练闪卡」→ 切闪卡 tab + 跳闪卡原型读 zsb_fav_flash_v1（PM 2026-09-07） */
-    try { sessionStorage.removeItem('favFlashPending'); } catch(e) {}
     switchTab('flash');
     var favFlash = document.getElementById('frame-flash');
     if (favFlash && favFlash.contentWindow) {
@@ -1423,6 +1416,7 @@ var reportFrame = document.getElementById('frame-report');
 var REPORT_DATA = null;        /* 报告数据（模拟考场/历年真题 REQ_REPORT 注入） */
 var NOTE_BACK_CTX = null;      /* 解析页「我的笔记」拍照上传：保存后回跳做题层的上下文（PM 2026-09-05） */
 var flashView = 'view-home';   /* 闪卡当前视图（由闪卡 NAV 消息同步） */
+var lastPracticeEntry = '';    /* 最近一次打开做题层的 entry（fav 关闭时广播，PM 2026-09-07） */
 
 /* tabBar 显隐：答题页打开 或 闪卡处于单卡/列表/完成页 → 隐藏 tabBar，内容区扩展到底 */
 function updateTabBar() {
@@ -1441,6 +1435,7 @@ function updateTabBar() {
 
 function openPractice(entry, extra) {
   extra = extra || {};
+  lastPracticeEntry = entry || '';   /* 记录入口：fav 关闭时广播收藏本弹闪卡提示 */
   /* 考试/真题卷：标题用卷名（如「卷 01 · 2026 届全真模拟卷一」），笔试分/时长透传做题页 */
   practiceTitle = PRACTICE_TITLES[entry] || '今日学习';
   if (extra.name) practiceTitle = extra.name;
@@ -1484,6 +1479,15 @@ function closePractice() {
   /* 退出做题层 → 隐藏答题页子 tab + 恢复当前 tab 对应的面板 */
   if (practiceSwitch) practiceSwitch.style.display = 'none';
   updateLogicForTab(currentTabName());
+  /* 收藏本「做题+闪卡」分阶段：fav 练习关闭（appbar 退出 / 做题页消息 / 切 tab）一律广播，
+     收藏本自查本地待练标记决定是否弹提示——不依赖跨 frame sessionStorage（file:// 直开兼容，PM 2026-09-07 修） */
+  try {
+    if (lastPracticeEntry === 'fav') {
+      var quiz = document.getElementById('frame-quiz');
+      if (quiz && quiz.contentWindow) quiz.contentWindow.postMessage({ type: 'FAV_PRACTICE_CLOSED' }, '*');
+    }
+  } catch(e) {}
+  lastPracticeEntry = '';
 }
 /* 拍照笔记保存后回做题页原题：重载做题页原 URL → 就绪后 ENTER_REVIEW 定位原题解析并高亮笔记卡（PM 2026-09-05） */
 function reopenPracticeToNoteReview(ctx) {

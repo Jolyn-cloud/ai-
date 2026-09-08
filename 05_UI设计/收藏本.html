@@ -558,10 +558,9 @@ function stashFlashForLater(fullList, scope) {
       return { qid: x.qid, source: x.source, l1: x.l1, l2: x.l2, l3: x.l3, type: x.type,
         front: x.front, answer: x.answer, analysis: x.analysis };
     })));
-    /* 标记总壳 sessionStorage：返回做题页时据此弹「还有未练闪卡」提示。
-       收藏本嵌在 题库→收藏本 两层 iframe 内，window.parent 是题库而非总壳，
-       必须用 window.top 指向总壳 sessionStorage（与 CLOSE_PRACTICE 读取处一致，PM 2026-09-07） */
-    window.top.sessionStorage.setItem('favFlashPending', '1');
+    /* 待练闪卡标记用本页自身 localStorage：file:// 直开时各 iframe 独立 origin，
+       window.top/parent.sessionStorage 跨文档直取被拦截→标记丢失→返回不弹窗（PM 2026-09-07 修） */
+    localStorage.setItem('zsb_fav_flash_pending_v1', '1');
   } catch(e) {}
 }
 
@@ -592,9 +591,9 @@ function showToast(msg) {
 window.addEventListener('message', function(e) {
   var d = e.data || {};
   if (d.type === 'FAV_PRACTICE_CLOSED') {
-    /* 总壳 closePractice 广播 → 题库转发到此；检查是否有待练闪卡 */
+    /* 总壳 closePractice 广播 → 题库转发到此；检查本页标记是否有待练闪卡 */
     var pending = false;
-    try { pending = window.top.sessionStorage.getItem('favFlashPending') === '1'; } catch(err) {}
+    try { pending = localStorage.getItem('zsb_fav_flash_pending_v1') === '1'; } catch(err) {}
     var hasFlash = false;
     try { hasFlash = !!localStorage.getItem('zsb_fav_flash_v1'); } catch(err) {}
     if (pending && hasFlash) showFavPrompt();
@@ -607,13 +606,13 @@ function showFavPrompt() {
 function dismissFavPrompt() {
   document.getElementById('favPromptMask').classList.remove('show');
   /* 稍后练：清标记，本次不再弹（PM 2026-09-07） */
-  try { window.top.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  try { localStorage.removeItem('zsb_fav_flash_pending_v1'); } catch(e) {}
   try { localStorage.removeItem('zsb_fav_flash_v1'); } catch(e) {}
 }
 function continueFavFlash() {
   document.getElementById('favPromptMask').classList.remove('show');
-  /* 继续练：跳转闪卡原型读取 flash 题目；清标记避免返回时重复弹 */
-  try { window.top.sessionStorage.removeItem('favFlashPending'); } catch(e) {}
+  /* 继续练：跳转闪卡原型读取 flash 题目；清待练标记避免返回时重复弹（flash 数据保留给闪卡原型） */
+  try { localStorage.removeItem('zsb_fav_flash_pending_v1'); } catch(e) {}
   try {
     window.parent.postMessage({ type:'REQ_FLASH_FROM_FAV' }, '*');
   } catch(err) {
