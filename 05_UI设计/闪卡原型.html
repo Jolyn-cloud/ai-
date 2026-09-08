@@ -550,21 +550,20 @@
   }
   .stat-card {
     flex: 1;
-    background: #fff;
     border-radius: 14px;
     padding: 12px 6px 10px;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(54,66,108,0.05);
     cursor: pointer;
     transition: transform .1s ease;
   }
   .stat-card:active { transform: scale(.96); }
   .stat-icon {
-    width: 32px; height: 32px;
-    margin: 0 auto 6px;
+    width: 30px; height: 30px;
+    margin: 0 auto 5px;
     border-radius: 50%;
+    background: rgba(255,255,255,0.65);
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
   }
   .stat-num {
     font-size: 20px; font-weight: 800;
@@ -572,18 +571,18 @@
     line-height: 1.1;
   }
   .stat-label {
-    font-size: 11px; color: var(--text-tertiary); font-weight: 500;
+    font-size: 11px; font-weight: 600;
     margin-top: 2px;
   }
-  /* 4 色口径：绿已记住 / 橙未记住 / 红顽固 / 黄收藏（与错题本/章节列表标签色一致） */
-  .sc-remembered .stat-icon { background: #E8F8EF; }
-  .sc-remembered .stat-num { color: var(--success); }
-  .sc-forgot .stat-icon { background: #FFF0E8; }
-  .sc-forgot .stat-num { color: #FF6B35; }
-  .sc-stubborn .stat-icon { background: #FEE8E8; }
-  .sc-stubborn .stat-num { color: var(--danger); }
-  .sc-fav .stat-icon { background: #FFF8E1; }
-  .sc-fav .stat-num { color: #FFB800; }
+  /* 4 色口径：浅绿已记住 / 浅橙未记住 / 浅红顽固 / 浅黄收藏（卡片底色+文字+数字同色系） */
+  .sc-remembered { background: #E8F8EF; }
+  .sc-remembered .stat-num, .sc-remembered .stat-label, .sc-remembered .stat-icon { color: #1E9E6A; }
+  .sc-forgot { background: #FFF0E8; }
+  .sc-forgot .stat-num, .sc-forgot .stat-label, .sc-forgot .stat-icon { color: #E6610F; }
+  .sc-stubborn { background: #FEE8E8; }
+  .sc-stubborn .stat-num, .sc-stubborn .stat-label, .sc-stubborn .stat-icon { color: #D63232; }
+  .sc-fav { background: #FFF8E1; }
+  .sc-fav .stat-num, .sc-fav .stat-label, .sc-fav .stat-icon { color: #C79100; }
 
   /* ========================= 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） ========================= */
   .weak-overlay {
@@ -1186,6 +1185,7 @@
 
   /* ========================= 顶栏 ========================= */
   .top-bar {
+    position: relative; z-index: 101;   /* PM 2026-09-08：高于完成页 z-index:100，保证返回按钮可点 */
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 14px;
   }
@@ -3980,9 +3980,12 @@ function init() {
   isAnimating = false;
 
   /* 已刷达到总数（配额）→ 直接进入学习成果页
-     （未记住补的重复卡可能仍在队列中，不再继续出现） */
+     （未记住补的重复卡可能仍在队列中，不再继续出现）
+     PM 2026-09-08：状态筛选队列（remembered/forgot/stubborn）跳过完成判定——
+     这批卡本就标记过，done>=total 必然成立，但用户目的是重刷/复习，不应直接跳完成页 */
+  var isStatusFilter = !!(activeFilter && activeFilter.status);
   var initStats = calcStats(state);
-  if (initStats.total > 0 && initStats.done >= initStats.total) {
+  if (!isStatusFilter && initStats.total > 0 && initStats.done >= initStats.total) {
     showCompletion();
     updateProgress();
     updateBottomStats();
@@ -3991,7 +3994,12 @@ function init() {
     return;
   }
 
+  /* 状态筛选：findNextPending 找未标记卡，全标记时取队列第一张（复习模式） */
   currentCard = findNextPending();
+  if (!currentCard && state.queue.length > 0) {
+    currentCard = state.queue[0];
+    cardIndex = 0;
+  }
 
   getById('completionScreen').classList.remove('show');
   /* 关闭完成页 → 通知总壳逻辑面板切回原视图 */
