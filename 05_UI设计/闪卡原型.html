@@ -793,25 +793,17 @@
     margin-top: 5px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     flex-wrap: wrap;
     font-size: 12px;
     color: #8a92a4;
     font-variant-numeric: tabular-nums;
   }
-  .remembered { color: var(--success); }
-  .remembered strong { font-weight: 600; }
-
-  .stubborn {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
-    border-radius: 7px;
-    color: var(--warning);
-    background: #fff1e6;
-    font-size: 11px;
-    font-weight: 500;
-  }
+  /* 一级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08：四项常驻，口径=总张数/已记住/未记住/顽固） */
+  .cd-cnt { color: #8a92a4; }
+  .cd-ok { color: var(--success); font-weight: 600; }
+  .cd-no { color: #E0658A; font-weight: 600; }
+  .cd-stub { color: var(--warning); font-weight: 600; }
 
   .chapter-right {
     display: flex;
@@ -909,9 +901,11 @@
     font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
-  .sub-mem { color: var(--text-tertiary); }
-  .sub-mem strong { color: var(--success); font-weight: 600; }
-  .sub-pct { color: var(--primary); font-weight: 700; }
+  /* 二级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08） */
+  .sub-cnt { color: var(--text-tertiary); }
+  .sub-ok { color: var(--success); font-weight: 600; }
+  .sub-no { color: #E0658A; font-weight: 600; }
+  .sub-stub { color: var(--warning); font-weight: 600; }
   .sub-arrow {
     margin-left: 3px;
     color: #c3c9d5;
@@ -997,8 +991,9 @@
     font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
-  .l3-mem { color: #8A90A8; }
-  .l3-pct { color: #5571E8; font-weight: 700; }
+  /* 三级统计标签：n个考点 顽固n（PM 2026-09-08） */
+  .l3-cnt { color: #8A90A8; }
+  .l3-stub { color: var(--warning); font-weight: 600; }
 
   /* ========================= 四级章节 ========================= */
   .level4-list {
@@ -1050,7 +1045,14 @@
     gap: 7px;
     flex-shrink: 0;
   }
-  /* 四级状态符号：✓N 已掌握 / ×N 未掌握 / 顽固N 同时显示 */
+  /* 四级统计标签：n张 ✅n ❌n 顽固n（PM 2026-09-08） */
+  .l4-cnt {
+    color: #8A90A8;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
   .l4-check {
     color: #16A66A;
     font-size: 12px;
@@ -3404,16 +3406,23 @@ function render(){
     /* 二级：同样按进度升序 */
     const subs = (c.subs || []).slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); })
       .map(function(s){
-        /* 三级结构：标题 + 已答题/总数 + 百分比；外层 .l3-block 浅边框建立层级 */
+        /* 三级结构：标题 + n个考点 + 顽固n（PM 2026-09-08：考点个数=下属level4数，顽固从CARDS按chapter+sub+topic实算） */
         const level3Html = (s.level3 || []).map(function(l3){
-          /* 四级答题情况：对✓N / 错×N / 顽固N 三项常驻显示（含 0），直观展示该知识点答题状态 */
+          /* 三级顽固：CARDS 中 chapter+sub+topic 三级路径匹配且 forgotCount≥3 的卡数 */
+          var l3Stubborn = 0;
+          for (var i = 0; i < CARDS.length; i++) {
+            var cd = CARDS[i];
+            if ((cd.forgotCount || 0) >= 3 && cd.chapter === c.name && cd.sub === s.name && cd.topic === l3.name) l3Stubborn++;
+          }
+          /* 四级答题情况：n张 ✅n ❌n 顽固n 四项常驻显示（含 0），口径=总张数/已记住(mastered)/未记住(unmastered)/顽固（PM 2026-09-08） */
           const level4Html = (l3.level4 || []).map(function(l4){
             var stubborn = 0;
             for (var i = 0; i < CARDS.length; i++) {
               if ((CARDS[i].forgotCount || 0) >= 3 && CARDS[i].point === l4.name) stubborn++;
             }
-            var statusHtml = '<span class="l4-check">✓'+safeNum(l4.mastered)+'</span>'
-              + '<span class="l4-cross">×'+safeNum(l4.unmastered)+'</span>'
+            var statusHtml = '<span class="l4-cnt">'+safeNum(l4.cards)+'张</span>'
+              + '<span class="l4-check">✅'+safeNum(l4.mastered)+'</span>'
+              + '<span class="l4-cross">❌'+safeNum(l4.unmastered)+'</span>'
               + '<span class="l4-tag">顽固'+stubborn+'</span>';
             return '<div class="level4-item" onclick="goLevel4(\''+esc(c.name)+'\',\''+esc(s.name)+'\',\''+esc(l4.name)+'\', event)">'
               +   '<div class="level4-dot"></div>'
@@ -3427,21 +3436,31 @@ function render(){
             +   '<span class="level3-arrow">›</span>'
             +   '<div class="level3-title">'+l3.name+'</div>'
             +   '<div class="level3-right">'
-            +     '<span class="l3-mem">'+fmt(safeNum(l3.memorized))+'/'+fmt(safeNum(l3.cards))+'</span>'
-            +     '<span class="l3-pct">'+safeNum(l3.done)+'%</span>'
+            +     '<span class="l3-cnt">'+safeNum((l3.level4||[]).length)+'个考点</span>'
+            +     '<span class="l3-stub">顽固'+l3Stubborn+'</span>'
             +   '</div>'
             + '</div>'
             + '<div class="level4-list"><div class="level4-inner">'+level4Html+'</div></div>'
             + '</div>';
         }).join('');
 
+        /* 二级顽固：CARDS 中 chapter+sub 两级路径匹配且 forgotCount≥3 的卡数 */
+        var sStubborn = 0;
+        for (var si = 0; si < CARDS.length; si++) {
+          var scd = CARDS[si];
+          if ((scd.forgotCount || 0) >= 3 && scd.chapter === c.name && scd.sub === s.name) sStubborn++;
+        }
+        var sCards = safeNum(s.cards);
+        var sForgot = Math.max(0, sCards - safeNum(s.memorized));   /* 未记住=总张数−已记住（含顽固） */
         return '<div class="sub-container">'
           + '<div class="sub-item" onclick="toggleLevel2(this, event)">'
           +   '<div class="sub-dot"></div>'
           +   '<div class="sub-title">'+s.name+'</div>'
           +   '<div class="sub-right">'
-          +     '<span class="sub-mem"><strong>'+fmt(safeNum(s.memorized))+'</strong>/'+fmt(safeNum(s.cards))+'</span>'
-          +     '<span class="sub-pct">'+safeNum(s.done)+'%</span>'
+          +     '<span class="sub-cnt">'+sCards+'张</span>'
+          +     '<span class="sub-ok">✅'+safeNum(s.memorized)+'</span>'
+          +     '<span class="sub-no">❌'+sForgot+'</span>'
+          +     '<span class="sub-stub">顽固'+sStubborn+'</span>'
           +     '<span class="sub-arrow">›</span>'
           +   '</div>'
           + '</div>'
@@ -3458,9 +3477,10 @@ function render(){
       +       '<div class="chapter-info">'
       +         '<div class="chapter-name">'+c.name+'</div>'
       +         '<div class="chapter-data">'
-      +           '<span class="remembered">已记住 <strong>'+fmt(memorized)+'</strong></span>'
-      +           '<span>/</span><span>'+fmt(cards)+' 个考点</span>'
-      +           (stubborn > 0 ? '<span class="stubborn">顽固 '+stubborn+'</span>' : '')
+      +           '<span class="cd-cnt">'+fmt(cards)+'张</span>'
+      +           '<span class="cd-ok">✅'+fmt(memorized)+'</span>'
+      +           '<span class="cd-no">❌'+fmt(Math.max(0, cards - memorized))+'</span>'
+      +           '<span class="cd-stub">顽固'+stubborn+'</span>'
       +         '</div>'
       +       '</div>'
       +       '<div class="chapter-right">'
