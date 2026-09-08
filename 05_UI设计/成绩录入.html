@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>成绩录入</title>
 <style>
-/* ==== Product Theme：蓝靛 #5B72F5（与题库首页/错题本/收藏本/笔记本统一） ====
-   成绩录入页：题库首页「成绩录入」快捷入口下钻二级页
-   结构：成绩概览 → 成绩列表（按考试时间降序）→ 新增/详情/编辑（浮层）→ 空状态
-   数据：localStorage zsb_scores_v1（单点数据源）
-   交互：+ FAB 新增 → 填表 → 保存 → 回列表置顶；点卡片 → 详情 → 编辑/删除 */
+/* ==== 成绩录入 v2.0（PM 2026-09-08 重构）====
+   定位：记录每次考试成绩，总分趋势对标目标录取线
+   结构：目标卡 → 最近一次总分 → 总分趋势 → 历史成绩（各科2×2）
+   数据：zsb_scores_v1（成绩，扩 subjects/total）+ zsb_target_v1（目标院校）
+   科目：语文 / 数学（数一二三） / 英语↔政治 / 计算机，总分自动算 */
 :root{
   --primary: #5B72F5;
   --primary-dark: #4358D7;
@@ -36,67 +36,90 @@ body {
 
 .page { display: flex; flex-direction: column; height: 100%; }
 
-/* ===== 成绩概览 ===== */
-.overview {
-  display: flex; gap: 0;
-  padding: 14px 16px 12px;
-  background: #fff;
-  border-bottom: 1px solid #EEF0F6;
-  flex-shrink: 0;
-}
-.ov-item { flex: 1; text-align: center; }
-.ov-label { font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 4px; }
-.ov-val { font-size: 20px; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.ov-val .unit { font-size: 12px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
-.ov-item + .ov-item { border-left: 1px solid #EEF0F6; }
-
-/* ===== 列表区 ===== */
+/* ===== 内容滚动区 ===== */
 .list-wrap {
   flex: 1; overflow-y: auto;
-  padding: 4px 16px 96px;
+  padding: 12px 16px 96px;
 }
 
-.s-card {
-  position: relative;
+/* ===== 模块通用卡片 ===== */
+.sec-card {
   background: #fff;
-  border-radius: 11px 10px 12px 9px;
-  padding: 12px 14px;
-  margin: 6px 0;
+  border-radius: var(--card-radius);
+  padding: 16px;
+  margin-bottom: 12px;
   box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
-  cursor: pointer;
-  transition: transform .12s ease;
 }
-.s-card:active { transform: scale(.985); }
-.s-title {
-  font-size: 15px; font-weight: 700; color: var(--text-primary);
-  line-height: 1.4; margin-bottom: 6px;
-  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
-  padding-right: 64px;  /* 右侧留成绩空间 */
+.sec-card.clickable { cursor: pointer; transition: transform .12s ease; }
+.sec-card.clickable:active { transform: scale(.99); }
+
+/* ===== ① 目标卡 ===== */
+.target-card { display: flex; align-items: center; justify-content: space-between; }
+.target-left { flex: 1; min-width: 0; }
+.target-label { font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.target-school { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.target-major { font-size: 12.5px; color: var(--text-secondary); }
+.target-line { font-size: 12px; color: var(--warning); font-weight: 600; margin-top: 6px; }
+.target-arrow { font-size: 20px; color: var(--text-tertiary); line-height: 1; flex-shrink: 0; margin-left: 8px; }
+.target-card.unset .target-school { color: var(--text-secondary); }
+.target-card.unset .target-desc { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+
+/* ===== ② 最近一次总分卡（一级重点，主色渐变） ===== */
+.latest-card {
+  background: linear-gradient(135deg, #5B72F5 0%, #6B8AFF 100%);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
 }
-.s-meta {
-  font-size: 12px; color: var(--text-tertiary); font-weight: 500;
-  margin-bottom: 0;  /* 成绩行不再独立占位，去掉底部间距 */
+.latest-head { font-size: 12px; opacity: 0.85; margin-bottom: 8px; }
+.latest-main { display: flex; align-items: baseline; justify-content: space-between; }
+.latest-score { font-size: 36px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.latest-score .unit { font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 2px; }
+.latest-trend { font-size: 13px; font-weight: 600; opacity: 0.95; }
+.latest-trend.up { }
+.latest-trend.down { opacity: 0.8; }
+.latest-target { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; opacity: 0.92; display: flex; align-items: center; justify-content: space-between; }
+.latest-target .gap { font-weight: 700; font-size: 14px; }
+.latest-target .gap.over { color: #B8F5D0; }
+.latest-target .gap.lack { color: #FFD8A8; }
+
+/* ===== ③ 总分趋势图 ===== */
+.trend-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.trend-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.trend-legend { display: flex; gap: 12px; font-size: 10px; color: var(--text-tertiary); }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.legend-item .ref { width: 14px; height: 0; border-top: 2px dashed var(--warning); }
+.trend-chart-wrap { position: relative; }
+.trend-chart-wrap svg { display: block; width: 100%; }
+.trend-hint { text-align: center; font-size: 10.5px; color: var(--text-tertiary); margin-top: 6px; }
+
+/* ===== ④ 历史成绩 ===== */
+.sec-title { font-size: 13px; color: var(--text-tertiary); font-weight: 500; padding: 4px 4px 8px; }
+.h-card {
+  background: #fff; border-radius: 13px;
+  padding: 13px 14px; margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 2px 6px rgba(91,114,245,.04);
+  cursor: pointer; transition: transform .12s ease;
 }
-.s-meta .s-type { color: var(--primary); font-weight: 600; }
-.s-score {
-  position: absolute;
-  right: 14px; top: 50%; transform: translateY(-50%);
-  font-size: 22px; font-weight: 800; color: var(--primary);
-  font-variant-numeric: tabular-nums; flex-shrink: 0;
-}
-.s-score .s-su { font-size: 12px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
-.s-arrow {
-  position: absolute; bottom: 12px; right: 12px;
-  font-size: 17px; color: var(--text-tertiary); line-height: 1;
-}
+.h-card:active { transform: scale(.99); }
+.h-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.h-name { font-size: 14.5px; font-weight: 700; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+.h-total { font-size: 20px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.h-total .su { font-size: 11px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
+.h-meta { display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 10px; }
+.h-meta .tag { padding: 1px 7px; border-radius: 4px; background: var(--primary-light); color: var(--primary); font-weight: 600; font-size: 10.5px; }
+.h-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.h-sub { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.h-sub .sname { color: var(--text-secondary); }
+.h-sub .sval { font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.h-sub .sname small { color: var(--text-tertiary); font-weight: 400; font-size: 10px; }
 
 /* ===== 空状态 ===== */
 .empty {
-  flex: 1;
-  display: flex; flex-direction: column;
+  flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
+  padding: 40px 20px; text-align: center;
 }
 .empty-ico { font-size: 48px; margin-bottom: 18px; }
 .empty-title { font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
@@ -106,14 +129,12 @@ body {
   height: 36px; padding: 0 20px;
   border: 1.5px solid var(--primary); border-radius: 18px;
   background: var(--primary-light);
-  font-size: 13px; font-weight: 700;
-  color: var(--primary);
-  cursor: pointer;
-  transition: transform .12s ease;
+  font-size: 13px; font-weight: 700; color: var(--primary);
+  cursor: pointer; transition: transform .12s ease;
 }
 .empty-btn:active { transform: scale(.97); }
 
-/* ===== 新增 FAB ===== */
+/* ===== FAB ===== */
 .add-fab {
   position: fixed; right: 18px; bottom: 18px; z-index: 96;
   width: 52px; height: 52px; border-radius: 50%;
@@ -126,7 +147,7 @@ body {
 }
 .add-fab:active { transform: scale(.92); }
 
-/* ===== 表单浮层（新增/编辑通用） ===== */
+/* ===== 表单浮层 ===== */
 .form-mask {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(20,22,35,.4);
@@ -139,71 +160,77 @@ body {
   max-height: 90vh; display: flex; flex-direction: column;
 }
 @keyframes fsUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.form-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; flex-shrink: 0;
-}
+.form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; }
 .form-title { font-size: 16px; font-weight: 700; }
 .form-close { font-size: 22px; color: var(--text-tertiary); cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
 .form-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.form-body::-webkit-scrollbar { display: none; }
 .form-row { margin-bottom: 16px; }
 .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
 .form-label .req { color: var(--danger); font-size: 11px; }
-.form-input, .form-select, .form-ta {
+.form-input, .form-select {
   width: 100%; height: 42px; padding: 0 12px;
   border: 1.5px solid #E5E8F0; border-radius: 10px;
   background: #FBFBFE; font-size: 14px; color: var(--text-primary);
-  font-family: inherit; outline: none;
-  transition: border-color .15s ease;
+  font-family: inherit; outline: none; transition: border-color .15s ease;
 }
 .form-input:focus, .form-select:focus { border-color: var(--primary); background: #fff; }
 .form-select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398A0B2' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 .type-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.type-chip {
-  padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 500;
-  background: #F3F5FB; border: 1.5px solid #E5E8F0; color: var(--text-primary); cursor: pointer;
-}
+.type-chip { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; background: #F3F5FB; border: 1.5px solid #E5E8F0; color: var(--text-primary); cursor: pointer; }
 .type-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
-.score-input-wrap { display: flex; align-items: center; gap: 8px; }
-.score-input-wrap .form-input { flex: 1; }
-.score-input-wrap .score-unit { font-size: 14px; color: var(--text-tertiary); font-weight: 600; flex-shrink: 0; }
-.form-btns {
-  display: flex; gap: 10px; flex-shrink: 0; margin-top: 4px;
+
+/* 成绩 2×2 网格 */
+.score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.score-cell {
+  border: 1.5px solid #E5E8F0; border-radius: 10px;
+  padding: 10px 12px; transition: border-color .15s ease; background: #FBFBFE;
 }
-.form-btn {
-  flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none;
+.score-cell:focus-within { border-color: var(--primary); background: #fff; }
+.cell-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sub-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.sub-switch {
+  font-size: 10.5px; color: var(--primary); cursor: pointer;
+  padding: 2px 7px; border-radius: 4px; background: var(--primary-light); font-weight: 600;
 }
+.sub-switch:active { opacity: .7; }
+.cell-input-row { display: flex; align-items: baseline; gap: 4px; }
+.cell-input-row input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 22px; font-weight: 700; color: var(--text-primary); width: 100%; font-family: inherit;
+}
+.full-mark { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
+
+/* 总分自动计算条 */
+.total-bar {
+  margin-top: 12px; background: var(--primary-light); border-radius: 12px;
+  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.total-bar .tb-label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+.total-bar .tb-label small { display: block; font-size: 10px; color: var(--text-tertiary); margin-top: 2px; font-weight: 400; }
+.total-bar .tb-val { font-size: 26px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+.total-bar .tb-val small { font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-left: 1px; }
+
+.form-btns { display: flex; gap: 10px; flex-shrink: 0; margin-top: 4px; }
+.form-btn { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; }
 .form-btn.primary { background: var(--primary); color: #fff; }
 .form-btn.primary:active { background: var(--primary-dark); }
 .form-btn.cancel { background: #fff; color: var(--text-secondary); border: 1px solid #E5E8F0; }
-.form-err { font-size: 12px; color: var(--danger); margin-top: 4px; display: none; }
-.form-err.show { display: block; }
 
-/* ===== 详情浮层 ===== */
+/* ===== 详情浮层（保留） ===== */
 .detail-mask {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(20,22,35,.4);
+  position: fixed; inset: 0; z-index: 200; background: rgba(20,22,35,.4);
   display: none; align-items: flex-end; justify-content: center;
 }
 .detail-mask.on { display: flex; }
 .detail-sheet {
   width: 100%; background: #fff; border-radius: 18px 18px 0 0;
-  padding: 16px 16px 28px; animation: fsUp .25s ease;
-  max-height: 80vh; display: flex; flex-direction: column;
+  padding: 16px 16px 28px; animation: fsUp .25s ease; max-height: 80vh; display: flex; flex-direction: column;
 }
-.detail-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; flex-shrink: 0;
-}
+.detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; }
 .detail-title { font-size: 16px; font-weight: 700; }
 .detail-close { font-size: 22px; color: var(--text-tertiary); cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
 .detail-body { flex: 1; overflow-y: auto; }
-.detail-body::-webkit-scrollbar { display: none; }
-.d-row {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  padding: 11px 0; border-bottom: 1px solid #F0F2F8;
-}
+.d-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #F0F2F8; }
 .d-row:last-child { border-bottom: none; }
 .d-label { font-size: 13px; color: var(--text-tertiary); font-weight: 500; flex-shrink: 0; }
 .d-val { font-size: 14px; color: var(--text-primary); font-weight: 600; text-align: right; }
@@ -216,15 +243,11 @@ body {
 
 /* ===== 删除确认 ===== */
 .confirm-mask {
-  position: fixed; inset: 0; z-index: 300;
-  background: rgba(20,22,35,.45);
+  position: fixed; inset: 0; z-index: 300; background: rgba(20,22,35,.45);
   display: none; align-items: center; justify-content: center;
 }
 .confirm-mask.on { display: flex; }
-.confirm-box {
-  width: 280px; background: #fff; border-radius: 16px;
-  padding: 24px 20px 16px; text-align: center;
-}
+.confirm-box { width: 280px; background: #fff; border-radius: 16px; padding: 24px 20px 16px; text-align: center; }
 .confirm-msg { font-size: 15px; color: var(--text-primary); font-weight: 600; margin-bottom: 20px; line-height: 1.5; }
 .confirm-btns { display: flex; gap: 10px; }
 .confirm-btn { flex: 1; height: 40px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
@@ -237,8 +260,7 @@ body {
   background: rgba(30,33,48,.88); color: #fff;
   padding: 8px 18px; border-radius: 8px;
   font-size: 12.5px; z-index: 999;
-  opacity: 0; transition: opacity .2s ease; pointer-events: none;
-  white-space: nowrap;
+  opacity: 0; transition: opacity .2s ease; pointer-events: none; white-space: nowrap;
 }
 .toast.show { opacity: 1; }
 </style>
@@ -247,23 +269,23 @@ body {
 
 <div class="page" id="page">
 
-  <!-- 列表区 -->
-  <div class="list-wrap" id="listWrap"></div>
+  <!-- 内容区（有数据视图） -->
+  <div class="list-wrap" id="listWrap" style="display:none;"></div>
 
   <!-- 空状态 -->
-  <div class="empty" id="empty" style="display:none;">
+  <div class="empty" id="empty">
     <div class="empty-ico">📊</div>
     <div class="empty-title">还没有成绩记录</div>
-    <div class="empty-desc">录入你的考试成绩，持续记录学习进步。</div>
+    <div class="empty-desc">录入你的考试成绩，追踪总分变化与目标差距。</div>
     <button class="empty-btn" onclick="openForm()">＋ 录入成绩</button>
   </div>
 
 </div>
 
-<!-- 新增 FAB（空状态时隐藏，有数据时显示） -->
+<!-- FAB -->
 <button class="add-fab" id="addFab" onclick="openForm()" title="录入成绩" style="display:none;">＋</button>
 
-<!-- 表单浮层（新增/编辑） -->
+<!-- 表单浮层 -->
 <div class="form-mask" id="formMask" onclick="if(event.target===this) closeForm()">
   <div class="form-sheet">
     <div class="form-head">
@@ -274,12 +296,10 @@ body {
       <div class="form-row">
         <div class="form-label">考试名称 <span class="req">*</span></div>
         <input class="form-input" id="fName" placeholder="如：2026年9月模拟考试" />
-        <div class="form-err" id="errName">请填写考试名称</div>
       </div>
       <div class="form-row">
         <div class="form-label">考试日期 <span class="req">*</span></div>
         <input class="form-input" id="fDate" type="date" />
-        <div class="form-err" id="errDate">请选择考试日期</div>
       </div>
       <div class="form-row">
         <div class="form-label">考试类型 <span class="req">*</span></div>
@@ -291,12 +311,41 @@ body {
         </div>
       </div>
       <div class="form-row">
-        <div class="form-label">成绩 <span class="req">*</span></div>
-        <div class="score-input-wrap">
-          <input class="form-input" id="fScore" type="number" placeholder="输入分数" />
-          <span class="score-unit">分</span>
+        <div class="form-label">各科成绩 <span class="req">*</span></div>
+        <div class="score-grid">
+          <div class="score-cell">
+            <div class="cell-head"><span class="sub-name">语文</span></div>
+            <div class="cell-input-row">
+              <input type="text" inputmode="numeric" id="fChinese" placeholder="0" oninput="calcTotal()" />
+              <span class="full-mark">/100</span>
+            </div>
+          </div>
+          <div class="score-cell">
+            <div class="cell-head"><span class="sub-name">数学</span><span class="sub-switch" id="fMathSwitch" onclick="switchMathType()">数一</span></div>
+            <div class="cell-input-row">
+              <input type="text" inputmode="numeric" id="fMath" placeholder="0" oninput="calcTotal()" />
+              <span class="full-mark">/100</span>
+            </div>
+          </div>
+          <div class="score-cell">
+            <div class="cell-head"><span class="sub-name" id="fEngLabel">英语</span><span class="sub-switch" onclick="switchEngPol()">切换</span></div>
+            <div class="cell-input-row">
+              <input type="text" inputmode="numeric" id="fEng" placeholder="0" oninput="calcTotal()" />
+              <span class="full-mark">/100</span>
+            </div>
+          </div>
+          <div class="score-cell">
+            <div class="cell-head"><span class="sub-name">计算机</span></div>
+            <div class="cell-input-row">
+              <input type="text" inputmode="numeric" id="fComputer" placeholder="0" oninput="calcTotal()" />
+              <span class="full-mark">/100</span>
+            </div>
+          </div>
         </div>
-        <div class="form-err" id="errScore">请填写成绩</div>
+        <div class="total-bar">
+          <div class="tb-label">总分<small>自动计算，无需手动填写</small></div>
+          <div class="tb-val"><span id="fTotal">0</span><small> / 400分</small></div>
+        </div>
       </div>
     </div>
     <div class="form-btns">
@@ -336,31 +385,49 @@ body {
 
 <script>
 /* ============================================================
-   成绩录入 v1.0
-   数据：localStorage zsb_scores_v1
-   结构：[{ id, name, date, type, subject, score, createdAt }]
-   概览：最近一次/最高/平均（无数据时隐藏）
-   排序：考试时间降序
+   成绩录入 v2.0
+   数据：
+     zsb_scores_v1 = [{ id, name, date, type, subjects:{chinese,math:{type,score},eng:{type,score},computer}, total, createdAt }]
+     （兼容 v1 旧记录：只有 score 字段，无 subjects/total）
+     zsb_target_v1 = { school, major, score, college, collegeMajor } | null
    ============================================================ */
 
 var KEY = 'zsb_scores_v1';
+var TARGET_KEY = 'zsb_target_v1';
 var TYPE_OPTIONS = ['模拟考试','历年真题','学校考试','其他'];
 
-/* 当前编辑/新增态 */
-var editId = null;       /* null=新增模式 */
+/* 数学类型 / 英语政治 切换态 */
+var MATH_TYPES = ['数一','数二','数三'];
+var formMathIdx = 0;        /* 0=数一 1=数二 2=数三 */
+var formEngType = '英语';   /* '英语' | '政治' */
+
+/* 编辑态 */
+var editId = null;
 var currentDetailId = null;
 var pickedType = '模拟考试';
 
-/* 读取数据 */
+/* ===== 数据读写 ===== */
 function loadScores() {
   try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; }
 }
 function saveScores(arr) {
   try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch(e) {}
 }
+function loadTarget() {
+  try { return JSON.parse(localStorage.getItem(TARGET_KEY) || 'null'); } catch(e) { return null; }
+}
+function saveTarget(t) {
+  try { localStorage.setItem(TARGET_KEY, t ? JSON.stringify(t) : ''); } catch(e) {}
+}
 
-/* ===== 列表 ===== */
-function renderList() {
+/* ===== 工具：取记录的总分（兼容旧记录 score 字段） ===== */
+function getTotal(it) {
+  if (it.total != null) return it.total;
+  return it.score || 0;
+}
+
+/* ===== 渲染主页面 ===== */
+function render() {
   var arr = loadScores();
   var wrap = document.getElementById('listWrap');
   var empty = document.getElementById('empty');
@@ -369,38 +436,118 @@ function renderList() {
   if (!arr.length) {
     wrap.style.display = 'none';
     empty.style.display = 'flex';
-    if (fab) fab.style.display = 'none';     /* 空状态隐藏 FAB，只留空状态按钮入口 */
+    if (fab) fab.style.display = 'none';
     return;
   }
   wrap.style.display = 'block';
   empty.style.display = 'none';
-  if (fab) fab.style.display = 'flex';       /* 有数据时显示 FAB */
+  if (fab) fab.style.display = 'flex';
 
   /* 按考试时间降序 */
   arr.sort(function(a,b){ return (a.date||'') < (b.date||'') ? 1 : -1; });
 
   var html = '';
-  arr.forEach(function(it) {
-    html += scoreCard(it);
-  });
+  /* ① 目标卡 */
+  html += renderTargetCard();
+  /* ② 最近一次总分卡 */
+  html += renderLatestCard(arr);
+  /* ③ 总分趋势（第2步实装，先占位） */
+  html += renderTrendCard(arr);
+  /* ④ 历史成绩 */
+  html += '<div class="sec-title">历史成绩</div>';
+  arr.forEach(function(it) { html += scoreCard(it); });
   wrap.innerHTML = html;
 }
 
-/* 成绩卡片 */
-function scoreCard(it) {
-  return '<div class="s-card" onclick="openDetail(\'' + it.id + '\')">'
-    +   '<div class="s-title">' + (it.name || '未命名考试') + '</div>'
-    +   '<div class="s-meta"><span class="s-type">' + (it.type || '其他') + '</span> · ' + (it.date || '') + '</div>'
-    +   '<span class="s-score">' + (it.score || 0) + '<span class="s-su">分</span></span>'
+/* ① 目标卡（第3步实装查询页，先两态静态） */
+function renderTargetCard() {
+  var t = loadTarget();
+  if (t) {
+    return '<div class="sec-card target-card clickable" onclick="openQueryPage()">'
+      + '<div class="target-left">'
+      +   '<div class="target-label">🎯 我的目标</div>'
+      +   '<div class="target-school">' + esc(t.school) + '</div>'
+      +   '<div class="target-major">' + esc(t.major) + '</div>'
+      +   '<div class="target-line">最新录取线 ' + (t.score||0) + '分</div>'
+      + '</div>'
+      + '<div class="target-arrow">›</div>'
+      + '</div>';
+  }
+  return '<div class="sec-card target-card unset clickable" onclick="openQueryPage()">'
+    + '<div class="target-left">'
+    +   '<div class="target-label">🎯 报考查询</div>'
+    +   '<div class="target-school">未设置目标</div>'
+    +   '<div class="target-desc">输入专科信息，查询可报考院校</div>'
+    + '</div>'
+    + '<div class="target-arrow">›</div>'
     + '</div>';
 }
 
-/* ===== 新增/编辑表单 ===== */
+/* ② 最近一次总分卡（第4步补目标差距，先显总分+趋势） */
+function renderLatestCard(arr) {
+  var latest = arr[0];
+  var total = getTotal(latest);
+  var trendHtml = '';
+  if (arr.length >= 2) {
+    var diff = total - getTotal(arr[1]);
+    if (diff >= 0) trendHtml = '<span class="latest-trend up">↑ +' + diff + ' 较上次</span>';
+    else trendHtml = '<span class="latest-trend down">↓ ' + diff + ' 较上次</span>';
+  } else {
+    trendHtml = '<span class="latest-trend">首次记录</span>';
+  }
+  return '<div class="sec-card latest-card">'
+    + '<div class="latest-head">最近一次总分</div>'
+    + '<div class="latest-main">'
+    +   '<div class="latest-score">' + total + '<span class="unit">/ 400分</span></div>'
+    +   trendHtml
+    + '</div>'
+    + '<div class="latest-target"><span id="latestTargetGap">—</span><span>目标线 —</span></div>'
+    + '</div>';
+}
+
+/* ③ 总分趋势（第2步实装 SVG） */
+function renderTrendCard(arr) {
+  return '<div class="sec-card">'
+    + '<div class="trend-head"><span class="trend-title">总分趋势</span><span class="trend-legend" id="trendLegend"></span></div>'
+    + '<div class="trend-chart-wrap"><svg id="trendSvg" viewBox="0 0 320 150" preserveAspectRatio="none"></svg></div>'
+    + '<div class="trend-hint" id="trendHint"></div>'
+    + '</div>';
+}
+
+/* ④ 历史成绩卡片 */
+function scoreCard(it) {
+  var total = getTotal(it);
+  var subs = renderSubGrid(it);
+  return '<div class="h-card" onclick="openDetail(\'' + it.id + '\')">'
+    +   '<div class="h-top"><div class="h-name">' + esc(it.name||'未命名考试') + '</div>'
+    +     '<div class="h-total">' + total + '<span class="su">/400</span></div></div>'
+    +   '<div class="h-meta"><span class="tag">' + esc(it.type||'其他') + '</span><span>' + esc(it.date||'') + '</span></div>'
+    +   subs
+    + '</div>';
+}
+
+/* 各科 2×2 网格（兼容旧记录无 subjects） */
+function renderSubGrid(it) {
+  if (!it.subjects) {
+    return '<div class="h-grid"><div class="h-sub"><span class="sname">各科</span><span class="sval">—</span></div><div class="h-sub"><span class="sname">详情</span><span class="sval">旧记录</span></div></div>';
+  }
+  var s = it.subjects;
+  var engName = (s.eng && s.eng.type) || '英语';
+  var mathName = '数学' + (s.math && s.math.type ? '·' + s.math.type : '');
+  return '<div class="h-grid">'
+    + '<div class="h-sub"><span class="sname">语文</span><span class="sval">' + (s.chinese||0) + '</span></div>'
+    + '<div class="h-sub"><span class="sname">' + mathName + '</span><span class="sval">' + (s.math?s.math.score:0) + '</span></div>'
+    + '<div class="h-sub"><span class="sname">' + engName + '</span><span class="sval">' + (s.eng?s.eng.score:0) + '</span></div>'
+    + '<div class="h-sub"><span class="sname">计算机</span><span class="sval">' + (s.computer||0) + '</span></div>'
+    + '</div>';
+}
+
+/* ===== 表单 ===== */
 function openForm(id) {
   editId = id || null;
   document.getElementById('formTitle').textContent = id ? '编辑成绩' : '新增成绩';
-  /* 重置错误提示 */
-  ['errName','errDate','errScore'].forEach(function(id){ document.getElementById(id).classList.remove('show'); });
+  formMathIdx = 0;
+  formEngType = '英语';
 
   if (id) {
     var arr = loadScores();
@@ -408,21 +555,31 @@ function openForm(id) {
     if (!it) return;
     document.getElementById('fName').value = it.name || '';
     document.getElementById('fDate').value = it.date || '';
-    document.getElementById('fScore').value = it.score || '';
+    if (it.subjects) {
+      document.getElementById('fChinese').value = it.subjects.chinese || '';
+      document.getElementById('fMath').value = (it.subjects.math && it.subjects.math.score) || '';
+      var mt = (it.subjects.math && it.subjects.math.type) || '数一';
+      formMathIdx = Math.max(0, MATH_TYPES.indexOf(mt));
+      document.getElementById('fEng').value = (it.subjects.eng && it.subjects.eng.score) || '';
+      formEngType = (it.subjects.eng && it.subjects.eng.type) || '英语';
+    } else {
+      ['fChinese','fMath','fEng','fComputer'].forEach(function(i){ document.getElementById(i).value = ''; });
+    }
+    document.getElementById('fComputer').value = (it.subjects && it.subjects.computer) || '';
     pickType(it.type || '模拟考试');
   } else {
     document.getElementById('fName').value = '';
-    /* 默认今天 */
     var now = new Date();
     document.getElementById('fDate').value = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
-    document.getElementById('fScore').value = '';
+    ['fChinese','fMath','fEng','fComputer'].forEach(function(i){ document.getElementById(i).value = ''; });
     pickType('模拟考试');
   }
+  document.getElementById('fMathSwitch').textContent = MATH_TYPES[formMathIdx];
+  document.getElementById('fEngLabel').textContent = formEngType;
+  calcTotal();
   document.getElementById('formMask').classList.add('on');
 }
-function closeForm() {
-  document.getElementById('formMask').classList.remove('on');
-}
+function closeForm() { document.getElementById('formMask').classList.remove('on'); }
 
 function pickType(t) {
   pickedType = t;
@@ -431,21 +588,47 @@ function pickType(t) {
   });
 }
 
+function switchMathType() {
+  formMathIdx = (formMathIdx + 1) % MATH_TYPES.length;
+  document.getElementById('fMathSwitch').textContent = MATH_TYPES[formMathIdx];
+  showToast('数学已切换为 ' + MATH_TYPES[formMathIdx]);
+}
+function switchEngPol() {
+  formEngType = (formEngType === '英语' ? '政治' : '英语');
+  document.getElementById('fEngLabel').textContent = formEngType;
+  showToast('已切换为' + formEngType);
+}
+
+function calcTotal() {
+  var c = parseInt(document.getElementById('fChinese').value) || 0;
+  var m = parseInt(document.getElementById('fMath').value) || 0;
+  var e = parseInt(document.getElementById('fEng').value) || 0;
+  var cp = parseInt(document.getElementById('fComputer').value) || 0;
+  var total = c + m + e + cp;
+  if (total > 400) total = 400;
+  document.getElementById('fTotal').textContent = total;
+}
+
 function saveForm() {
   var name = document.getElementById('fName').value.trim();
   var date = document.getElementById('fDate').value;
-  var score = document.getElementById('fScore').value.trim();
-  var ok = true;
+  if (!name) { showToast('请填写考试名称'); return; }
+  if (!date) { showToast('请选择考试日期'); return; }
 
-  /* 校验 */
-  if (!name) { document.getElementById('errName').classList.add('show'); ok = false; }
-  else document.getElementById('errName').classList.remove('show');
-  if (!date) { document.getElementById('errDate').classList.add('show'); ok = false; }
-  else document.getElementById('errDate').classList.remove('show');
-  if (!score) { document.getElementById('errScore').classList.add('show'); ok = false; }
-  else document.getElementById('errScore').classList.remove('show');
+  var c = parseInt(document.getElementById('fChinese').value);
+  var m = parseInt(document.getElementById('fMath').value);
+  var e = parseInt(document.getElementById('fEng').value);
+  var cp = parseInt(document.getElementById('fComputer').value);
+  if ([c,m,e,cp].some(function(v){ return isNaN(v); })) { showToast('请填写全部4科成绩'); return; }
+  if ([c,m,e,cp].some(function(v){ return v < 0 || v > 100; })) { showToast('单科成绩需在 0-100 之间'); return; }
 
-  if (!ok) { showToast('请补全必填信息'); return; }
+  var total = c + m + e + cp;
+  var subjects = {
+    chinese: c,
+    math: { type: MATH_TYPES[formMathIdx], score: m },
+    eng: { type: formEngType, score: e },
+    computer: cp
+  };
 
   var now = new Date();
   var createdAt = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
@@ -453,24 +636,21 @@ function saveForm() {
 
   var arr = loadScores();
   if (editId) {
-    /* 编辑：更新原记录 */
     arr = arr.map(function(x) {
       if (x.id === editId) {
-        return Object.assign({}, x, { name:name, date:date, type:pickedType, score:score });
+        return Object.assign({}, x, { name:name, date:date, type:pickedType, subjects:subjects, total:total });
       }
       return x;
     });
   } else {
-    /* 新增：置顶（渲染时按 date 降序重排，新记录 date 最新自然置顶） */
     arr.unshift({
-      id: 'S' + Date.now(),
-      name: name, date: date, type: pickedType, score: score,
-      createdAt: createdAt
+      id: 'S' + Date.now(), name: name, date: date, type: pickedType,
+      subjects: subjects, total: total, createdAt: createdAt
     });
   }
   saveScores(arr);
   closeForm();
-  renderList();
+  render();
   showToast(editId ? '已更新成绩' : '已录入成绩');
 }
 
@@ -480,45 +660,42 @@ function openDetail(id) {
   var it = arr.filter(function(x){ return x.id === id; })[0];
   if (!it) return;
   currentDetailId = id;
-  var html = ''
-    + '<div class="d-row"><span class="d-label">考试名称</span><span class="d-val">' + (it.name||'') + '</span></div>'
-    + '<div class="d-row"><span class="d-label">考试类型</span><span class="d-val">' + (it.type||'') + '</span></div>'
-    + '<div class="d-row"><span class="d-label">考试日期</span><span class="d-val">' + (it.date||'') + '</span></div>'
-    + '<div class="d-row"><span class="d-label">成绩</span><span class="d-val score">' + (it.score||0) + '<span class="d-su">分</span></span></div>';
+  var html = '';
+  html += '<div class="d-row"><span class="d-label">考试名称</span><span class="d-val">' + esc(it.name||'') + '</span></div>';
+  html += '<div class="d-row"><span class="d-label">考试类型</span><span class="d-val">' + esc(it.type||'') + '</span></div>';
+  html += '<div class="d-row"><span class="d-label">考试日期</span><span class="d-val">' + esc(it.date||'') + '</span></div>';
+  if (it.subjects) {
+    var s = it.subjects;
+    html += '<div class="d-row"><span class="d-label">语文</span><span class="d-val">' + s.chinese + '</span></div>';
+    html += '<div class="d-row"><span class="d-label">数学·' + (s.math.type||'数一') + '</span><span class="d-val">' + s.math.score + '</span></div>';
+    html += '<div class="d-row"><span class="d-label">' + (s.eng.type||'英语') + '</span><span class="d-val">' + s.eng.score + '</span></div>';
+    html += '<div class="d-row"><span class="d-label">计算机</span><span class="d-val">' + s.computer + '</span></div>';
+  }
+  html += '<div class="d-row"><span class="d-label">总分</span><span class="d-val score">' + getTotal(it) + '<span class="d-su">/400分</span></span></div>';
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('detailMask').classList.add('on');
 }
-function closeDetail() {
-  document.getElementById('detailMask').classList.remove('on');
-  currentDetailId = null;
-}
-function editCurrent() {
-  if (!currentDetailId) return;
-  closeDetail();
-  openForm(currentDetailId);
-}
+function closeDetail() { document.getElementById('detailMask').classList.remove('on'); currentDetailId = null; }
+function editCurrent() { if (!currentDetailId) return; closeDetail(); openForm(currentDetailId); }
 
-/* ===== 删除（二次确认） ===== */
-function askDelete() {
-  if (!currentDetailId) return;
-  closeDetail();
-  document.getElementById('confirmMask').classList.add('on');
-}
-function closeConfirm() {
-  document.getElementById('confirmMask').classList.remove('on');
-}
+/* ===== 删除 ===== */
+function askDelete() { if (!currentDetailId) return; closeDetail(); document.getElementById('confirmMask').classList.add('on'); }
+function closeConfirm() { document.getElementById('confirmMask').classList.remove('on'); }
 function doDelete() {
   var arr = loadScores().filter(function(x){ return x.id !== currentDetailId; });
   saveScores(arr);
   closeConfirm();
-  renderOverview();
-  renderList();
+  render();
   showToast('已删除该成绩');
   currentDetailId = null;
 }
 
+/* ===== 报考查询（第3步实装，先占位） ===== */
+function openQueryPage() { showToast('报考查询功能即将上线'); }
+
 /* ===== 工具 ===== */
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -527,11 +704,8 @@ function showToast(msg) {
   t._tid = setTimeout(function(){ t.classList.remove('show'); }, 1600);
 }
 
-/* ===== 返回：通知题库收起二级层 ===== */
-/* 页头标题/返回由总壳 appbar 统一承担 */
-
 /* ===== 初始化 ===== */
-renderList();
+render();
 </script>
 
 </body>
