@@ -66,24 +66,29 @@ body {
 .target-card.unset .target-school { color: var(--text-secondary); }
 .target-card.unset .target-desc { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
 
-/* ===== ② 最近一次总分卡（一级重点，主色渐变） ===== */
+/* ===== ② 最近一次总分卡（一级重点，蓝色渐变，PM 2026-09-08 优化）===== */
 .latest-card {
-  background: linear-gradient(135deg, #5B72F5 0%, #6B8AFF 100%);
+  background: linear-gradient(160deg, #4A65E8 0%, #5B72F5 45%, #6E86F7 100%);
   color: #fff;
   position: relative;
   overflow: hidden;
+  border-radius: 16px;
+  padding: 17px;
 }
-.latest-head { font-size: 12px; opacity: 0.85; margin-bottom: 8px; }
-.latest-main { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
-.latest-score { font-size: 36px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.latest-score .unit { font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 2px; }
-.latest-meta { display: flex; align-items: baseline; gap: 10px; font-size: 13px; font-weight: 600; }
-.latest-gap { opacity: 0.95; }
-.latest-gap.over { color: #B8F5D0; }
+.latest-card::before {
+  content: ''; position: absolute; top: -40px; right: -30px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+.latest-head { font-size: 16px; font-weight: 600; opacity: 0.9; margin-bottom: 14px; }
+.latest-main { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.latest-score { font-size: 31px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.latest-score .unit { font-size: 14px; font-weight: 500; opacity: 0.78; margin-left: 3px; }
+.latest-trend { font-size: 13px; font-weight: 500; opacity: 0.88; flex-shrink: 0; }
+.latest-gap { font-size: 13px; font-weight: 500; opacity: 0.92; margin-top: 10px; }
+.latest-gap.over { color: #C8F5D8; }
 .latest-gap.lack { color: #FFD8A8; }
-.latest-trend { font-size: 11px; font-weight: 500; opacity: 0.75; }
-.latest-trend.up { }
-.latest-trend.down { }
 
 /* ===== ③ 总分趋势图 ===== */
 .trend-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -574,35 +579,36 @@ function renderTargetCard() {
     + '</div>';
 }
 
-/* ② 最近一次总分卡（PM 2026-09-08）：对标目标线三态，目标对比移到总分同行 */
+/* ② 最近一次总分卡（PM 2026-09-08 优化）：蓝色渐变，标题/大分数+同行趋势/下一行目标对比 */
 function renderLatestCard(arr) {
   var latest = arr[0];
   var total = getTotal(latest);
-  /* 趋势：较上次，字略小 */
+  /* 趋势：↑ 较上次 +58（与主成绩同行，右侧） */
   var trendHtml = '';
   if (arr.length >= 2) {
     var diff = total - getTotal(arr[1]);
-    if (diff >= 0) trendHtml = '<span class="latest-trend up">↑ +' + diff + ' 较上次</span>';
-    else trendHtml = '<span class="latest-trend down">↓ ' + diff + ' 较上次</span>';
+    if (diff >= 0) trendHtml = '<span class="latest-trend">↑ 较上次 +' + diff + '</span>';
+    else trendHtml = '<span class="latest-trend">↓ 较上次 ' + diff + '</span>';
   } else {
     trendHtml = '<span class="latest-trend">首次记录</span>';
   }
-  /* 目标对比三态：目标332 ↑58 / 目标405 ↓15 / 未设 */
+  /* 目标对比：较目标录取线 +64（下一行，与分数左对齐） */
   var t = loadTarget();
   var gapHtml = '';
   if (t && t.score) {
     var gap = total - t.score;
-    if (gap >= 0) gapHtml = '<span class="latest-gap over">目标' + t.score + ' ↑' + gap + '</span>';
-    else gapHtml = '<span class="latest-gap lack">目标' + t.score + ' ↓' + (-gap) + '</span>';
+    if (gap >= 0) gapHtml = '<div class="latest-gap over">较目标录取线 +' + gap + '</div>';
+    else gapHtml = '<div class="latest-gap lack">较目标录取线 ' + gap + '</div>';
   } else {
-    gapHtml = '<span class="latest-gap">未设目标</span>';
+    gapHtml = '<div class="latest-gap">尚未设置目标院校</div>';
   }
   return '<div class="sec-card latest-card">'
     + '<div class="latest-head">最近一次总分</div>'
     + '<div class="latest-main">'
     +   '<div class="latest-score">' + total + '<span class="unit">/ 400分</span></div>'
-    +   '<div class="latest-meta">' + gapHtml + trendHtml + '</div>'
+    +   trendHtml
     + '</div>'
+    + gapHtml
     + '</div>';
 }
 
