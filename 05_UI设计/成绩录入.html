@@ -190,8 +190,6 @@ body {
 .score-cell:focus-within { border-color: var(--primary); background: #fff; }
 .cell-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .sub-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.sub-name.sub-clickable { color: var(--primary); padding: 2px 8px; margin: -2px -8px; border-radius: 5px; background: var(--primary-light); cursor: pointer; }
-.sub-name.sub-clickable:active { opacity: .7; }
 .sub-switch {
   font-size: 10.5px; color: var(--primary); cursor: pointer;
   padding: 2px 7px; border-radius: 4px; background: var(--primary-light); font-weight: 600;
@@ -392,7 +390,7 @@ body {
             </div>
           </div>
           <div class="score-cell">
-            <div class="cell-head"><span class="sub-name sub-clickable" id="fMathLabel" onclick="switchMathType()">数学一</span></div>
+            <div class="cell-head"><span class="sub-name" id="fMathLabel">数学一</span><span class="sub-switch" onclick="switchMathType()">切换</span></div>
             <div class="cell-input-row">
               <input type="text" inputmode="numeric" id="fMath" placeholder="0" oninput="calcTotal()" />
               <span class="full-mark">/100</span>
