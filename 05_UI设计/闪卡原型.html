@@ -1544,12 +1544,10 @@
     background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06));
     border: 2.5px solid rgba(239,68,68,0.35);
   }
-  /* 上滑收藏遮罩（主色，PM 2026-09-07）：顶部对齐，提示从上方渐亮 */
+  /* 上滑收藏遮罩（主色，PM 2026-09-07）：垂直居中，提示居中渐亮 */
   .swipe-overlay.top {
     background: linear-gradient(180deg, rgba(91,114,245,0.18), rgba(91,114,245,0.04));
     border: 2.5px solid rgba(91,114,245,0.38);
-    align-items: flex-start;
-    padding-top: 38px;
   }
   .swipe-overlay.top .swipe-label { color: var(--primary); }
   /* 正面导航反馈（未翻转：左滑上一张 / 右滑下一张，蓝色系与标记操作区分） */
@@ -1591,11 +1589,13 @@
   .prev-btn:active:not(:disabled) { transform: scale(0.94); }
   .prev-btn:disabled { opacity: 0.3; cursor: default; }
   .prev-btn svg { width: 15px; height: 15px; stroke: var(--text-secondary); }
-  /* 底部导航收藏按钮（PM 2026-09-07）：↑箭头图标，已收藏→主色填充高亮 */
-  .prev-btn.nav-fav { width: 32px; padding: 0; justify-content: center; background: rgba(255,255,255,0.85); }
-  .prev-btn.nav-fav svg { width: 17px; height: 17px; stroke: var(--text-secondary); transition: stroke .15s ease; }
+  /* 底部导航收藏按钮（PM 2026-09-07）：↑图标+「收藏」文字，已收藏→主色高亮 */
+  .prev-btn.nav-fav { padding: 0 14px; gap: 5px; background: rgba(255,255,255,0.85); }
+  .prev-btn.nav-fav svg { width: 14px; height: 14px; stroke: var(--text-secondary); transition: stroke .15s ease; }
+  .prev-btn.nav-fav span { font-size: 13px; font-weight: 600; color: var(--text-secondary); transition: color .15s ease; }
   .prev-btn.nav-fav.on { background: rgba(91,114,245,0.12); }
   .prev-btn.nav-fav.on svg { stroke: var(--primary); fill: rgba(91,114,245,0.2); }
+  .prev-btn.nav-fav.on span { color: var(--primary); }
 
   /* 收藏按钮（mock 态：仅切换图标 + Toast，不落库；演示用）
      放卡片右上角，正反各一个，与顽固角标同层（backface-visibility 翻卡时只显示当前面）
@@ -2713,7 +2713,7 @@
         </svg>
         上一张
       </button>
-      <button class="prev-btn nav-fav" id="navFav" onclick="event.stopPropagation();toggleFav()" title="收藏"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      <button class="prev-btn nav-fav" id="navFav" onclick="event.stopPropagation();toggleFav()" title="收藏"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>收藏</span></button>
       <button class="prev-btn" id="nextBtn" disabled>
         下一张
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3847,6 +3847,7 @@ var hasMoved = false;
 var touchStarted = false;
 var SWIPE_THRESHOLD = 80;
 var EDGE_THRESHOLD = 170;   // 卡片拖到侧边（移出卡片区约 50%）立即判定，无需松手
+var HINT_THRESHOLD = 50;    // 遮罩文字渐显阈值（PM 2026-09-08）：拖动 50px 遮罩满亮，提交判定仍 80
 var autoCommitted = false;  // 侧边已自动提交标记，防止重复提交
 var frontDrag = false;      // 正面（未翻转）导航拖拽中：左滑上一张 / 右滑下一张
 var upDrag = false;         // 上滑收藏拖拽中（正反两面通用，PM 2026-09-07）
@@ -4223,9 +4224,10 @@ function onTouchMove(e) {
       refreshOverlayLabels();
     }
     e.preventDefault();
-    dragOffsetY = dy;
-    /* 卡片仅上移，不旋转（收藏是轻量提示动作） */
-    card.style.transform = 'translateY(' + dy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
+    dragOffsetY = Math.max(dy, -60);
+    /* 卡片仅上移，不旋转（收藏是轻量提示动作）；上移钳制 -60px，遮罩满亮后卡片不再顶出（PM 2026-09-08） */
+    var _clampedDy = Math.max(dy, -60);
+    card.style.transform = 'translateY(' + _clampedDy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
     updateOverlays(0, dy);
     return;
   }
@@ -4332,8 +4334,9 @@ function onMouseMove(e) {
       card.classList.add('dragging');
       refreshOverlayLabels();
     }
-    dragOffsetY = dy;
-    card.style.transform = 'translateY(' + dy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
+    dragOffsetY = Math.max(dy, -60);
+    var _clampedDy = Math.max(dy, -60);
+    card.style.transform = 'translateY(' + _clampedDy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
     updateOverlays(0, dy);
     return;
   }
@@ -4399,15 +4402,15 @@ function updateOverlays(dx, dy) {
   dy = dy || 0;
   var upDominant = (dy < 0 && Math.abs(dy) > Math.abs(dx));
   if (upDominant) {
-    if (overlayTop) overlayTop.style.opacity = Math.min(-dy / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayTop) overlayTop.style.opacity = Math.min(-dy / HINT_THRESHOLD, 1) * 0.9;
     if (overlayRight) overlayRight.style.opacity = 0;
     if (overlayLeft) overlayLeft.style.opacity = 0;
   } else if (dx > 0) {
-    if (overlayRight) overlayRight.style.opacity = Math.min(dx / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayRight) overlayRight.style.opacity = Math.min(dx / HINT_THRESHOLD, 1) * 0.9;
     if (overlayLeft) overlayLeft.style.opacity = 0;
     if (overlayTop) overlayTop.style.opacity = 0;
   } else if (dx < 0) {
-    if (overlayLeft) overlayLeft.style.opacity = Math.min(-dx / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayLeft) overlayLeft.style.opacity = Math.min(-dx / HINT_THRESHOLD, 1) * 0.9;
     if (overlayRight) overlayRight.style.opacity = 0;
     if (overlayTop) overlayTop.style.opacity = 0;
   } else {
