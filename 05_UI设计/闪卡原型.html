@@ -543,6 +543,69 @@
   .sc-cta:active { transform: scale(.98); }
   .sc-cta span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
 
+  /* ========================= 演示入口（PM 2026-09-08：假按钮，直接灌演示数据进二级页面，便于演示顽固考点列表） ========================= */
+  .demo-weak-btn {
+    margin: 12px 6px 0;
+    padding: 10px 14px;
+    border: 1px dashed #B8C0E0;
+    border-radius: 10px;
+    background: #F0F3FF;
+    color: #5B72F5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .demo-weak-btn:active { background: #E4EAFB; }
+
+  /* ========================= 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） ========================= */
+  .weak-overlay {
+    position: absolute; inset: 0; z-index: 60;
+    background: #F5F6FA; display: none; flex-direction: column;
+    animation: weakIn .2s ease;
+  }
+  .weak-overlay.on { display: flex; }
+  @keyframes weakIn { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .weak-topbar {
+    flex-shrink: 0; height: 48px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 8px 0 4px;
+    background: #fff; border-bottom: 1px solid #F0F1F4;
+  }
+  .weak-back {
+    width: 40px; height: 40px; border: none; background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 50%;
+  }
+  .weak-back:active { background: #F2F3F9; }
+  .weak-back svg { width: 22px; height: 22px; stroke: var(--text-primary); }
+  .weak-topbar-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+  .weak-list {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+  .weak-card {   /* 轻量圆角容器 */
+    background: #fff;
+    border-radius: 14px;
+    padding: 4px 16px;
+    box-shadow: 0 1px 3px rgba(38,48,96,.04);
+  }
+  .weak-row {
+    display: flex; align-items: center;
+    height: 52px;
+    font-size: 14px; cursor: pointer;
+    position: relative;
+  }
+  .weak-row:not(:last-child)::after {   /* 极浅分割线，左右缩进不贯穿 */
+    content: ''; position: absolute; left: 30px; right: 0; bottom: 0;
+    height: 1px; background: #F0F1F4;
+  }
+  .weak-row:active { background: #FAFBFC; border-radius: 8px; }
+  .weak-row .wk-idx { font-size: 11px; color: #B8BCC8; width: 24px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .weak-row .wk-name { font-weight: 500; color: var(--text-primary); flex: 1; margin-left: 10px; }
+  .weak-row .wk-n { font-size: 11px; color: var(--primary); font-weight: 500; margin-right: 8px; }
+  .weak-row .wk-arrow { font-size: 14px; color: #C8CCD6; }
+
   /* ========================= 每日数量设置弹窗（底部上滑 + 遮罩） ========================= */
   .sheet-mask {
     position: absolute; inset: 0;
@@ -2397,6 +2460,9 @@
       <button class="sc-cta" id="studyCta" onclick="continueStudy()">开始刷卡<span>→</span></button>
     </section>
 
+    <!-- 演示入口：假按钮，灌演示数据直接进顽固考点二级页（PM 2026-09-08） -->
+    <button class="demo-weak-btn" onclick="demoOpenWeak()">演示 · 查看全部顽固考点 →</button>
+
     <!-- 全部章节 -->
     <section class="chapter-section">
       <div class="section-header">
@@ -2417,6 +2483,19 @@
     </section>
 
   </main>
+
+  <!-- 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） -->
+  <div class="weak-overlay" id="weakOverlay">
+    <div class="weak-topbar">
+      <button class="weak-back" onclick="closeWeakOverlay()" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <span class="weak-topbar-title">顽固考点</span>
+    </div>
+    <div class="weak-list" id="weakOverlayList"></div>
+  </div>
 
   <!-- 每日学习卡片设置弹窗（底部上滑 + 遮罩） -->
   <div class="sheet-mask" id="settingsMask" onclick="closeSettingsPop()"></div>
@@ -3236,8 +3315,10 @@ function render(){
     + '<span class="ts-sep">·</span>'
     + '<span class="ts-stub">顽固 ×' + stubborn + '</span>';
 
-  /* 行3：顽固考点列表（今日未记住题按三级 topic 聚合，按未记住次数降序，取前3） */
-  var weakPoints = st ? getWeakPoints(st, 3) : [];
+  /* 行3：顽固考点列表（今日未记住题按三级 topic 聚合，按未记住次数降序，取前3）；
+     超过 3 个 → 显前 3 +「+N 展开」入口，点开进入二级全部列表（同错题本 wrong-overlay 口径） */
+  var allWeak = st ? getWeakPoints(st, 100) : [];   /* 全量，供二级页面渲染 */
+  var weakPoints = allWeak.slice(0, 3);             /* 首页只显前 3 */
   var rankHtml = '';
   var idxMark = ['①','②','③'];
   var hasWrong = weakPoints.length > 0 && weakPoints[0].wrong > 0;
@@ -3250,8 +3331,14 @@ function render(){
         + '<span class="rn-cnt">错' + wp.wrong + '次</span>'
         + '</div>';
     }
+    /* 超过 3 个：追加「+N 展开」入口 */
+    var rest = allWeak.length - weakPoints.length;
+    if (rest > 0) {
+      rankHtml += '<div class="rn-more" onclick="openWeakOverlay()">+' + rest + '个展开 ›</div>';
+    }
   }
   getById('scRank').innerHTML = rankHtml;
+  window.__weakAll = allWeak;   /* 供二级页面渲染 */
 
   /* 章节按进度升序（最薄弱排最前 = 学习主次） */
   const sorted = CHAPTERS.slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); });
@@ -3450,6 +3537,50 @@ function render(){
 function continueStudy(){
   /* 默认进入单卡模式；右上角按钮可随时切换列表模式，数据共享 */
   __jump('闪卡单卡模式.html');
+}
+
+/* ============================================================
+   全部顽固考点子视图（PM 2026-09-08：点首页「+N 展开」进入；自带顶栏返回）
+   列全部顽固三级考点降序，点行跳该考点单卡背诵
+   ============================================================ */
+function openWeakOverlay(){
+  var arr = window.__weakAll || [];
+  var html = '<div class="weak-card">';
+  for (var i = 0; i < arr.length; i++) {
+    var r = arr[i];
+    if (r.wrong === 0) break;   /* 只列有未记住的考点 */
+    var idx = (i + 1 < 10 ? '0' : '') + (i + 1);
+    html += '<div class="weak-row" onclick="jumpWeakPoint(\'' + esc(r.chapter||'') + '\',\'' + esc(r.sub||'') + '\',\'' + esc(r.topic||'') + '\')">'
+      + '<span class="wk-idx">' + idx + '</span>'
+      + '<span class="wk-name">' + esc(r.name) + '</span>'
+      + '<span class="wk-n">错' + r.wrong + '次</span>'
+      + '<span class="wk-arrow">›</span>'
+      + '</div>';
+  }
+  html += '</div>';
+  getById('weakOverlayList').innerHTML = html || '<div style="text-align:center;padding:40px 0;color:var(--text-tertiary);font-size:13px;">暂无顽固考点 🎉</div>';
+  getById('weakOverlay').classList.add('on');
+  try { window.parent.postMessage({ type: 'WEAK_OVERLAY', data: { open: true } }, '*'); } catch(e) {}
+}
+function closeWeakOverlay(){
+  getById('weakOverlay').classList.remove('on');
+  try { window.parent.postMessage({ type: 'WEAK_OVERLAY', data: { open: false } }, '*'); } catch(e) {}
+}
+/* 点二级页某考点 → 跳该考点单卡背诵（演示：暂跳单卡模式，后续接考点级队列） */
+function jumpWeakPoint(chapter, sub, topic){
+  __jump('闪卡单卡模式.html?chapter=' + encodeURIComponent(chapter) + '&sub=' + encodeURIComponent(sub) + '&topic=' + encodeURIComponent(topic));
+}
+
+/* 演示：灌入假顽固考点数据，直接打开二级页（PM 2026-09-08，便于演示，无需先刷出未记住） */
+function demoOpenWeak(){
+  window.__weakAll = [
+    { name: '数制及其转换', chapter: '信息与计算机基础知识', sub: '计算机数制与编码概述', topic: '数制及其转换', wrong: 5 },
+    { name: '信息与数据', chapter: '信息与计算机基础知识', sub: '信息与信息技术概述', topic: '信息与数据', wrong: 4 },
+    { name: '计算机的特点及分类', chapter: '信息与计算机基础知识', sub: '计算机发展概述', topic: '计算机的特点及分类', wrong: 3 },
+    { name: '数据结构与算法', chapter: '数据结构', sub: '线性结构', topic: '数据结构与算法', wrong: 3 },
+    { name: '操作系统基础', chapter: '操作系统', sub: '进程管理', topic: '操作系统基础', wrong: 2 }
+  ];
+  openWeakOverlay();
 }
 
 /* ============================================================
