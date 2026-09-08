@@ -10584,18 +10584,28 @@ function filterFromUrl() {
     chapter: getParam('chapter') || '',
     sub: getParam('sub') || '',
     topic: getParam('topic') || '',
-    point: getParam('point') || ''
+    point: getParam('point') || '',
+    status: getParam('status') || ''   /* PM 2026-09-08：按状态筛选 remembered/forgot/stubborn */
   };
 }
 
 /* 过滤状态队列（返回新对象，不改动原状态） */
 function filterState(state, filter) {
-  if (!filter || (!filter.chapter && !filter.sub && !filter.topic && !filter.point)) {
+  if (!filter || (!filter.chapter && !filter.sub && !filter.topic && !filter.point && !filter.status)) {
     return state;
   }
   var q = [];
   for (var i = 0; i < state.queue.length; i++) {
-    if (matchesFilter(state.queue[i], filter)) q.push(state.queue[i]);
+    var c = state.queue[i];
+    /* 状态筛选：按 marked 标记 / forgotCount 顽固判定（PM 2026-09-08） */
+    if (filter.status) {
+      var mk = state.marked[c.key];
+      if (filter.status === 'remembered' && mk !== 'remembered') continue;
+      if (filter.status === 'forgot' && mk !== 'forgot') continue;
+      if (filter.status === 'stubborn' && !(c.forgotCount >= 3)) continue;
+    }
+    if (!matchesFilter(c, filter)) continue;
+    q.push(c);
   }
   return { date: state.date, quota: q.length, queue: q, marked: state.marked };
 }

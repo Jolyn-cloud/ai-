@@ -543,6 +543,48 @@
   .sc-cta:active { transform: scale(.98); }
   .sc-cta span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
 
+  /* ========================= 4 个固定筛选卡（PM 2026-09-08：已记住/未记住/顽固/收藏，实时统计，点击进对应队列） ========================= */
+  .stat-row {
+    display: flex; gap: 8px;
+    margin: 12px 6px 0;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 6px 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(54,66,108,0.05);
+    cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .stat-card:active { transform: scale(.96); }
+  .stat-icon {
+    width: 32px; height: 32px;
+    margin: 0 auto 6px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .stat-num {
+    font-size: 20px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 11px; color: var(--text-tertiary); font-weight: 500;
+    margin-top: 2px;
+  }
+  /* 4 色口径：绿已记住 / 橙未记住 / 红顽固 / 黄收藏（与错题本/章节列表标签色一致） */
+  .sc-remembered .stat-icon { background: #E8F8EF; }
+  .sc-remembered .stat-num { color: var(--success); }
+  .sc-forgot .stat-icon { background: #FFF0E8; }
+  .sc-forgot .stat-num { color: #FF6B35; }
+  .sc-stubborn .stat-icon { background: #FEE8E8; }
+  .sc-stubborn .stat-num { color: var(--danger); }
+  .sc-fav .stat-icon { background: #FFF8E1; }
+  .sc-fav .stat-num { color: #FFB800; }
+
   /* ========================= 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） ========================= */
   .weak-overlay {
     position: absolute; inset: 0; z-index: 60;
@@ -2445,6 +2487,30 @@
       <button class="sc-cta" id="studyCta" onclick="continueStudy()">开始刷卡<span>→</span></button>
     </section>
 
+    <!-- 4 个固定筛选卡：已记住/未记住/顽固/收藏，实时统计，点击进对应队列（PM 2026-09-08） -->
+    <div class="stat-row" id="statRow">
+      <div class="stat-card sc-remembered" onclick="goStatSingle('remembered')">
+        <div class="stat-icon">✓</div>
+        <div class="stat-num" id="statRemembered">0</div>
+        <div class="stat-label">已记住</div>
+      </div>
+      <div class="stat-card sc-forgot" onclick="goStatSingle('forgot')">
+        <div class="stat-icon">✕</div>
+        <div class="stat-num" id="statForgot">0</div>
+        <div class="stat-label">未记住</div>
+      </div>
+      <div class="stat-card sc-stubborn" onclick="goStatSingle('stubborn')">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-num" id="statStubborn">0</div>
+        <div class="stat-label">顽固</div>
+      </div>
+      <div class="stat-card sc-fav" onclick="goFavSingle()">
+        <div class="stat-icon">★</div>
+        <div class="stat-num" id="statFav">0</div>
+        <div class="stat-label">收藏</div>
+      </div>
+    </div>
+
     <!-- 全部章节 -->
     <section class="chapter-section">
       <div class="section-header">
@@ -3322,6 +3388,14 @@ function render(){
   getById('scRank').innerHTML = rankHtml;
   window.__weakAll = allWeak;   /* 供二级页面渲染 */
 
+  /* 4 个固定筛选卡统计（PM 2026-09-08）：已记住/未记住/顽固=今日队列口径，收藏=收藏本全量 */
+  var favCount = 0;
+  try { favCount = (JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]')).length; } catch(e) {}
+  getById('statRemembered').textContent = stats ? stats.remembered : 0;
+  getById('statForgot').textContent = stats ? stats.forgot : 0;
+  getById('statStubborn').textContent = stubborn;
+  getById('statFav').textContent = favCount;
+
   /* 章节按进度升序（最薄弱排最前 = 学习主次） */
   const sorted = CHAPTERS.slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); });
 
@@ -3521,6 +3595,15 @@ function continueStudy(){
   __jump('闪卡单卡模式.html');
 }
 
+/* 4 个固定筛选卡点击：按状态进单卡模式（全卡池筛选，PM 2026-09-08） */
+function goStatSingle(status){
+  __jump('闪卡单卡模式.html?status=' + status);
+}
+/* 收藏卡点击：走 from=fav 注入收藏本队列 */
+function goFavSingle(){
+  __jump('闪卡单卡模式.html?from=fav');
+}
+
 /* ============================================================
    全部顽固考点子视图（PM 2026-09-08：点首页「+N 展开」进入；自带顶栏返回）
    列全部顽固三级考点降序，点行跳该考点单卡背诵
@@ -3680,6 +3763,8 @@ glob.continueStudy = continueStudy;
 glob.openWeakOverlay = openWeakOverlay;
 glob.closeWeakOverlay = closeWeakOverlay;
 glob.jumpWeakPoint = jumpWeakPoint;
+glob.goStatSingle = goStatSingle;
+glob.goFavSingle = goFavSingle;
 glob.closeSettingsPop = closeSettingsPop;
 glob.setPopCount = setPopCount;
 glob.savePopSettings = savePopSettings;
@@ -3725,14 +3810,16 @@ if (location.search.indexOf('from=fav') >= 0) {
     queue: buildFavQueue(_favCards),
     marked: _favToday.marked, markedTime: _favToday.markedTime || {}
   };
-} else if (activeFilter.chapter || activeFilter.sub || activeFilter.topic || activeFilter.point) {
-  /* 全卡池状态：queue = 全部 CARDS，marked 复用当日已标记（同 key 同步） */
+} else if (activeFilter.chapter || activeFilter.sub || activeFilter.topic || activeFilter.point || activeFilter.status) {
+  /* 全卡池状态：queue = 全部 CARDS，marked 复用当日已标记（同 key 同步）；
+     status 按状态筛选（remembered/forgot/stubborn）也走全卡池（PM 2026-09-08） */
   var _today = loadState();
   baseState = {
     date: _today.date,
     quota: CARDS.length,
     queue: buildFullQueue(),
-    marked: _today.marked
+    marked: _today.marked,
+    markedTime: _today.markedTime || {}
   };
 } else {
   baseState = loadState();
@@ -4870,6 +4957,21 @@ getById('nextBtn').addEventListener('click', goNext);
 
 /* ============ 视图启动：外壳 nav() 首启/重入时调用 ============ */
 function _doEnter(f) {
+  /* PM 2026-09-08：页内 __jump 切视图不改 URL，filterFromUrl 读不到新参数；
+     若 nav 传了 filter（如 status=remembered），用它重建 activeFilter + baseState + state */
+  if (f && (f.status || f.chapter || f.sub || f.topic || f.point)) {
+    activeFilter = f;
+    if (f.from === 'fav' || (window.location.search.indexOf('from=fav') >= 0)) {
+      var _favCards = [];
+      try { _favCards = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+      var _favToday = loadState();
+      baseState = { date: _favToday.date, quota: _favCards.length, queue: buildFavQueue(_favCards), marked: _favToday.marked, markedTime: _favToday.markedTime || {} };
+    } else {
+      var _today = loadState();
+      baseState = { date: _today.date, quota: CARDS.length, queue: buildFullQueue(), marked: _today.marked, markedTime: _today.markedTime || {} };
+    }
+    refreshFilter();
+  }
   init();
 }
   glob['__single_enter'] = _doEnter;
