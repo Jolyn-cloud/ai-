@@ -56,13 +56,15 @@ body {
 /* ===== ① 目标卡 ===== */
 .target-card { display: flex; align-items: center; justify-content: space-between; }
 .target-left { flex: 1; min-width: 0; }
-.target-label { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-.target-row { display: flex; align-items: baseline; gap: 8px; }
+.target-label { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
+.target-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.target-row.sub { margin-top: 4px; }
 .target-school { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .target-major { font-size: 12.5px; color: var(--text-secondary); }
-.target-score { font-size: 18px; font-weight: 800; color: var(--warning); font-variant-numeric: tabular-nums; }
-.target-score .su { font-size: 10px; color: var(--text-tertiary); font-weight: 500; margin-left: 1px; }
-.target-arrow { font-size: 20px; color: var(--text-tertiary); line-height: 1; flex-shrink: 0; margin-left: 8px; }
+.target-score { font-size: 20px; font-weight: 800; color: var(--warning); font-variant-numeric: tabular-nums; }
+.target-score .su { font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-left: 1px; }
+.target-score-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
+.target-arrow { font-size: 20px; color: var(--text-tertiary); line-height: 1; flex-shrink: 0; margin-left: 8px; align-self: center; }
 .target-card.unset .target-school { color: var(--text-secondary); }
 .target-card.unset .target-desc { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
 
@@ -563,8 +565,8 @@ function renderTargetCard() {
     return '<div class="sec-card target-card clickable" onclick="openQueryPage()">'
       + '<div class="target-left">'
       +   '<div class="target-label">🎯 我的目标</div>'
-      +   '<div class="target-row"><span class="target-school">' + esc(t.school) + '</span><span class="target-major">' + esc(t.major) + '</span></div>'
-      +   '<div class="target-row"><span class="target-score">' + (t.score||0) + '<span class="su">分</span></span><span class="target-major">最新录取线</span></div>'
+      +   '<div class="target-row"><span class="target-school">' + esc(t.school) + '</span><span class="target-score">' + (t.score||0) + '<span class="su">分</span></span></div>'
+      +   '<div class="target-row sub"><span class="target-major">' + esc(t.major) + '</span><span class="target-score-label">录取分数线</span></div>'
       + '</div>'
       + '<div class="target-arrow">›</div>'
       + '</div>';
