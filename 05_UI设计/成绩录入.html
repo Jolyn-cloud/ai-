@@ -263,6 +263,56 @@ body {
   opacity: 0; transition: opacity .2s ease; pointer-events: none; white-space: nowrap;
 }
 .toast.show { opacity: 1; }
+
+/* ===== 报考查询子页 ===== */
+.query-page {
+  position: fixed; inset: 0; z-index: 150;
+  background: #EDEFF7;
+  display: none; flex-direction: column;
+}
+.query-page.show { display: flex; }
+.query-head {
+  height: 48px; display: flex; align-items: center; justify-content: center;
+  position: relative; background: #fff;
+  border-bottom: 1px solid #EEF0F6; flex-shrink: 0;
+}
+.query-back {
+  position: absolute; left: 14px; font-size: 15px; color: var(--primary);
+  cursor: pointer; display: flex; align-items: center; gap: 2px;
+}
+.query-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.query-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+.query-form-card {
+  margin: 14px 16px 0; background: #fff; border-radius: var(--card-radius);
+  padding: 16px; box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 3px 8px rgba(91,114,245,.05);
+}
+.qfc-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.qfc-title::before { content: ''; width: 3px; height: 14px; background: var(--primary); border-radius: 2px; }
+.query-btn {
+  width: 100%; height: 44px; border-radius: 12px;
+  background: var(--primary); color: #fff; font-size: 15px; font-weight: 600;
+  border: none; cursor: pointer; transition: transform .12s ease;
+}
+.query-btn:active { transform: scale(.98); }
+.qr-title { padding: 16px 20px 8px; font-size: 13px; color: var(--text-tertiary); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.qr-count { color: var(--primary); font-weight: 600; font-size: 12px; }
+.school-card {
+  margin: 0 16px 10px; background: #fff; border-radius: 13px; padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(38,48,96,.04), 0 2px 6px rgba(91,114,245,.04);
+}
+.sc-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.sc-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.sc-major { font-size: 12.5px; color: var(--text-secondary); margin-top: 3px; }
+.sc-score { font-size: 22px; font-weight: 800; color: var(--warning); text-align: right; font-variant-numeric: tabular-nums; }
+.sc-score small { font-size: 10px; color: var(--text-tertiary); font-weight: 500; display: block; }
+.sc-meta { display: flex; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--text-tertiary); }
+.set-target-btn {
+  margin-top: 10px; width: 100%; height: 34px; border-radius: 9px;
+  background: var(--primary-light); color: var(--primary);
+  font-size: 12.5px; font-weight: 600; border: 1px solid #D9E0FB; cursor: pointer; transition: transform .12s ease;
+}
+.set-target-btn:active { transform: scale(.98); }
+.set-target-btn.set { background: var(--primary); color: #fff; border-color: transparent; }
 </style>
 </head>
 <body>
@@ -382,6 +432,29 @@ body {
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 报考查询子页 -->
+<div class="query-page" id="queryPage">
+  <div class="query-head">
+    <span class="query-back" onclick="closeQueryPage()">‹ 返回</span>
+    <span class="query-title">报考查询</span>
+  </div>
+  <div class="query-content">
+    <div class="query-form-card">
+      <div class="qfc-title">输入你的专科信息</div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <div class="form-label">专科院校 <span class="req">*</span></div>
+        <select class="form-select" id="collegeSelect" onchange="onCollegeChange()"></select>
+      </div>
+      <div class="form-row" style="margin-bottom:14px;">
+        <div class="form-label">专科专业 <span class="req">*</span></div>
+        <select class="form-select" id="majorSelect"></select>
+      </div>
+      <button class="query-btn" onclick="doQuery()">查询可报考院校</button>
+    </div>
+    <div id="queryResultArea"></div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -744,8 +817,130 @@ function doDelete() {
   currentDetailId = null;
 }
 
-/* ===== 报考查询（第3步实装，先占位） ===== */
-function openQueryPage() { showToast('报考查询功能即将上线'); }
+/* ===== 报考查询（PM 2026-09-08）：专科院校→专科专业→查询→设目标 ===== */
+/* mock 院校对照表（参考 Demo，等甲方真实数据替换） */
+var COLLEGES = [
+  { name: '山东商业职业技术学院', majors: ['计算机应用技术','软件技术','大数据技术','会计','市场营销'] },
+  { name: '日照职业技术学院', majors: ['计算机应用技术','软件技术','计算机网络技术','建筑工程技术'] },
+  { name: '青岛职业技术学院', majors: ['软件技术','计算机应用技术','旅游管理','电子商务'] },
+  { name: '威海职业学院', majors: ['计算机应用技术','软件技术','机械制造及自动化','电气自动化技术'] },
+  { name: '山东职业学院', majors: ['计算机网络技术','软件技术','铁道机车运用与维护','城市轨道交通运营管理'] },
+  { name: '济南职业学院', majors: ['计算机应用技术','软件技术','大数据技术','学前教育'] },
+  { name: '山东科技职业学院', majors: ['计算机应用技术','软件技术','纺织服装类','机械制造及自动化'] },
+  { name: '淄博职业学院', majors: ['计算机应用技术','软件技术','护理','会计'] }
+];
+var CS_PROGRAMS = [
+  { school: '山东师范大学', major: '计算机科学与技术', score: 332, plan: 120, degree: '公办一本', highScore: 358 },
+  { school: '青岛大学', major: '计算机科学与技术', score: 318, plan: 150, degree: '公办一本', highScore: 345 },
+  { school: '山东科技大学', major: '计算机科学与技术', score: 305, plan: 180, degree: '公办一本', highScore: 338 },
+  { school: '济南大学', major: '计算机科学与技术', score: 298, plan: 160, degree: '公办一本', highScore: 330 },
+  { school: '齐鲁工业大学', major: '计算机科学与技术', score: 288, plan: 200, degree: '公办一本', highScore: 320 },
+  { school: '山东建筑大学', major: '计算机科学与技术', score: 278, plan: 140, degree: '公办一本', highScore: 310 },
+  { school: '山东理工大学', major: '计算机科学与技术', score: 275, plan: 170, degree: '公办一本', highScore: 305 },
+  { school: '烟台大学', major: '计算机科学与技术', score: 268, plan: 130, degree: '公办一本', highScore: 298 },
+  { school: '聊城大学', major: '计算机科学与技术', score: 260, plan: 150, degree: '公办二本', highScore: 290 },
+  { school: '临沂大学', major: '计算机科学与技术', score: 255, plan: 160, degree: '公办二本', highScore: 285 },
+  { school: '山东交通学院', major: '计算机科学与技术', score: 245, plan: 120, degree: '公办二本', highScore: 275 },
+  { school: '潍坊学院', major: '计算机科学与技术', score: 240, plan: 140, degree: '公办二本', highScore: 270 },
+  { school: '山东青年政治学院', major: '计算机科学与技术', score: 225, plan: 100, degree: '公办二本', highScore: 255 },
+  { school: '山东协和学院', major: '计算机科学与技术', score: 180, plan: 300, degree: '民办本科', highScore: 230 },
+  { school: '齐鲁理工学院', major: '计算机科学与技术', score: 175, plan: 280, degree: '民办本科', highScore: 225 }
+];
+var OTHER_PROGRAMS = {
+  '会计': [
+    { school: '山东财经大学燕山学院', major: '会计学', score: 268, plan: 200, degree: '独立学院', highScore: 300 },
+    { school: '济南大学泉城学院', major: '会计学', score: 235, plan: 180, degree: '独立学院', highScore: 270 },
+    { school: '山东英才学院', major: '会计学', score: 180, plan: 250, degree: '民办本科', highScore: 230 }
+  ],
+  '市场营销': [
+    { school: '山东管理学院', major: '市场营销', score: 245, plan: 120, degree: '公办二本', highScore: 275 },
+    { school: '山东青年政治学院', major: '市场营销', score: 230, plan: 100, degree: '公办二本', highScore: 260 },
+    { school: '山东英才学院', major: '市场营销', score: 175, plan: 200, degree: '民办本科', highScore: 220 }
+  ],
+  'default': [
+    { school: '山东女子学院', major: '相关专业', score: 240, plan: 100, degree: '公办二本', highScore: 270 },
+    { school: '山东青年政治学院', major: '相关专业', score: 225, plan: 120, degree: '公办二本', highScore: 255 },
+    { school: '山东协和学院', major: '相关专业', score: 175, plan: 200, degree: '民办本科', highScore: 220 }
+  ]
+};
+function getPrograms(major) {
+  if (['计算机应用技术','软件技术','计算机网络技术','大数据技术'].indexOf(major) >= 0) return CS_PROGRAMS;
+  return OTHER_PROGRAMS[major] || OTHER_PROGRAMS['default'];
+}
+
+var queryCollegeIdx = '';
+var queryMajor = '';
+
+function openQueryPage() {
+  var page = document.getElementById('queryPage');
+  if (!page) return;
+  initCollegeSelect();
+  document.getElementById('queryResultArea').innerHTML = '';
+  page.classList.add('show');
+}
+function closeQueryPage() {
+  document.getElementById('queryPage').classList.remove('show');
+}
+function initCollegeSelect() {
+  var sel = document.getElementById('collegeSelect');
+  sel.innerHTML = '<option value="">请选择专科院校</option>' +
+    COLLEGES.map(function(c, i){ return '<option value="' + i + '">' + c.name + '</option>'; }).join('');
+  document.getElementById('majorSelect').innerHTML = '<option value="">请先选择院校</option>';
+}
+function onCollegeChange() {
+  var sel = document.getElementById('collegeSelect');
+  var majorSel = document.getElementById('majorSelect');
+  if (sel.value === '') {
+    majorSel.innerHTML = '<option value="">请先选择院校</option>';
+    return;
+  }
+  var college = COLLEGES[parseInt(sel.value)];
+  majorSel.innerHTML = '<option value="">请选择专科专业</option>' +
+    college.majors.map(function(m){ return '<option value="' + m + '">' + m + '</option>'; }).join('');
+}
+function doQuery() {
+  var collegeIdx = document.getElementById('collegeSelect').value;
+  var major = document.getElementById('majorSelect').value;
+  if (collegeIdx === '') { showToast('请选择专科院校'); return; }
+  if (major === '') { showToast('请选择专科专业'); return; }
+  queryCollegeIdx = collegeIdx;
+  queryMajor = major;
+  var programs = getPrograms(major).slice().sort(function(a,b){ return b.score - a.score; });
+  var area = document.getElementById('queryResultArea');
+  var html = '<div class="qr-title"><span>可报考院校（' + programs.length + '所）</span><span class="qr-count">按分数线排序</span></div>';
+  programs.forEach(function(p, i) {
+    var t = loadTarget();
+    var isSet = t && t.school === p.school && t.major === p.major;
+    html += '<div class="school-card">'
+      + '<div class="sc-top"><div><div class="sc-name">' + esc(p.school) + '</div>'
+      +   '<div class="sc-major">' + esc(p.major) + '</div></div>'
+      +   '<div class="sc-score">' + p.score + '<small>最新录取线</small></div></div>'
+      + '<div class="sc-meta"><span>🏛 ' + esc(p.degree) + '</span><span>📋 计划 ' + p.plan + '人</span></div>'
+      + '<button class="set-target-btn ' + (isSet ? 'set' : '') + '" onclick="setTarget(' + i + ')">'
+      +   (isSet ? '✓ 已设为目标' : '🎯 设为目标专业') + '</button>'
+      + '</div>';
+  });
+  area.innerHTML = html;
+  area.scrollTop = 0;
+}
+function setTarget(idx) {
+  var programs = getPrograms(queryMajor).slice().sort(function(a,b){ return b.score - a.score; });
+  var p = programs[idx];
+  var t = loadTarget();
+  if (t && t.school === p.school && t.major === p.major) {
+    saveTarget(null);
+    showToast('已取消目标');
+  } else {
+    var college = COLLEGES[parseInt(queryCollegeIdx)];
+    saveTarget({ school: p.school, major: p.major, score: p.score, college: college.name, collegeMajor: queryMajor });
+    showToast('已设为目标：' + p.school);
+  }
+  doQuery();
+  render();
+  if (loadScores().length > 0) {
+    /* 有数据时趋势图也需刷新目标虚线（第4步） */
+  }
+}
 
 /* ===== 工具 ===== */
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
