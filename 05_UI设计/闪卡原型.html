@@ -3796,14 +3796,16 @@ function getById(id) { return ROOT.querySelector('#' + id); }
 var activeFilter = filterFromUrl();
 var baseState;
 if (location.search.indexOf('from=fav') >= 0) {
-  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额（PM 2026-09-07） */
+  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额。
+     队列独立（收藏题），但 marked/markedTime 复用当日 state，与闪卡 tab 标记互通（PM 2026-09-07） */
   var _favCards = [];
   try { _favCards = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+  var _favToday = loadState();
   baseState = {
-    date: todayStr(),
+    date: _favToday.date,
     quota: _favCards.length,
     queue: buildFavQueue(_favCards),
-    marked: {}, markedTime: {}
+    marked: _favToday.marked, markedTime: _favToday.markedTime || {}
   };
 } else if (activeFilter.chapter || activeFilter.sub || activeFilter.topic || activeFilter.point) {
   /* 全卡池状态：queue = 全部 CARDS，marked 复用当日已标记（同 key 同步） */
@@ -4525,7 +4527,12 @@ function commitCard(result) {
 
   /* 走共享数据层：标记 + 答未记住时补的重复卡塞回队尾（当天重现） */
   markCard(baseState, cardData.key, result);
-  saveState(baseState);
+  /* from=fav 模式：队列独立（收藏题），只把标记 merge 回当日 state，不覆盖当日队列（PM 2026-09-07） */
+  if (location.search.indexOf('from=fav') >= 0) {
+    mergeMarkedToToday(baseState.marked, baseState.markedTime);
+  } else {
+    saveState(baseState);
+  }
   refreshFilter();  // 未记住产生的副本需要进入过滤视图
 
   dragStart = null;
@@ -4887,8 +4894,22 @@ function restart() {
   clearSessionStart();
   historyRecorded = false;  // 新一轮允许重新记录历史
   clearResultRecorded();
-  baseState = newState();   // 生成全新当天状态（跨天 forgotCount 保留在卡片上）
-  saveState(baseState);
+  if (location.search.indexOf('from=fav') >= 0) {
+    /* 收藏本「再背一轮」：重建收藏队列，标记复用当日 state，不动闪卡 tab 当日队列（PM 2026-09-07） */
+    var _fc = [];
+    try { _fc = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+    var _ft = loadState();
+    baseState = {
+      date: _ft.date,
+      quota: _fc.length,
+      queue: buildFavQueue(_fc),
+      marked: _ft.marked, markedTime: _ft.markedTime || {}
+    };
+    mergeMarkedToToday(baseState.marked, baseState.markedTime);
+  } else {
+    baseState = newState();   // 生成全新当天状态（跨天 forgotCount 保留在卡片上）
+    saveState(baseState);
+  }
   refreshFilter();
   init();
 }
@@ -4957,14 +4978,16 @@ function getById(id) { return ROOT.querySelector('#' + id); }
 var listEl = getById('listScroll');
 var baseState;
 if (location.search.indexOf('from=fav') >= 0) {
-  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额（PM 2026-09-07） */
+  /* 收藏本「继续练闪卡」注入：读 zsb_fav_flash_v1 转队列，不走当日配额。
+     队列独立（收藏题），但 marked/markedTime 复用当日 state，与闪卡 tab 标记互通（PM 2026-09-07） */
   var _favCardsL = [];
   try { _favCardsL = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+  var _favTodayL = loadState();
   baseState = {
-    date: todayStr(),
+    date: _favTodayL.date,
     quota: _favCardsL.length,
     queue: buildFavQueue(_favCardsL),
-    marked: {}, markedTime: {}
+    marked: _favTodayL.marked, markedTime: _favTodayL.markedTime || {}
   };
 } else {
   baseState = loadState();
@@ -5237,7 +5260,12 @@ listEl.addEventListener('click', function(e) {
     var cardTop = cardEl.offsetTop;
 
     markCard(baseState, key, result);
-    saveState(baseState);
+    /* from=fav 模式：只 merge 标记回当日 state，不覆盖当日队列（PM 2026-09-07） */
+    if (location.search.indexOf('from=fav') >= 0) {
+      mergeMarkedToToday(baseState.marked, baseState.markedTime);
+    } else {
+      saveState(baseState);
+    }
     renderList();                            // 重新渲染：该卡置灰折叠，副本（未记住）出现在队尾
 
     /* 定位到「下一张未回答的题」：让它出现在刚标记卡原来的位置，连续刷题不跳屏 */
@@ -5456,8 +5484,22 @@ function restart() {
   clearSessionStart();
   historyRecorded = false;   // 新一轮允许重新记录历史
   clearResultRecorded();
-  baseState = newState();                        // 生成全新当天状态（跨天 forgotCount 保留）
-  saveState(baseState);
+  if (location.search.indexOf('from=fav') >= 0) {
+    /* 收藏本「再背一轮」：重建收藏队列，标记复用当日 state，不动闪卡 tab 当日队列（PM 2026-09-07） */
+    var _fcL = [];
+    try { _fcL = JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]'); } catch(e) {}
+    var _ftL = loadState();
+    baseState = {
+      date: _ftL.date,
+      quota: _fcL.length,
+      queue: buildFavQueue(_fcL),
+      marked: _ftL.marked, markedTime: _ftL.markedTime || {}
+    };
+    mergeMarkedToToday(baseState.marked, baseState.markedTime);
+  } else {
+    baseState = newState();                        // 生成全新当天状态（跨天 forgotCount 保留）
+    saveState(baseState);
+  }
   getById('completionScreen').classList.remove('show');
   /* 关闭完成页 → 通知总壳逻辑面板切回原视图 */
   try { window.parent.postMessage({ type: 'POPUP', name: 'completion', open: false }, '*'); } catch(e) {}

@@ -10736,6 +10736,24 @@ function saveState(s) {
 }
 
 /* ------------------------------------------------------------
+   收藏本「继续练」专用：把 marked/markedTime 合并回当日 state，不动 queue/quota
+   场景：from=fav 模式队列独立（收藏题），但标记要与闪卡 tab 互通——
+   只同步标记到当日 state，不覆盖当日队列（PM 2026-09-07）
+   ------------------------------------------------------------ */
+function mergeMarkedToToday(srcMarked, srcMarkedTime) {
+  try {
+    var raw = localStorage.getItem(FLASH_KEY);
+    var s = raw ? JSON.parse(raw) : null;
+    if (!s || s.date !== todayStr()) s = newState();
+    if (!s.marked) s.marked = {};
+    if (!s.markedTime) s.markedTime = {};
+    for (var k in srcMarked) { s.marked[k] = srcMarked[k]; }
+    for (var t in srcMarkedTime) { s.markedTime[t] = srcMarkedTime[t]; }
+    localStorage.setItem(FLASH_KEY, JSON.stringify(s));
+  } catch (e) {}
+}
+
+/* ------------------------------------------------------------
    标记一张卡（result: 'remembered' | 'forgot'）
    未记住 → 该卡累计未记住次数 +1（同 id 副本同步），
            副本塞回队尾当天重现（round+1）

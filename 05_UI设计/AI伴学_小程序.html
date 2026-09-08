@@ -1159,11 +1159,24 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REQ_FLASH_FROM_FAV') {
-    /* 收藏本「继续练闪卡」→ 切闪卡 tab + 跳闪卡原型读 zsb_fav_flash_v1，直达单卡模式（PM 2026-09-07） */
-    switchTab('flash');
+    /* 收藏本「继续练闪卡」→ 直接切闪卡 tab + 设 from=fav URL，不调 switchTab（避免其 URL 重置逻辑清掉 from=fav）（PM 2026-09-07） */
+    closePractice();
+    if (chapterLayerOpen) {
+      var _q = document.getElementById('frame-quiz');
+      if (_q && _q.contentWindow) _q.contentWindow.postMessage({ type: 'CLOSE_CHAPTER' }, '*');
+      chapterLayerOpen = false; chapterLayerSub = '';
+    }
     var favFlash = document.getElementById('frame-flash');
-    if (favFlash && favFlash.contentWindow) {
-      favFlash.contentWindow.location.href = '闪卡原型.html?from=fav&view=single';
+    if (favFlash) {
+      favFlash.setAttribute('src', '闪卡原型.html?from=fav&view=single');
+      TAB_FRAMES.forEach(function(f) {
+        var iframe = document.getElementById('frame-' + f);
+        if (iframe) iframe.classList.toggle('hidden', f !== 'flash');
+        var tab = document.querySelector('.tab-item[data-frame="' + f + '"]');
+        if (tab) tab.classList.toggle('active', f === 'flash');
+      });
+      updateAppbar('flash');
+      updateLogicForTab('flash');
     }
     return;
   }
@@ -1358,6 +1371,17 @@ function updateAppbarUI() {
   if (label) label.textContent = (chapterLayerOpen && camResultOpen) ? '返回' : '退出';
 }
 function switchTab(name) {
+  /* 闪卡 tab：正常切入 → 若 URL 被 from=fav 污染（上次收藏本继续练残留），重置为干净闪卡页（PM 2026-09-07）
+     REQ_FLASH_FROM_FAV 不走 switchTab，故此处重置不会误清收藏本注入 */
+  if (name === 'flash') {
+    try {
+      var _ff = document.getElementById('frame-flash');
+      var _ffSrc = _ff ? _ff.getAttribute('src') : '';
+      if (_ff && _ffSrc && _ffSrc.indexOf('from=fav') >= 0) {
+        _ff.setAttribute('src', '闪卡原型.html');
+      }
+    } catch(e) {}
+  }
   closePractice();       /* 切 tab → 收起做题层（做题页可随时离开） */
   if (chapterLayerOpen) {  /* 切 tab → 收起二级层 */
     var quiz = document.getElementById('frame-quiz');
