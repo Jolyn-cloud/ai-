@@ -1544,6 +1544,14 @@
     background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06));
     border: 2.5px solid rgba(239,68,68,0.35);
   }
+  /* 上滑收藏遮罩（主色，PM 2026-09-07）：顶部对齐，提示从上方渐亮 */
+  .swipe-overlay.top {
+    background: linear-gradient(180deg, rgba(91,114,245,0.18), rgba(91,114,245,0.04));
+    border: 2.5px solid rgba(91,114,245,0.38);
+    align-items: flex-start;
+    padding-top: 38px;
+  }
+  .swipe-overlay.top .swipe-label { color: var(--primary); }
   /* 正面导航反馈（未翻转：左滑上一张 / 右滑下一张，蓝色系与标记操作区分） */
   .swipe-overlay.front-right {
     background: linear-gradient(135deg, rgba(91,114,245,0.12), rgba(91,114,245,0.06));
@@ -3824,6 +3832,7 @@ var isFlipped = false;
 var isAnimating = false;
 var dragStart = null;
 var dragOffsetX = 0;
+var dragOffsetY = 0;       // 上滑拖拽 Y 位移（收藏判定，PM 2026-09-07）
 var mouseDown = false;
 var hasMoved = false;
 var touchStarted = false;
@@ -3831,6 +3840,7 @@ var SWIPE_THRESHOLD = 80;
 var EDGE_THRESHOLD = 170;   // 卡片拖到侧边（移出卡片区约 50%）立即判定，无需松手
 var autoCommitted = false;  // 侧边已自动提交标记，防止重复提交
 var frontDrag = false;      // 正面（未翻转）导航拖拽中：左滑上一张 / 右滑下一张
+var upDrag = false;         // 上滑收藏拖拽中（正反两面通用，PM 2026-09-07）
 var historyRecorded = false; // 本次成果是否已写入历史（防止重复记录）
 
 /* 同一天、同张数的成果只记录一次（持久化，防止刷新/重进后重复写入） */
@@ -3903,8 +3913,10 @@ function frontNavDx(dx) {
 function hideOverlays() {
   var oR = getById('overlayRight');
   var oL = getById('overlayLeft');
+  var oT = getById('overlayTop');
   if (oR) oR.style.opacity = 0;
   if (oL) oL.style.opacity = 0;
+  if (oT) oT.style.opacity = 0;
 }
 
 /* 卡片回弹归位 */
@@ -3923,14 +3935,16 @@ function shakeWarn(card) {
   setTimeout(function() { card.classList.remove('shake-warn'); }, 400);
 }
 
-/* 滑动遮罩文案：背面=已记住/未记住（标记），正面=下一张/上一张（导航） */
+/* 滑动遮罩文案：背面=已记住/未记住/收藏，正面=下一张/上一张/收藏（PM 2026-09-07：正反两面均加上滑收藏） */
 var SVG_OK = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 var SVG_X = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 var SVG_ARROW_R = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
 var SVG_ARROW_L = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>';
+var SVG_ARROW_U = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 function refreshOverlayLabels() {
   var oR = getById('overlayRight');
   var oL = getById('overlayLeft');
+  var oT = getById('overlayTop');
   if (!oR || !oL) return;
   if (isFlipped) {
     oR.className = 'swipe-overlay right';
@@ -3943,6 +3957,8 @@ function refreshOverlayLabels() {
     oR.querySelector('.swipe-label').innerHTML = SVG_ARROW_R + '下一张';
     oL.querySelector('.swipe-label').innerHTML = SVG_ARROW_L + '上一张';
   }
+  /* 上滑收藏标签：正反两面通用 */
+  if (oT) oT.querySelector('.swipe-label').innerHTML = SVG_ARROW_U + '收藏';
 }
 
 /* ============================================================
@@ -4047,6 +4063,10 @@ function renderCard(overrideCard) {
     '<div class="swipe-overlay left" id="overlayLeft">' +
       '<div class="swipe-label"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M18 6L6 18M6 6l12 12"/></svg>未记住</div></div>' +
+    /* 上滑收藏遮罩（正反两面通用，PM 2026-09-07） */
+    '<div class="swipe-overlay top" id="overlayTop">' +
+      '<div class="swipe-label"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M12 19V5M5 12l7-7 7 7"/></svg>☆ 收藏</div></div>' +
 
     /* 正面（问题） */
     '<div class="card-face card-front' + (isStubborn ? ' card-stubborn' : '') + '">' +
@@ -4152,14 +4172,16 @@ function onTouchStart(e) {
   hasMoved = false;
   autoCommitted = false;
   frontDrag = false;
+  upDrag = false;
 
   /* 正反两面都记录起点：
      - 背面（已翻转）：立即进入拖拽（阻止页面滚动）
-     - 正面（未翻转）：先记录，等 touchmove 位移超死区（|dx|>8）后进入导航拖拽，
+     - 正面（未翻转）：先记录，等 touchmove 位移超死区（|dx|>8 或 |dy|>8）后进入拖拽，
        期间不阻止默认行为，保证轻点翻转与页面滚动不受影响 */
   var touch = e.touches[0];
   dragStart = { x: touch.clientX, y: touch.clientY };
   dragOffsetX = 0;
+  dragOffsetY = 0;
 
   if (isFlipped) {
     e.preventDefault();
@@ -4180,14 +4202,41 @@ function onTouchMove(e) {
   var card = getById('activeCard');
   if (!card) return;
 
-  /* 背面拖拽：标记操作（原逻辑不变） */
+  /* ===== 上滑收藏（正反两面通用，PM 2026-09-07）=====
+     主方向判定：dy<0 且 |dy|>|dx| → 上滑。卡片上移 + 收藏遮罩渐亮，
+     过阈值 toggleFav + 回弹（不飞出、不换卡、不翻面） */
+  if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+    /* 进入上滑拖拽：背面已 dragging；正面需补加 */
+    if (!upDrag) {
+      upDrag = true;
+      frontDrag = false;
+      card.classList.add('dragging');
+      refreshOverlayLabels();
+    }
+    e.preventDefault();
+    dragOffsetY = dy;
+    /* 卡片仅上移，不旋转（收藏是轻量提示动作） */
+    card.style.transform = 'translateY(' + dy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
+    updateOverlays(0, dy);
+    return;
+  }
+
+  /* 若此前在 上滑拖拽 但此刻方向转回水平：收尾上滑态（遮罩复位，继续走左右逻辑） */
+  if (upDrag) {
+    upDrag = false;
+    card.classList.remove('dragging');
+    hideOverlays();
+  }
+
+  /* ===== 背面拖拽：标记操作（左未记住 / 右已记住） ===== */
   if (isFlipped) {
     dragOffsetX = dx;
-
-    var rotateZ = dx * 0.05;
+    /* 倾斜方向与正面一致（上角向外）：背面有 rotateY(180deg) 镜像，
+       rotateZ 取 -dx*0.05 抵消镜像，视觉倾斜方向与未翻卡相同（PM 2026-09-07） */
+    var rotateZ = -dx * 0.05;
     card.style.transform = 'translateX(' + dx + 'px) rotateY(180deg) rotateZ(' + rotateZ + 'deg)';
 
-    updateOverlays(dx);
+    updateOverlays(dx, dy);
     e.preventDefault();
 
     /* 拖到侧边：立即判定，无需松手 */
@@ -4199,7 +4248,7 @@ function onTouchMove(e) {
     return;
   }
 
-  /* 正面（未翻转）：横向位移超死区（|dx|>8）→ 进入导航拖拽 */
+  /* ===== 正面（未翻转）：横向位移超死区（|dx|>8）→ 进入导航拖拽 ===== */
   if (!frontDrag) {
     if (Math.abs(dx) > 8) {
       frontDrag = true;
@@ -4214,7 +4263,7 @@ function onTouchMove(e) {
   dragOffsetX = dx;
   var fdx = frontNavDx(dx); /* 边界方向阻尼 */
   card.style.transform = 'translateX(' + fdx + 'px) rotateZ(' + (fdx * 0.05) + 'deg)';
-  updateOverlays(fdx);
+  updateOverlays(fdx, dy);
 }
 
 function onTouchEnd(e) {
@@ -4223,10 +4272,11 @@ function onTouchEnd(e) {
     return;
   }
 
-  /* 正面轻触（未产生拖拽）：交给 click → onCardTap 翻转，避免双重翻转 */
-  if (!frontDrag && !isFlipped) {
+  /* 正面轻触（未产生拖拽且未上滑）：交给 click → onCardTap 翻转，避免双重翻转 */
+  if (!frontDrag && !upDrag && !isFlipped) {
     dragStart = null;
     dragOffsetX = 0;
+    dragOffsetY = 0;
     touchStarted = false;
     return;
   }
@@ -4246,9 +4296,11 @@ function onMouseDown(e) {
   mouseDown = true;
   dragStart = { x: e.clientX, y: e.clientY };
   dragOffsetX = 0;
+  dragOffsetY = 0;
   hasMoved = false;
   autoCommitted = false;
   frontDrag = false;
+  upDrag = false;
 
   e.preventDefault(); /* 阻止文字选中，不影响 click 触发 */
 }
@@ -4257,20 +4309,41 @@ function onMouseMove(e) {
   if (!mouseDown || !dragStart || isAnimating) return;
 
   var dx = e.clientX - dragStart.x;
-  if (Math.abs(dx) > 5) hasMoved = true;
+  var dy = e.clientY - dragStart.y;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
 
   var card = getById('activeCard');
   if (!card) return;
 
-  /* 背面拖拽：标记操作（原逻辑不变） */
+  /* ===== 上滑收藏（正反两面通用，PM 2026-09-07）===== */
+  if (dy < 0 && Math.abs(dy) > Math.abs(dx)) {
+    if (!upDrag) {
+      upDrag = true;
+      frontDrag = false;
+      card.classList.add('dragging');
+      refreshOverlayLabels();
+    }
+    dragOffsetY = dy;
+    card.style.transform = 'translateY(' + dy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
+    updateOverlays(0, dy);
+    return;
+  }
+
+  if (upDrag) {
+    upDrag = false;
+    card.classList.remove('dragging');
+    hideOverlays();
+  }
+
+  /* ===== 背面拖拽：标记操作（左未记住 / 右已记住） ===== */
   if (isFlipped) {
     dragOffsetX = dx;
     card.classList.add('dragging');
-
-    var rotateZ = dx * 0.05;
+    /* 倾斜方向与正面一致（上角向外）：背面 rotateY(180deg) 镜像，rotateZ 取负抵消（PM 2026-09-07） */
+    var rotateZ = -dx * 0.05;
     card.style.transform = 'translateX(' + dx + 'px) rotateY(180deg) rotateZ(' + rotateZ + 'deg)';
 
-    updateOverlays(dx);
+    updateOverlays(dx, dy);
 
     /* 拖到侧边：立即判定，无需松手 */
     if (!autoCommitted && Math.abs(dx) >= EDGE_THRESHOLD) {
@@ -4281,7 +4354,7 @@ function onMouseMove(e) {
     return;
   }
 
-  /* 正面导航拖拽（未翻转）：左滑上一张 / 右滑下一张 */
+  /* ===== 正面导航拖拽（未翻转）：左滑上一张 / 右滑下一张 ===== */
   if (!frontDrag) {
     if (Math.abs(dx) <= 5) return;
     frontDrag = true;
@@ -4292,7 +4365,7 @@ function onMouseMove(e) {
   dragOffsetX = dx;
   var fdx = frontNavDx(dx); /* 边界方向阻尼 */
   card.style.transform = 'translateX(' + fdx + 'px) rotateZ(' + (fdx * 0.05) + 'deg)';
-  updateOverlays(fdx);
+  updateOverlays(fdx, dy);
 }
 
 function onMouseUp(e) {
@@ -4308,19 +4381,30 @@ document.addEventListener('mouseup', onMouseUp);
 /* ============================================================
    更新滑动遮罩
    ============================================================ */
-function updateOverlays(dx) {
+/* 更新滑动遮罩（三方向：左/右/上，PM 2026-09-07）。
+   主方向判定：|dy|>|dx| 且 dy<0 → 上滑收藏遮罩；否则左右遮罩 */
+function updateOverlays(dx, dy) {
   var overlayRight = getById('overlayRight');
   var overlayLeft = getById('overlayLeft');
-
-  if (dx > 0) {
-    overlayRight.style.opacity = Math.min(dx / SWIPE_THRESHOLD, 1) * 0.9;
-    overlayLeft.style.opacity = 0;
+  var overlayTop = getById('overlayTop');
+  dy = dy || 0;
+  var upDominant = (dy < 0 && Math.abs(dy) > Math.abs(dx));
+  if (upDominant) {
+    if (overlayTop) overlayTop.style.opacity = Math.min(-dy / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayRight) overlayRight.style.opacity = 0;
+    if (overlayLeft) overlayLeft.style.opacity = 0;
+  } else if (dx > 0) {
+    if (overlayRight) overlayRight.style.opacity = Math.min(dx / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayLeft) overlayLeft.style.opacity = 0;
+    if (overlayTop) overlayTop.style.opacity = 0;
   } else if (dx < 0) {
-    overlayLeft.style.opacity = Math.min(-dx / SWIPE_THRESHOLD, 1) * 0.9;
-    overlayRight.style.opacity = 0;
+    if (overlayLeft) overlayLeft.style.opacity = Math.min(-dx / SWIPE_THRESHOLD, 1) * 0.9;
+    if (overlayRight) overlayRight.style.opacity = 0;
+    if (overlayTop) overlayTop.style.opacity = 0;
   } else {
-    overlayRight.style.opacity = 0;
-    overlayLeft.style.opacity = 0;
+    if (overlayRight) overlayRight.style.opacity = 0;
+    if (overlayLeft) overlayLeft.style.opacity = 0;
+    if (overlayTop) overlayTop.style.opacity = 0;
   }
 }
 
@@ -4330,7 +4414,7 @@ function updateOverlays(dx) {
 function handleDragEnd() {
   if (!dragStart) return;
   /* 侧边已自动提交，松手时不再重复判定 */
-  if (autoCommitted) { dragStart = null; dragOffsetX = 0; frontDrag = false; return; }
+  if (autoCommitted) { dragStart = null; dragOffsetX = 0; frontDrag = false; upDrag = false; return; }
 
   var card = getById('activeCard');
   if (!card) { dragStart = null; return; }
@@ -4338,8 +4422,19 @@ function handleDragEnd() {
   card.classList.remove('dragging');
 
   var dx = dragOffsetX;
+  var dy = dragOffsetY;
   dragStart = null;
   dragOffsetX = 0;
+  dragOffsetY = 0;
+
+  /* 上滑收藏（正反两面通用，PM 2026-09-07）：过阈值 → 切换收藏 + 回弹（不换卡、不翻面） */
+  if (upDrag && dy < -SWIPE_THRESHOLD) {
+    upDrag = false;
+    toggleFav();
+    bounceCard(card);
+    return;
+  }
+  upDrag = false;
 
   /* 正面导航拖拽：左滑上一张 / 右滑下一张（不标记，跳过的卡之后仍会出现） */
   if (frontDrag && !isFlipped) {
@@ -4485,6 +4580,16 @@ function updateFavBtn() {
     btn.textContent = on ? '★' : '☆';
     btn.classList.toggle('on', !!on);
   });
+}
+/* 收藏切换（单卡 IIFE 内：访问 currentCard + updateFavBtn，PM 2026-09-07 移此）
+   挂 glob 供：① 卡片 onclick ② 上滑手势 ③ 列表模式 共用 */
+function toggleFav(){
+  if (!currentCard) return;
+  var key = currentCard.key;
+  var on = !glob.favSet[key];
+  glob.favSet[key] = on;
+  updateFavBtn();
+  showPopTip(on ? 'success' : 'default', on ? '已收藏至收藏本' : '已取消收藏');
 }
 
 /* ============================================================
@@ -4829,6 +4934,7 @@ glob.studyNav = {
   goPracticeFromWeak: goPracticeFromWeak
 };
 glob.goPracticeFromWeak = goPracticeFromWeak;
+glob.toggleFav = toggleFav;   /* 供卡片 onclick + 上滑手势共用（PM 2026-09-07） */
 })(window);
 })();
 
