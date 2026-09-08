@@ -551,38 +551,31 @@
   .stat-card {
     flex: 1;
     border-radius: 14px;
-    padding: 12px 6px 10px;
+    padding: 14px 6px 12px;
     text-align: center;
     cursor: pointer;
-    transition: transform .1s ease;
+    transition: transform .1s ease, opacity .15s ease;
   }
-  .stat-card:active { transform: scale(.96); }
-  .stat-icon {
-    width: 30px; height: 30px;
-    margin: 0 auto 5px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.65);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-  }
+  .stat-card:active:not(.disabled) { transform: scale(.96); }
+  .stat-card.disabled { cursor: default; opacity: .45; }   /* 数字为0：禁用点击，降低对比 */
   .stat-num {
-    font-size: 20px; font-weight: 800;
+    font-size: 22px; font-weight: 800;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
   }
   .stat-label {
     font-size: 11px; font-weight: 600;
-    margin-top: 2px;
+    margin-top: 3px;
   }
   /* 4 色口径：浅绿已记住 / 浅橙未记住 / 浅红顽固 / 浅黄收藏（卡片底色+文字+数字同色系） */
   .sc-remembered { background: #E8F8EF; }
-  .sc-remembered .stat-num, .sc-remembered .stat-label, .sc-remembered .stat-icon { color: #1E9E6A; }
+  .sc-remembered .stat-num, .sc-remembered .stat-label { color: #1E9E6A; }
   .sc-forgot { background: #FFF0E8; }
-  .sc-forgot .stat-num, .sc-forgot .stat-label, .sc-forgot .stat-icon { color: #E6610F; }
+  .sc-forgot .stat-num, .sc-forgot .stat-label { color: #E6610F; }
   .sc-stubborn { background: #FEE8E8; }
-  .sc-stubborn .stat-num, .sc-stubborn .stat-label, .sc-stubborn .stat-icon { color: #D63232; }
+  .sc-stubborn .stat-num, .sc-stubborn .stat-label { color: #D63232; }
   .sc-fav { background: #FFF8E1; }
-  .sc-fav .stat-num, .sc-fav .stat-label, .sc-fav .stat-icon { color: #C79100; }
+  .sc-fav .stat-num, .sc-fav .stat-label { color: #C79100; }
 
   /* ========================= 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） ========================= */
   .weak-overlay {
@@ -2489,23 +2482,19 @@
 
     <!-- 4 个固定筛选卡：已记住/未记住/顽固/收藏，实时统计，点击进对应队列（PM 2026-09-08） -->
     <div class="stat-row" id="statRow">
-      <div class="stat-card sc-remembered" onclick="goStatSingle('remembered')">
-        <div class="stat-icon">✓</div>
+      <div class="stat-card sc-remembered" id="scRemembered" onclick="goStatSingle('remembered')">
         <div class="stat-num" id="statRemembered">0</div>
         <div class="stat-label">已记住</div>
       </div>
-      <div class="stat-card sc-forgot" onclick="goStatSingle('forgot')">
-        <div class="stat-icon">✕</div>
+      <div class="stat-card sc-forgot" id="scForgot" onclick="goStatSingle('forgot')">
         <div class="stat-num" id="statForgot">0</div>
         <div class="stat-label">未记住</div>
       </div>
-      <div class="stat-card sc-stubborn" onclick="goStatSingle('stubborn')">
-        <div class="stat-icon">🔥</div>
+      <div class="stat-card sc-stubborn" id="scStubborn" onclick="goStatSingle('stubborn')">
         <div class="stat-num" id="statStubborn">0</div>
         <div class="stat-label">顽固</div>
       </div>
-      <div class="stat-card sc-fav" onclick="goFavSingle()">
-        <div class="stat-icon">★</div>
+      <div class="stat-card sc-fav" id="scFav" onclick="goFavSingle()">
         <div class="stat-num" id="statFav">0</div>
         <div class="stat-label">收藏</div>
       </div>
@@ -3388,13 +3377,20 @@ function render(){
   getById('scRank').innerHTML = rankHtml;
   window.__weakAll = allWeak;   /* 供二级页面渲染 */
 
-  /* 4 个固定筛选卡统计（PM 2026-09-08）：已记住/未记住/顽固=今日队列口径，收藏=收藏本全量 */
+  /* 4 个固定筛选卡统计（PM 2026-09-08）：已记住/未记住/顽固=今日队列口径，收藏=收藏本全量；
+     数字为 0 → 加 disabled 禁用点击（无法进入对应闪卡队列），避免空队列报错/无效跳转 */
   var favCount = 0;
   try { favCount = (JSON.parse(localStorage.getItem('zsb_fav_flash_v1') || '[]')).length; } catch(e) {}
-  getById('statRemembered').textContent = stats ? stats.remembered : 0;
-  getById('statForgot').textContent = stats ? stats.forgot : 0;
+  var nRem = stats ? stats.remembered : 0;
+  var nFor = stats ? stats.forgot : 0;
+  getById('statRemembered').textContent = nRem;
+  getById('statForgot').textContent = nFor;
   getById('statStubborn').textContent = stubborn;
   getById('statFav').textContent = favCount;
+  getById('scRemembered').classList.toggle('disabled', !nRem);
+  getById('scForgot').classList.toggle('disabled', !nFor);
+  getById('scStubborn').classList.toggle('disabled', !stubborn);
+  getById('scFav').classList.toggle('disabled', !favCount);
 
   /* 章节按进度升序（最薄弱排最前 = 学习主次） */
   const sorted = CHAPTERS.slice().sort(function(a,b){ return safeNum(a.done) - safeNum(b.done); });
