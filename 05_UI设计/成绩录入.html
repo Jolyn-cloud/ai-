@@ -56,10 +56,12 @@ body {
 /* ===== ① 目标卡 ===== */
 .target-card { display: flex; align-items: center; justify-content: space-between; }
 .target-left { flex: 1; min-width: 0; }
-.target-label { font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-.target-school { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.target-label { font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.target-row { display: flex; align-items: baseline; gap: 8px; }
+.target-school { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .target-major { font-size: 12.5px; color: var(--text-secondary); }
-.target-line { font-size: 12px; color: var(--warning); font-weight: 600; margin-top: 6px; }
+.target-score { font-size: 18px; font-weight: 800; color: var(--warning); font-variant-numeric: tabular-nums; }
+.target-score .su { font-size: 10px; color: var(--text-tertiary); font-weight: 500; margin-left: 1px; }
 .target-arrow { font-size: 20px; color: var(--text-tertiary); line-height: 1; flex-shrink: 0; margin-left: 8px; }
 .target-card.unset .target-school { color: var(--text-secondary); }
 .target-card.unset .target-desc { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
@@ -72,16 +74,16 @@ body {
   overflow: hidden;
 }
 .latest-head { font-size: 12px; opacity: 0.85; margin-bottom: 8px; }
-.latest-main { display: flex; align-items: baseline; justify-content: space-between; }
+.latest-main { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
 .latest-score { font-size: 36px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .latest-score .unit { font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 2px; }
-.latest-trend { font-size: 13px; font-weight: 600; opacity: 0.95; }
+.latest-meta { display: flex; align-items: baseline; gap: 10px; font-size: 13px; font-weight: 600; }
+.latest-gap { opacity: 0.95; }
+.latest-gap.over { color: #B8F5D0; }
+.latest-gap.lack { color: #FFD8A8; }
+.latest-trend { font-size: 11px; font-weight: 500; opacity: 0.75; }
 .latest-trend.up { }
-.latest-trend.down { opacity: 0.8; }
-.latest-target { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.18); font-size: 12.5px; opacity: 0.92; display: flex; align-items: center; justify-content: space-between; }
-.latest-target .gap { font-weight: 700; font-size: 14px; }
-.latest-target .gap.over { color: #B8F5D0; }
-.latest-target .gap.lack { color: #FFD8A8; }
+.latest-trend.down { }
 
 /* ===== ③ 总分趋势图 ===== */
 .trend-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -109,11 +111,11 @@ body {
 .h-total .su { font-size: 11px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
 .h-meta { display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-tertiary); margin-bottom: 10px; }
 .h-meta .tag { padding: 1px 7px; border-radius: 4px; background: var(--primary-light); color: var(--primary); font-weight: 600; font-size: 10.5px; }
-.h-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
-.h-sub { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
-.h-sub .sname { color: var(--text-secondary); }
-.h-sub .sval { font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.h-sub .sname small { color: var(--text-tertiary); font-weight: 400; font-size: 10px; }
+.h-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+.h-sub { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.h-sub .sval { font-size: 17px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.h-sub .sname { font-size: 11px; color: var(--text-tertiary); font-weight: 500; }
+.h-sub + .h-sub { border-left: 1px solid #F0F2F8; }
 
 /* ===== 空状态 ===== */
 .empty {
@@ -188,6 +190,8 @@ body {
 .score-cell:focus-within { border-color: var(--primary); background: #fff; }
 .cell-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .sub-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.sub-name.sub-clickable { color: var(--primary); padding: 2px 8px; margin: -2px -8px; border-radius: 5px; background: var(--primary-light); cursor: pointer; }
+.sub-name.sub-clickable:active { opacity: .7; }
 .sub-switch {
   font-size: 10.5px; color: var(--primary); cursor: pointer;
   padding: 2px 7px; border-radius: 4px; background: var(--primary-light); font-weight: 600;
@@ -216,7 +220,7 @@ body {
 .form-btn.primary:active { background: var(--primary-dark); }
 .form-btn.cancel { background: #fff; color: var(--text-secondary); border: 1px solid #E5E8F0; }
 
-/* ===== 详情浮层（保留） ===== */
+/* ===== 详情浮层（与编辑表单同布局，只读） ===== */
 .detail-mask {
   position: fixed; inset: 0; z-index: 200; background: rgba(20,22,35,.4);
   display: none; align-items: flex-end; justify-content: center;
@@ -224,21 +228,38 @@ body {
 .detail-mask.on { display: flex; }
 .detail-sheet {
   width: 100%; background: #fff; border-radius: 18px 18px 0 0;
-  padding: 16px 16px 28px; animation: fsUp .25s ease; max-height: 80vh; display: flex; flex-direction: column;
+  padding: 16px 16px 28px; animation: fsUp .25s ease; max-height: 85vh; display: flex; flex-direction: column;
 }
 .detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; }
 .detail-title { font-size: 16px; font-weight: 700; }
 .detail-close { font-size: 22px; color: var(--text-tertiary); cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1; }
-.detail-body { flex: 1; overflow-y: auto; }
-.d-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #F0F2F8; }
-.d-row:last-child { border-bottom: none; }
-.d-label { font-size: 13px; color: var(--text-tertiary); font-weight: 500; flex-shrink: 0; }
-.d-val { font-size: 14px; color: var(--text-primary); font-weight: 600; text-align: right; }
-.d-val.score { font-size: 24px; color: var(--primary); font-weight: 800; }
-.d-val .d-su { font-size: 13px; font-weight: 600; color: var(--text-tertiary); margin-left: 1px; }
+.detail-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.detail-body::-webkit-scrollbar { display: none; }
+/* 只读字段：用与表单同结构，input disabled + 纯文本态 */
+.d-field { margin-bottom: 16px; }
+.d-field .form-label { margin-bottom: 6px; }
+.d-val-box {
+  height: 42px; padding: 0 12px; display: flex; align-items: center;
+  border: 1.5px solid #E5E8F0; border-radius: 10px; background: #F7F8FB;
+  font-size: 14px; color: var(--text-primary); font-weight: 600;
+}
+.d-type-show { display: flex; flex-wrap: wrap; gap: 8px; }
+.d-type-show .type-chip { cursor: default; }
+.d-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.d-score-cell {
+  border: 1.5px solid #E5E8F0; border-radius: 10px; padding: 10px 12px; background: #F7F8FB;
+}
+.d-score-cell .cell-head { margin-bottom: 6px; }
+.d-score-cell .d-score-val { display: flex; align-items: baseline; gap: 4px; }
+.d-score-cell .d-score-val .num { font-size: 22px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.d-score-cell .d-score-val .full-mark { font-size: 11px; color: var(--text-tertiary); }
+.d-total-bar { margin-top: 12px; background: var(--primary-light); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+.d-total-bar .tb-label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+.d-total-bar .tb-val { font-size: 26px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+.d-total-bar .tb-val small { font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-left: 1px; }
 .detail-btns { display: flex; gap: 10px; flex-shrink: 0; margin-top: 16px; }
 .detail-btn { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; }
-.detail-btn.edit { background: var(--primary-light); color: var(--primary-dark); }
+.detail-btn.edit { background: var(--primary); color: #fff; }
 .detail-btn.del { background: #FFF1F1; color: var(--danger); }
 
 /* ===== 删除确认 ===== */
@@ -371,7 +392,7 @@ body {
             </div>
           </div>
           <div class="score-cell">
-            <div class="cell-head"><span class="sub-name">数学</span><span class="sub-switch" id="fMathSwitch" onclick="switchMathType()">数一</span></div>
+            <div class="cell-head"><span class="sub-name sub-clickable" id="fMathLabel" onclick="switchMathType()">数学一</span></div>
             <div class="cell-input-row">
               <input type="text" inputmode="numeric" id="fMath" placeholder="0" oninput="calcTotal()" />
               <span class="full-mark">/100</span>
@@ -470,7 +491,7 @@ var TARGET_KEY = 'zsb_target_v1';
 var TYPE_OPTIONS = ['模拟考试','历年真题','学校考试','其他'];
 
 /* 数学类型 / 英语政治 切换态 */
-var MATH_TYPES = ['数一','数二','数三'];
+var MATH_TYPES = ['数学一','数学二','数学三'];
 var formMathIdx = 0;        /* 0=数一 1=数二 2=数三 */
 var formEngType = '英语';   /* '英语' | '政治' */
 
@@ -539,9 +560,8 @@ function renderTargetCard() {
     return '<div class="sec-card target-card clickable" onclick="openQueryPage()">'
       + '<div class="target-left">'
       +   '<div class="target-label">🎯 我的目标</div>'
-      +   '<div class="target-school">' + esc(t.school) + '</div>'
-      +   '<div class="target-major">' + esc(t.major) + '</div>'
-      +   '<div class="target-line">最新录取线 ' + (t.score||0) + '分</div>'
+      +   '<div class="target-row"><span class="target-school">' + esc(t.school) + '</span><span class="target-major">' + esc(t.major) + '</span></div>'
+      +   '<div class="target-row"><span class="target-score">' + (t.score||0) + '<span class="su">分</span></span><span class="target-major">最新录取线</span></div>'
       + '</div>'
       + '<div class="target-arrow">›</div>'
       + '</div>';
@@ -556,10 +576,11 @@ function renderTargetCard() {
     + '</div>';
 }
 
-/* ② 最近一次总分卡（第4步补目标差距，先显总分+趋势） */
+/* ② 最近一次总分卡（PM 2026-09-08）：对标目标线三态，目标对比移到总分同行 */
 function renderLatestCard(arr) {
   var latest = arr[0];
   var total = getTotal(latest);
+  /* 趋势：较上次，字略小 */
   var trendHtml = '';
   if (arr.length >= 2) {
     var diff = total - getTotal(arr[1]);
@@ -568,26 +589,22 @@ function renderLatestCard(arr) {
   } else {
     trendHtml = '<span class="latest-trend">首次记录</span>';
   }
-  /* 目标线对比三态（PM 2026-09-08） */
+  /* 目标对比三态：目标332 ↑58 / 目标405 ↓15 / 未设 */
   var t = loadTarget();
   var gapHtml = '';
   if (t && t.score) {
     var gap = total - t.score;
-    if (gap >= 0) {
-      gapHtml = '<span>目标线 ' + t.score + '</span><span class="gap over">已超过 +' + gap + '</span>';
-    } else {
-      gapHtml = '<span>目标线 ' + t.score + '</span><span class="gap lack">还差 ' + (-gap) + ' 分</span>';
-    }
+    if (gap >= 0) gapHtml = '<span class="latest-gap over">目标' + t.score + ' ↑' + gap + '</span>';
+    else gapHtml = '<span class="latest-gap lack">目标' + t.score + ' ↓' + (-gap) + '</span>';
   } else {
-    gapHtml = '<span>尚未设置目标院校</span><span></span>';
+    gapHtml = '<span class="latest-gap">未设目标</span>';
   }
   return '<div class="sec-card latest-card">'
     + '<div class="latest-head">最近一次总分</div>'
     + '<div class="latest-main">'
     +   '<div class="latest-score">' + total + '<span class="unit">/ 400分</span></div>'
-    +   trendHtml
+    +   '<div class="latest-meta">' + gapHtml + trendHtml + '</div>'
     + '</div>'
-    + '<div class="latest-target">' + gapHtml + '</div>'
     + '</div>';
 }
 
@@ -669,16 +686,16 @@ function scoreCard(it) {
 /* 各科 2×2 网格（兼容旧记录无 subjects） */
 function renderSubGrid(it) {
   if (!it.subjects) {
-    return '<div class="h-grid"><div class="h-sub"><span class="sname">各科</span><span class="sval">—</span></div><div class="h-sub"><span class="sname">详情</span><span class="sval">旧记录</span></div></div>';
+    return '<div class="h-grid"><div class="h-sub"><span class="sval">—</span><span class="sname">旧记录</span></div></div>';
   }
   var s = it.subjects;
   var engName = (s.eng && s.eng.type) || '英语';
   var mathName = '数学' + (s.math && s.math.type ? '·' + s.math.type : '');
   return '<div class="h-grid">'
-    + '<div class="h-sub"><span class="sname">语文</span><span class="sval">' + (s.chinese||0) + '</span></div>'
-    + '<div class="h-sub"><span class="sname">' + mathName + '</span><span class="sval">' + (s.math?s.math.score:0) + '</span></div>'
-    + '<div class="h-sub"><span class="sname">' + engName + '</span><span class="sval">' + (s.eng?s.eng.score:0) + '</span></div>'
-    + '<div class="h-sub"><span class="sname">计算机</span><span class="sval">' + (s.computer||0) + '</span></div>'
+    + '<div class="h-sub"><span class="sval">' + (s.chinese||0) + '</span><span class="sname">语文</span></div>'
+    + '<div class="h-sub"><span class="sval">' + (s.math?s.math.score:0) + '</span><span class="sname">' + mathName + '</span></div>'
+    + '<div class="h-sub"><span class="sval">' + (s.eng?s.eng.score:0) + '</span><span class="sname">' + engName + '</span></div>'
+    + '<div class="h-sub"><span class="sval">' + (s.computer||0) + '</span><span class="sname">计算机</span></div>'
     + '</div>';
 }
 
@@ -714,7 +731,7 @@ function openForm(id) {
     ['fChinese','fMath','fEng','fComputer'].forEach(function(i){ document.getElementById(i).value = ''; });
     pickType('模拟考试');
   }
-  document.getElementById('fMathSwitch').textContent = MATH_TYPES[formMathIdx];
+  document.getElementById('fMathLabel').textContent = MATH_TYPES[formMathIdx];
   document.getElementById('fEngLabel').textContent = formEngType;
   calcTotal();
   document.getElementById('formMask').classList.add('on');
@@ -730,8 +747,8 @@ function pickType(t) {
 
 function switchMathType() {
   formMathIdx = (formMathIdx + 1) % MATH_TYPES.length;
-  document.getElementById('fMathSwitch').textContent = MATH_TYPES[formMathIdx];
-  showToast('数学已切换为 ' + MATH_TYPES[formMathIdx]);
+  document.getElementById('fMathLabel').textContent = MATH_TYPES[formMathIdx];
+  showToast('已切换为 ' + MATH_TYPES[formMathIdx]);
 }
 function switchEngPol() {
   formEngType = (formEngType === '英语' ? '政治' : '英语');
@@ -794,26 +811,46 @@ function saveForm() {
   showToast(editId ? '已更新成绩' : '已录入成绩');
 }
 
-/* ===== 详情 ===== */
+/* ===== 详情（与编辑表单同布局，只读） ===== */
 function openDetail(id) {
   var arr = loadScores();
   var it = arr.filter(function(x){ return x.id === id; })[0];
   if (!it) return;
   currentDetailId = id;
   var html = '';
-  html += '<div class="d-row"><span class="d-label">考试名称</span><span class="d-val">' + esc(it.name||'') + '</span></div>';
-  html += '<div class="d-row"><span class="d-label">考试类型</span><span class="d-val">' + esc(it.type||'') + '</span></div>';
-  html += '<div class="d-row"><span class="d-label">考试日期</span><span class="d-val">' + esc(it.date||'') + '</span></div>';
+  /* 考试名称 */
+  html += '<div class="d-field"><div class="form-label">考试名称</div><div class="d-val-box">' + esc(it.name||'') + '</div></div>';
+  /* 考试日期 */
+  html += '<div class="d-field"><div class="form-label">考试日期</div><div class="d-val-box">' + esc(it.date||'') + '</div></div>';
+  /* 考试类型 */
+  var typeChips = TYPE_OPTIONS.map(function(t){
+    return '<span class="type-chip' + (t === (it.type||'') ? ' on' : '') + '">' + t + '</span>';
+  }).join('');
+  html += '<div class="d-field"><div class="form-label">考试类型</div><div class="d-type-show">' + typeChips + '</div></div>';
+  /* 各科成绩 2×2 */
   if (it.subjects) {
     var s = it.subjects;
-    html += '<div class="d-row"><span class="d-label">语文</span><span class="d-val">' + s.chinese + '</span></div>';
-    html += '<div class="d-row"><span class="d-label">数学·' + (s.math.type||'数一') + '</span><span class="d-val">' + s.math.score + '</span></div>';
-    html += '<div class="d-row"><span class="d-label">' + (s.eng.type||'英语') + '</span><span class="d-val">' + s.eng.score + '</span></div>';
-    html += '<div class="d-row"><span class="d-label">计算机</span><span class="d-val">' + s.computer + '</span></div>';
+    var engName = (s.eng && s.eng.type) || '英语';
+    var mathName = (s.math && s.math.type) || '数学一';
+    html += '<div class="d-field"><div class="form-label">各科成绩</div><div class="d-score-grid">';
+    html += dScoreCell('语文', s.chinese||0);
+    html += dScoreCell(mathName, s.math?s.math.score:0);
+    html += dScoreCell(engName, s.eng?s.eng.score:0);
+    html += dScoreCell('计算机', s.computer||0);
+    html += '</div>';
+    /* 总分条 */
+    html += '<div class="d-total-bar"><div class="tb-label">总分</div><div class="tb-val">' + getTotal(it) + '<small> / 400分</small></div></div>';
+    html += '</div>';
+  } else {
+    /* 旧记录只有 score */
+    html += '<div class="d-field"><div class="form-label">总分</div><div class="d-total-bar"><div class="tb-label">总分</div><div class="tb-val">' + getTotal(it) + '<small> / 400分</small></div></div></div>';
   }
-  html += '<div class="d-row"><span class="d-label">总分</span><span class="d-val score">' + getTotal(it) + '<span class="d-su">/400分</span></span></div>';
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('detailMask').classList.add('on');
+}
+function dScoreCell(name, score) {
+  return '<div class="d-score-cell"><div class="cell-head"><span class="sub-name">' + name + '</span></div>'
+    + '<div class="d-score-val"><span class="num">' + score + '</span><span class="full-mark">/100</span></div></div>';
 }
 function closeDetail() { document.getElementById('detailMask').classList.remove('on'); currentDetailId = null; }
 function editCurrent() { if (!currentDetailId) return; closeDetail(); openForm(currentDetailId); }
