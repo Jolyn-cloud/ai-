@@ -1159,12 +1159,12 @@ window.addEventListener('message', function(evt) {
     return;
   }
   if (d.type === 'REQ_FLASH_FROM_FAV') {
-    /* 收藏本「继续练闪卡」→ 切闪卡 tab + 跳闪卡原型读 zsb_fav_flash_v1（PM 2026-09-07） */
+    /* 收藏本「继续练闪卡」→ 切闪卡 tab + 跳闪卡原型读 zsb_fav_flash_v1，直达单卡模式（PM 2026-09-07） */
     try { sessionStorage.removeItem('favFlashPending'); } catch(e) {}
     switchTab('flash');
     var favFlash = document.getElementById('frame-flash');
     if (favFlash && favFlash.contentWindow) {
-      favFlash.contentWindow.location.href = '闪卡原型.html?from=fav';
+      favFlash.contentWindow.location.href = '闪卡原型.html?from=fav&view=single';
     }
     return;
   }

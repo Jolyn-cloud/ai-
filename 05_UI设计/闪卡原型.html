@@ -3366,7 +3366,10 @@ function initPrototype() {
   if (READY) return;
   READY = true;
   initStatusbar();
-  nav('view-home');
+  /* 收藏本「继续练闪卡」直达单卡：URL 带 view=single 时进单卡，否则默认首页（PM 2026-09-07） */
+  var initView = 'view-home';
+  if (location.search.indexOf('view=single') >= 0) initView = 'view-single';
+  nav(initView);
 }
 
 </script>
