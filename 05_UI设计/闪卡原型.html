@@ -1716,9 +1716,8 @@
     margin-bottom: 14px;
   }
   .comp-section-minor { background: rgba(255,255,255,0.7); box-shadow: none; }   /* 效率区降权 */
-  /* 简版（题量<10）：砍薄弱 TOP5 + 章节掌握度 + 背诵效率，保留 hero+四项+检验背诵+按钮（PM 2026-09-07） */
+  /* 简版（题量<10）：砍薄弱 TOP5 + 背诵效率，保留 hero+四项+章节掌握度+检验背诵+按钮（PM 2026-09-07 改：简洁版也显章节掌握度） */
   .completion-simple .comp-section:has(.weak-list),
-  .completion-simple .comp-section:has(.chapter-dist-list),
   .completion-simple .comp-section-minor { display: none; }
   .comp-section-header {
     display: flex; align-items: center; justify-content: space-between;
