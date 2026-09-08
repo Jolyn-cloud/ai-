@@ -1591,6 +1591,9 @@
   .prev-btn:active:not(:disabled) { transform: scale(0.94); }
   .prev-btn:disabled { opacity: 0.3; cursor: default; }
   .prev-btn svg { width: 15px; height: 15px; stroke: var(--text-secondary); }
+  /* 底部导航收藏按钮（PM 2026-09-07）：正方形圆角，主色高亮 */
+  .prev-btn.nav-fav { width: 32px; padding: 0; justify-content: center; font-size: 16px; color: var(--text-secondary); }
+  .prev-btn.nav-fav.on { color: var(--primary); background: rgba(91,114,245,0.1); }
 
   /* 收藏按钮（mock 态：仅切换图标 + Toast，不落库；演示用）
      放卡片右上角，正反各一个，与顽固角标同层（backface-visibility 翻卡时只显示当前面）
@@ -2700,7 +2703,7 @@
       <div class="card-stack" id="cardStack"><!-- JS 渲染 --></div>
     </div>
 
-    <!-- 上一张 / 下一张导航 -->
+    <!-- 上一张 / 收藏 / 下一张 导航（PM 2026-09-07：正反两面均显收藏按钮） -->
     <div class="prev-nav">
       <button class="prev-btn" id="prevBtn" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2708,6 +2711,7 @@
         </svg>
         上一张
       </button>
+      <button class="prev-btn nav-fav" id="navFav" onclick="event.stopPropagation();toggleFav()" title="收藏">☆</button>
       <button class="prev-btn" id="nextBtn" disabled>
         下一张
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -4579,10 +4583,10 @@ function updateBottomStats() {
   getById('bsForgot').textContent = stats.forgot;
   getById('bsStubborn').textContent = stats.stubborn;
 }
-/* 收藏按钮随当前卡状态刷新（正反两个按钮同步） */
+/* 收藏按钮随当前卡状态刷新（正反两个角标 + 底部导航收藏按钮同步） */
 function updateFavBtn() {
   var on = currentCard && glob.favSet[currentCard.key];
-  ['favFront', 'favBack'].forEach(function(id) {
+  ['favFront', 'favBack', 'navFav'].forEach(function(id) {
     var btn = getById(id);
     if (!btn) return;
     btn.textContent = on ? '★' : '☆';
