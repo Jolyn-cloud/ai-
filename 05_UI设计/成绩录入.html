@@ -505,13 +505,67 @@ function renderLatestCard(arr) {
     + '</div>';
 }
 
-/* ③ 总分趋势（第2步实装 SVG） */
+/* ③ 总分趋势图（PM 2026-09-08）：只画总分折线 + 目标虚线（目标第4步补）
+   未设目标时只画总分折线 + 轻提示；仅1条记录画单点 */
 function renderTrendCard(arr) {
+  var sorted = arr.slice().sort(function(a,b){ return (a.date||'') < (b.date||'') ? -1 : 1; });
+  var t = loadTarget();
+  var legendHtml = '<div class="legend-item"><span class="dot"></span>我的总分</div>';
+  if (t) legendHtml += '<div class="legend-item"><span class="ref"></span>目标录取线</div>';
+  var hintHtml = '';
+  if (!t) hintHtml = '设置目标院校后，可查看与录取线的差距';
   return '<div class="sec-card">'
-    + '<div class="trend-head"><span class="trend-title">总分趋势</span><span class="trend-legend" id="trendLegend"></span></div>'
-    + '<div class="trend-chart-wrap"><svg id="trendSvg" viewBox="0 0 320 150" preserveAspectRatio="none"></svg></div>'
-    + '<div class="trend-hint" id="trendHint"></div>'
+    + '<div class="trend-head"><span class="trend-title">总分趋势</span><span class="trend-legend">' + legendHtml + '</span></div>'
+    + '<div class="trend-chart-wrap">' + buildTrendSvg(sorted, t) + '</div>'
+    + (hintHtml ? '<div class="trend-hint">' + hintHtml + '</div>' : '')
     + '</div>';
+}
+
+/* SVG 折线生成：总分归一到 0-400 区间 */
+function buildTrendSvg(sorted, target) {
+  var n = sorted.length;
+  if (n === 0) return '<svg viewBox="0 0 320 150"></svg>';
+  var W = 320, H = 150;
+  var padL = 34, padR = 16, padT = 18, padB = 26;
+  var plotW = W - padL - padR;
+  var plotH = H - padT - padB;
+  var yMax = 400;   /* 总分满分 400 */
+
+  function yOf(score) { return padT + plotH - (score / yMax) * plotH; }
+  function xOf(i) { return n === 1 ? padL + plotW / 2 : padL + (plotW / (n - 1)) * i; }
+
+  var html = '';
+  /* 网格线 + Y 轴刻度（0/100/200/300/400） */
+  for (var g = 0; g <= 4; g++) {
+    var gy = padT + plotH - (plotH * g / 4);
+    var gv = g * 100;
+    html += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#F0F2F8" stroke-width="1"/>';
+    html += '<text x="' + (padL - 6) + '" y="' + (gy + 3) + '" fill="#C5CAD6" font-size="9" text-anchor="end">' + gv + '</text>';
+  }
+  /* 目标录取线虚线（第4步实装，本步 target 可能为 null） */
+  if (target && target.score) {
+    var ty = yOf(target.score);
+    html += '<line x1="' + padL + '" y1="' + ty + '" x2="' + (W - padR) + '" y2="' + ty + '" stroke="' + '#F28B3D' + '" stroke-width="1.5" stroke-dasharray="5,3"/>';
+    html += '<text x="' + (W - padR) + '" y="' + (ty - 4) + '" fill="#F28B3D" font-size="9" font-weight="600" text-anchor="end">目标 ' + target.score + '</text>';
+  }
+  /* 总分折线 */
+  var pts = sorted.map(function(s, i){ return { x: xOf(i), y: yOf(getTotal(s)), total: getTotal(s) }; });
+  if (pts.length >= 2) {
+    var path = pts.map(function(p, i){ return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    html += '<path d="' + path + '" fill="none" stroke="#5B72F5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  /* 数据点 + 数值标签 */
+  pts.forEach(function(p, i) {
+    var isLast = (i === pts.length - 1);
+    html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (isLast ? 4.5 : 3.5) + '" fill="#fff" stroke="#5B72F5" stroke-width="2"/>';
+    html += '<text x="' + p.x.toFixed(1) + '" y="' + (p.y - 10) + '" fill="#5B72F5" font-size="' + (isLast ? 11 : 9.5) + '" font-weight="700" text-anchor="middle">' + p.total + '</text>';
+  });
+  /* X 轴日期标签 */
+  sorted.forEach(function(s, i) {
+    var d = (s.date || '').slice(5);  /* MM-DD */
+    html += '<text x="' + xOf(i).toFixed(1) + '" y="' + (H - 8) + '" fill="#C5CAD6" font-size="9" text-anchor="middle">' + d + '</text>';
+  });
+  return '<svg id="trendSvg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + html + '</svg>';
 }
 
 /* ④ 历史成绩卡片 */
