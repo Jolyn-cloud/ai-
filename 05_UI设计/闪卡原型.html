@@ -543,21 +543,6 @@
   .sc-cta:active { transform: scale(.98); }
   .sc-cta span { margin-left: 5px; font-size: 20px; vertical-align: -1px; }
 
-  /* ========================= 演示入口（PM 2026-09-08：假按钮，直接灌演示数据进二级页面，便于演示顽固考点列表） ========================= */
-  .demo-weak-btn {
-    margin: 12px 6px 0;
-    padding: 10px 14px;
-    border: 1px dashed #B8C0E0;
-    border-radius: 10px;
-    background: #F0F3FF;
-    color: #5B72F5;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 5px;
-  }
-  .demo-weak-btn:active { background: #E4EAFB; }
-
   /* ========================= 全部顽固考点子视图（PM 2026-09-08：页内 overlay，点「+N 展开」进入；自带顶栏返回） ========================= */
   .weak-overlay {
     position: absolute; inset: 0; z-index: 60;
@@ -2460,9 +2445,6 @@
       <button class="sc-cta" id="studyCta" onclick="continueStudy()">开始刷卡<span>→</span></button>
     </section>
 
-    <!-- 演示入口：假按钮，灌演示数据直接进顽固考点二级页（PM 2026-09-08） -->
-    <button class="demo-weak-btn" onclick="demoOpenWeak()">演示 · 查看全部顽固考点 →</button>
-
     <!-- 全部章节 -->
     <section class="chapter-section">
       <div class="section-header">
@@ -3571,18 +3553,6 @@ function jumpWeakPoint(chapter, sub, topic){
   __jump('闪卡单卡模式.html?chapter=' + encodeURIComponent(chapter) + '&sub=' + encodeURIComponent(sub) + '&topic=' + encodeURIComponent(topic));
 }
 
-/* 演示：灌入假顽固考点数据，直接打开二级页（PM 2026-09-08，便于演示，无需先刷出未记住） */
-function demoOpenWeak(){
-  window.__weakAll = [
-    { name: '数制及其转换', chapter: '信息与计算机基础知识', sub: '计算机数制与编码概述', topic: '数制及其转换', wrong: 5 },
-    { name: '信息与数据', chapter: '信息与计算机基础知识', sub: '信息与信息技术概述', topic: '信息与数据', wrong: 4 },
-    { name: '计算机的特点及分类', chapter: '信息与计算机基础知识', sub: '计算机发展概述', topic: '计算机的特点及分类', wrong: 3 },
-    { name: '数据结构与算法', chapter: '数据结构', sub: '线性结构', topic: '数据结构与算法', wrong: 3 },
-    { name: '操作系统基础', chapter: '操作系统', sub: '进程管理', topic: '操作系统基础', wrong: 2 }
-  ];
-  openWeakOverlay();
-}
-
 /* ============================================================
    每日学习卡片设置弹窗（底部上滑 + 背景遮罩）
    保存逻辑与闪卡设置页一致（闪卡题库.js saveConfig）：
@@ -3707,6 +3677,9 @@ function _doEnter(f) {
 /* ============ 导出全局（onclick 内联 / 外壳） ============ */
 glob.toggleSettingsPop = toggleSettingsPop;
 glob.continueStudy = continueStudy;
+glob.openWeakOverlay = openWeakOverlay;
+glob.closeWeakOverlay = closeWeakOverlay;
+glob.jumpWeakPoint = jumpWeakPoint;
 glob.closeSettingsPop = closeSettingsPop;
 glob.setPopCount = setPopCount;
 glob.savePopSettings = savePopSettings;
