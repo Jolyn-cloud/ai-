@@ -1536,6 +1536,8 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
+  /* 翻卡态：overlay 跟着翻到背面，用户看背面时 overlay 正面可见（PM 2026-09-08 修 bug3/4） */
+  .swipe-overlay.flipped { transform: rotateY(180deg); }
   .swipe-overlay.right {
     background: linear-gradient(135deg, rgba(32,168,102,0.12), rgba(32,168,102,0.06));
     border: 2.5px solid rgba(32,168,102,0.35);
@@ -1573,7 +1575,7 @@
   .prev-nav {
     display: flex; justify-content: center;
     gap: 10px;
-    margin-top: 2px;
+    margin-top: 12px;
   }
   .prev-btn {
     display: inline-flex; align-items: center; gap: 5px;
@@ -3957,8 +3959,8 @@ function refreshOverlayLabels() {
   var oT = getById('overlayTop');
   if (!oR || !oL) return;
   if (isFlipped) {
-    oR.className = 'swipe-overlay right';
-    oL.className = 'swipe-overlay left';
+    oR.className = 'swipe-overlay right flipped';
+    oL.className = 'swipe-overlay left flipped';
     oR.querySelector('.swipe-label').innerHTML = SVG_OK + '已记住';
     oL.querySelector('.swipe-label').innerHTML = SVG_X + '未记住';
   } else {
@@ -3967,8 +3969,11 @@ function refreshOverlayLabels() {
     oR.querySelector('.swipe-label').innerHTML = SVG_ARROW_R + '下一张';
     oL.querySelector('.swipe-label').innerHTML = SVG_ARROW_L + '上一张';
   }
-  /* 上滑收藏标签：正反两面通用 */
-  if (oT) oT.querySelector('.swipe-label').innerHTML = SVG_ARROW_U + '收藏';
+  /* 上滑收藏标签：正反两面通用；翻卡态补 flipped 使背面可见（PM 2026-09-08） */
+  if (oT) {
+    oT.className = 'swipe-overlay top' + (isFlipped ? ' flipped' : '');
+    oT.querySelector('.swipe-label').innerHTML = SVG_ARROW_U + '收藏';
+  }
 }
 
 /* ============================================================
@@ -4224,8 +4229,9 @@ function onTouchMove(e) {
       refreshOverlayLabels();
     }
     e.preventDefault();
-    dragOffsetY = Math.max(dy, -60);
-    /* 卡片仅上移，不旋转（收藏是轻量提示动作）；上移钳制 -60px，遮罩满亮后卡片不再顶出（PM 2026-09-08） */
+    dragOffsetY = dy;
+    /* 卡片仅上移，不旋转（收藏是轻量提示动作）；视觉位移钳制 -60px，遮罩满亮后卡片不再顶出（PM 2026-09-08）；
+       dragOffsetY 存原始 dy 供松手判定（-80 阈值），clamp 只作用于 transform，避免钳制误伤判定（PM 2026-09-08 修 bug1） */
     var _clampedDy = Math.max(dy, -60);
     card.style.transform = 'translateY(' + _clampedDy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
     updateOverlays(0, dy);
@@ -4334,7 +4340,7 @@ function onMouseMove(e) {
       card.classList.add('dragging');
       refreshOverlayLabels();
     }
-    dragOffsetY = Math.max(dy, -60);
+    dragOffsetY = dy;
     var _clampedDy = Math.max(dy, -60);
     card.style.transform = 'translateY(' + _clampedDy + 'px)' + (isFlipped ? ' rotateY(180deg)' : '');
     updateOverlays(0, dy);
